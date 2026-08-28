@@ -38,6 +38,46 @@ Telas, Permissoes, Teste de Endpoints, Query Builder. Reusa o par
 grid/form/detail da Fase 1. Valor imediato: retira do cliente telas que so o
 dono usa, valida o padrao de reuso no app novo.
 
+## Fase 2b — Onboarding/gestao CROSS-TENANT de Parceiro/Empresa/Login/Roles/Modulos
+
+Pedido explicito do usuario (2026-08-28, apos entrega da Fase 1): o admin
+panel precisa das telas de Parceiros, Roles, Logins e "todos os cadastros
+pra cadastrar um cliente [novo na plataforma]: um parceiro, login, roles" —
+mais a tela pra atribuir modulo contratado a Parceiro/Empresa.
+
+Diferenca fundamental em relacao as telas equivalentes do `task_manager_flutter`:
+la' sao sempre escopadas ao TENANT logado (isolamento por empresaId/parceiroId,
+todo o trabalho de seguranca desta sessao — TenantFilter/TenantSecurity/
+isCliente() etc.). Aqui e' o DONO DO SISTEMA gerenciando/cadastrando QUALQUER
+cliente da plataforma inteira — cross-tenant, nao escopado a um empresaId
+so'. Login usado no admin panel PRECISA ser genuinamente MASTER (tipoLogin
+real, nao o bug de tipo_login=0/ordinal ja corrigido em outro hotfix desta
+sessao) -- nunca reusar as mesmas chamadas de API do cliente sem confirmar
+que o backend realmente bypassa TenantFilter so' pra MASTER (ja e o
+comportamento hoje: `TenantFilter.buildFetchPredicate`/`buildEmpresaFetchPredicate`
+retornam `cb.conjunction()` pra `ctx.isMaster()==true` — CONFIRMAR isso caso
+a caso por endpoint antes de reusar, nao assumir).
+
+Escopo desta fase:
+- Tela de cadastro de Parceiro (novo cliente na plataforma) — cross-tenant,
+  cria o Parceiro + a Empresa dele se ainda nao existir.
+- Tela de Login (criar/editar) cross-tenant — reusa o backend
+  `POST/PUT /api/login` (ja MASTER-aware), mas a TELA em si precisa permitir
+  escolher QUALQUER empresa/parceiro da plataforma (nao so' a do usuario
+  logado, que nem existe nesse contexto de admin).
+- Tela de Roles (listar/gerenciar roles do sistema, nao por-tenant).
+- Tela de atribuicao de Modulo Contratado a Parceiro/Empresa (dominio
+  `modulo-servico`/`servico-contratado` ja existente no backend).
+- Fluxo de "onboarding de cliente novo": parceiro + empresa + login inicial
+  + roles + modulos contratados, numa sequencia coerente (nao
+  necessariamente 1 tela so' — pode ser um wizard/fluxo de varias telas
+  encadeadas, decidir no PLAN.md desta fase apos pesquisa).
+
+Esta fase deve vir ANTES da Fase 3 (Licenca/Contatos/OS) na ordem de
+implementacao, ja que "cadastrar cliente novo" e' o fluxo mais fundamental
+do produto — mas so' apos a Fase 2 (migracao do menu "Sistema") estar
+concluida e revisada, pra nao acumular mudanca demais numa unica rodada.
+
 ## Fase 3 — Licenca, Contatos, Ordem de Servico, Modulos contratados
 
 CRUD completo de:
