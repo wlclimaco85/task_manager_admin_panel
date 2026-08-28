@@ -15,6 +15,17 @@ import 'generic_detail_form_screen.dart';
 /// cliente (busca remota debounced, upload de arquivo, dropdown
 /// relacionado etc.) entram incrementalmente nas fases seguintes, quando
 /// algum modulo realmente precisar — ver RESEARCH.md da Fase 1.
+///
+/// LIMITACAO CONHECIDA (achado de code-review, registrada e nao corrigida
+/// nesta fase): a busca de [listUrl] nao envia parametro de tamanho de
+/// pagina nem termo de busca ao backend — carrega um unico lote (o default
+/// do endpoint) e filtra so localmente sobre ele. Se o endpoint real tiver
+/// mais registros que o default do backend, linhas alem do 1o lote ficam
+/// invisiveis e nao pesquisaveis. Mesma classe de bug ja documentada e
+/// corrigida no app cliente para o dropdown de Parceiro (Trello card 580,
+/// ver MEMORY.md do workspace) — busca remota paginada/debounced deve ser
+/// adicionada aqui quando um modulo real (Fase 2+) tiver volume que
+/// justifique.
 class GenericGridScreen extends StatefulWidget {
   const GenericGridScreen({
     super.key,
@@ -44,6 +55,10 @@ class GenericGridScreen extends StatefulWidget {
 class GenericGridScreenState extends State<GenericGridScreen> {
   late final NetworkCaller _caller = widget.networkCaller ?? NetworkCaller();
 
+  /// So fecha o client HTTP no dispose quando esta tela o criou (achado de
+  /// code-review: nao fechar um client injetado por quem chamou o widget).
+  bool get _ownsCaller => widget.networkCaller == null;
+
   List<Map<String, dynamic>> _allRows = [];
   List<Map<String, dynamic>> _filteredRows = [];
   bool _loading = true;
@@ -58,6 +73,12 @@ class GenericGridScreenState extends State<GenericGridScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsCaller) _caller.close();
+    super.dispose();
   }
 
   Future<void> _load() async {

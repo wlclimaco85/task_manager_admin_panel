@@ -57,7 +57,8 @@ class TenantContext {
       params['empId'] = empresaId.toString();
     }
 
-    if (hasUser) {
+    final hasExplicitUserScope = params.containsKey('userId');
+    if (hasUser && !hasExplicitUserScope) {
       params['userId'] = userId.toString();
     }
 

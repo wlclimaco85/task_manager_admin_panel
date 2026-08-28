@@ -57,8 +57,12 @@ class AuthService {
     } on FormatException {
       return const LoginResult.error(
           'Resposta invalida do servidor. Tente novamente.');
-    } catch (e) {
-      return LoginResult.error('Falha de conexao com o servidor: $e');
+    } catch (_) {
+      // Nao expor detalhe interno da excecao (SocketException, TLS, DNS
+      // etc.) na UI — achado de code-review: mensagem crua vazava detalhe
+      // de conexao para o usuario final.
+      return const LoginResult.error(
+          'Nao foi possivel conectar ao servidor. Verifique sua conexao e tente novamente.');
     }
   }
 

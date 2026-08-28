@@ -39,6 +39,7 @@ class GenericDetailFormScreen extends StatefulWidget {
 class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final NetworkCaller _caller = widget.networkCaller ?? NetworkCaller();
+  bool get _ownsCaller => widget.networkCaller == null;
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, bool> _boolValues = {};
 
@@ -61,6 +62,7 @@ class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
 
   @override
   void dispose() {
+    if (_ownsCaller) _caller.close();
     for (final c in _controllers.values) {
       c.dispose();
     }

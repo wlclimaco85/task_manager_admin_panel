@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../utils/tenant_context.dart';
 import 'home_screen.dart';
 
 /// Tela de login do Painel do Dono. Propria deste app (nao copiada do
@@ -54,6 +55,25 @@ class LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Achado de code-review: o backend de login e o MESMO endpoint usado
+    // pelo app cliente (task_manager_flutter), entao qualquer conta que
+    // autentique la tambem autentica aqui. O Painel do Dono e exclusivo do
+    // dono/administracao — nega acesso client-side a quem nao for
+    // admin/master. DEBITO TECNICO conhecido (ver .planning/ROADMAP.md):
+    // TenantContext.isAdmin hoje usa heuristica de e-mail hardcoded como
+    // fallback; a fonte de verdade real deve virar uma role dedicada
+    // verificada no backend (@PreAuthorize), nao so este gate client-side.
+    if (!TenantContext.isAdmin) {
+      await _authService.logout();
+      if (!mounted) return;
+      setState(() {
+        _errorMessage =
+            'Este login nao tem permissao de administrador para acessar o Painel do Dono.';
+      });
+      return;
+    }
+
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );

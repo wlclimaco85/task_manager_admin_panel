@@ -75,6 +75,11 @@ class NetworkCaller {
     return _toNetworkResponse(response);
   }
 
+  /// Libera a conexao HTTP subjacente. Chamar quando o NetworkCaller nao
+  /// for mais usado (achado de code-review: telas que criam sua propria
+  /// instancia sem injetar um client externo devem fechar no dispose).
+  void close() => _client.close();
+
   NetworkResponse _toNetworkResponse(http.Response response) {
     dynamic decoded;
     try {
