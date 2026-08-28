@@ -40,4 +40,163 @@ class ApiLinks {
   static String get createContato => '$_baseUrl/api/contatos';
   static String updateContato(String id) => '$_baseUrl/api/contatos/$id';
   static String deleteContato(String id) => '$_baseUrl/api/contatos/$id';
+
+  // ===========================================================================
+  // Fase 2 — Migracao do menu "Sistema" (RESEARCH.md/PLAN.md da fase). Todos os
+  // getters abaixo sao declarados de uma vez (Task 01.2) como contrato para os
+  // 13 planos seguintes, mesmo que consumidos so nas waves 2-4.
+  // ===========================================================================
+
+  // SIS-01 Aplicativo
+  static String get allAplicativos => '$_baseUrl/api/aplicativo';
+  static String get createAplicativo => '$_baseUrl/api/aplicativo';
+  static String updateAplicativo(String id) => '$_baseUrl/api/aplicativo/$id';
+  static String deleteAplicativo(String id) => '$_baseUrl/api/aplicativo/$id';
+
+  // SIS-02 Cadastro Empresa (wizard, sequencia empresa -> logins -> clientes ->
+  // contas -> nfe -> chamados -> chat -> funcionarios; rollback LIFO via delete).
+  static String get createEmpresa => '$_baseUrl/api/empresa';
+  static String deleteEmpresa(String id) => '$_baseUrl/api/empresa/$id';
+  static String get createLogin => '$_baseUrl/api/login';
+  static String deleteLogin(String id) => '$_baseUrl/api/login/$id';
+  static String get createParceiro => '$_baseUrl/api/parceiro';
+  static String deleteParceiro(String id) => '$_baseUrl/api/parceiro/$id';
+  static String get createContaPagar => '$_baseUrl/api/conta_pagar';
+  static String deleteContaPagar(String id) => '$_baseUrl/api/conta_pagar/$id';
+  static String get createContaReceber => '$_baseUrl/api/conta_receber';
+  static String deleteContaReceber(String id) =>
+      '$_baseUrl/api/conta_receber/$id';
+  static String get createNfe => '$_baseUrl/api/nfe';
+  static String deleteNfe(String id) => '$_baseUrl/api/nfe/$id';
+  static String get createChamado => '$_baseUrl/api/chamados';
+  static String deleteChamado(String id) => '$_baseUrl/api/chamados/$id';
+  static String get createChat => '$_baseUrl/api/chat';
+  static String deleteChat(String id) => '$_baseUrl/api/chat/$id';
+
+  // SIS-04 Importacao Cadastros (_ImportacaoCadastrosSection — contrato
+  // DISTINTO do de SIS-02 acima: endpoints/verbos diferentes, nao reutilizar).
+  static String allEmpresasByAplicativo(String codApp) =>
+      '$_baseUrl/api/empresa?codApp=$codApp';
+  static String parceirosByEmpresa(String empresaId) =>
+      '$_baseUrl/api/parceiro/empresa/$empresaId';
+  static String updateEmpresa(String id) => '$_baseUrl/api/empresa/update/$id';
+  static String get insertParceiro => '$_baseUrl/api/parceiro/insert';
+  static String updateParceiro(String id) =>
+      '$_baseUrl/api/parceiro/update/$id';
+  static String loginsByEmpresa(String empId) =>
+      '$_baseUrl/api/logins?empId=$empId';
+  static String get createLoginCadastro => '$_baseUrl/api/logins';
+  static String updateLoginCadastro(String id) => '$_baseUrl/api/logins/$id';
+  static String funcionariosByEmpresa(String empId) =>
+      '$_baseUrl/api/funcionario?empId=$empId';
+  static String get createFuncionario => '$_baseUrl/api/funcionario';
+  static String updateFuncionario(String id) =>
+      '$_baseUrl/api/funcionario/$id';
+  static String get allPlanos => '$_baseUrl/api/planos';
+  static String get allPlanosAcademia => '$_baseUrl/api/planos_academia';
+  static String get createPlano => '$_baseUrl/api/planos';
+  static String updatePlano(String id) => '$_baseUrl/api/planos/$id';
+  static String get createPlanoAcademia => '$_baseUrl/api/planos_academia';
+  static String updatePlanoAcademia(String id) =>
+      '$_baseUrl/api/planos_academia/$id';
+  static String get servicosContratados =>
+      '$_baseUrl/api/servico-contratado?tamanho=10000';
+  static String get createServicoContratado =>
+      '$_baseUrl/api/servico-contratado';
+  static String updateServicoContratado(String id) =>
+      '$_baseUrl/api/servico-contratado/$id';
+
+  // SIS-03 Configuracoes Admin (6 sub-CRUDs)
+  static String get allCargos => '$_baseUrl/api/cargo';
+  static String get createCargo => '$_baseUrl/api/cargo';
+  static String updateCargo(String id) => '$_baseUrl/api/cargo/$id';
+  static String deleteCargo(String id) => '$_baseUrl/api/cargo/$id';
+
+  static String get allCentroCusto => '$_baseUrl/api/centro-custo';
+  static String get createCentroCusto => '$_baseUrl/api/centro-custo';
+  static String updateCentroCusto(String id) =>
+      '$_baseUrl/api/centro-custo/$id';
+  static String deleteCentroCusto(String id) =>
+      '$_baseUrl/api/centro-custo/$id';
+
+  static String get allDepartamento => '$_baseUrl/api/departamento';
+  static String get createDepartamento => '$_baseUrl/api/departamento';
+  static String updateDepartamento(String id) =>
+      '$_baseUrl/api/departamento/$id';
+  static String deleteDepartamento(String id) =>
+      '$_baseUrl/api/departamento/$id';
+
+  static String get allFeriado => '$_baseUrl/api/feriado';
+  static String get createFeriado => '$_baseUrl/api/feriado';
+  static String updateFeriado(String id) => '$_baseUrl/api/feriado/$id';
+  static String deleteFeriado(String id) => '$_baseUrl/api/feriado/$id';
+
+  static String get allHorarioFunc => '$_baseUrl/api/horarioFunc';
+  static String get createHorarioFunc => '$_baseUrl/api/horarioFunc';
+  static String updateHorarioFunc(String id) =>
+      '$_baseUrl/api/horarioFunc/$id';
+  static String deleteHorarioFunc(String id) =>
+      '$_baseUrl/api/horarioFunc/$id';
+
+  static String get allTipoProduto => '$_baseUrl/api/tipoProdutos';
+  static String get createTipoProduto => '$_baseUrl/api/tipoProdutos';
+  static String updateTipoProduto(String id) =>
+      '$_baseUrl/api/tipoProdutos/$id';
+  static String deleteTipoProduto(String id) =>
+      '$_baseUrl/api/tipoProdutos/$id';
+
+  // SIS-04 Config. Sistema (acoes simples, jobs, importacao, banco)
+  static String gerarTelas({bool forceUpdate = false, bool fullReset = false}) =>
+      '$_baseUrl/api/telas/generate?forceUpdate=$forceUpdate&fullReset=$fullReset';
+  static String get regenerarTelas =>
+      '$_baseUrl/api/admin/regenerar-telas';
+  static String get seedMock => '$_baseUrl/api/admin/seed';
+  static String deleteSeedMock(String empresaId) =>
+      '$_baseUrl/api/admin/seed?empresaId=$empresaId';
+  static String get noticiasLimparEBaixar =>
+      '$_baseUrl/api/admin/jobs/noticias-limpar-e-baixar';
+  static String get noticiasApagar =>
+      '$_baseUrl/api/admin/jobs/noticias-apagar';
+  static String get dbStatus => '$_baseUrl/api/admin/db-status';
+  static String get fixDb => '$_baseUrl/api/admin/fix-db';
+  static String get resetDatabase => '$_baseUrl/api/admin/reset-database';
+  static String get allJobs => '$_baseUrl/api/admin/jobs';
+  static String executarJob(String nome, {bool forcar = false}) =>
+      '$_baseUrl/api/admin/jobs/$nome/executar?forcar=$forcar';
+  static String historicoJob(String nome) =>
+      '$_baseUrl/api/admin/jobs/$nome/historico';
+  static String get importacaoPreview => '$_baseUrl/api/importacao/preview';
+  static String get importacaoContaPagar =>
+      '$_baseUrl/api/importacao/conta-pagar';
+  static String get importacaoContaReceber =>
+      '$_baseUrl/api/importacao/conta-receber';
+
+  // SIS-05 Editor de Telas
+  static String get allTelas => '$_baseUrl/api/telas?tamanho=500';
+  static String telaByNome(String nome) => '$_baseUrl/api/telas/$nome';
+  static String reorderTelaFields(String telaId) =>
+      '$_baseUrl/api/telas/$telaId/fields/reorder';
+  static String updateTelaField(String telaId, String fieldId) =>
+      '$_baseUrl/api/telas/$telaId/fields/$fieldId';
+
+  // SIS-06 Permissoes
+  static String get allRolePermissoes => '$_baseUrl/api/role-permissao/all';
+  static String get allRoles => '$_baseUrl/api/role';
+  static String updateRolePermissao(String roleId, String telaNomeEncoded) =>
+      '$_baseUrl/api/role-permissao/$roleId/$telaNomeEncoded';
+  static String get batchRolePermissao =>
+      '$_baseUrl/api/role-permissao/batch';
+
+  // SIS-07 Teste de Endpoints
+  static String get adminEndpointsReflection => '$_baseUrl/api/admin/endpoints';
+
+  // SIS-08 Query Builder
+  static String get queryBuilderSchemas =>
+      '$_baseUrl/api/ferramentas/query-builder/schemas';
+  static String get queryBuilderTabelas =>
+      '$_baseUrl/api/ferramentas/query-builder/tabelas';
+  static String queryBuilderColunas(String schema, String tabela) =>
+      '$_baseUrl/api/ferramentas/query-builder/tabelas/$schema/$tabela/colunas';
+  static String get queryBuilderExecutar =>
+      '$_baseUrl/api/ferramentas/query-builder/executar';
 }
