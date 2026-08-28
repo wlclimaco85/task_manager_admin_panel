@@ -119,3 +119,12 @@ registrada no comentario do card #578 e no relatorio final desta sessao).
   usar o admin panel em producao real.
 - Schema de licenca/modulos contratados no backend ainda nao investigado.
 - Instrumentacao de analytics de uso de tela: existencia nao confirmada.
+- **Fase 2, item SIS-05 (Editor de Telas) — backend incompleto.** `TelaController.java`
+  (AppAcademia) so expoe `GET /api/telas` e `GET /api/telas/{nome}`. Os endpoints
+  `PUT /api/telas/{telaId}/fields/reorder` (reordenar campos) e
+  `PUT /api/telas/{telaId}/fields/{fieldId}` (salvar propriedades de um campo) NAO existem
+  no backend ainda -- o Flutter (`tela_editor_screen.dart`/`tela_field_editor_screen.dart`)
+  foi implementado contra o contrato ja declarado em `ApiLinks` (Wave 1 desta fase), com erro
+  de rede tratado visivelmente, mas a funcionalidade de editar/reordenar campos so funciona
+  de fato depois que esses 2 endpoints forem implementados no `AppAcademia`. Bloqueia a
+  Task 13.3 (validacao end-to-end) da Fase 2 para este item especifico.
