@@ -37,6 +37,7 @@ class GenericGridScreen extends StatefulWidget {
     required this.fields,
     this.networkCaller,
     this.rowsPerPage = 10,
+    this.embedded = false,
   });
 
   final String title;
@@ -47,6 +48,13 @@ class GenericGridScreen extends StatefulWidget {
   final List<FieldConfig> fields;
   final NetworkCaller? networkCaller;
   final int rowsPerPage;
+
+  /// Quando `true`, `build()` retorna so o corpo (sem `Scaffold`/`AppBar`/
+  /// `FloatingActionButton` proprios) para ser embutido dentro de um
+  /// container externo (ex. aba de `TabBarView`) sem duplicar chrome
+  /// (achado gsd-plan-checker, Fase 2 Task 01.4). A acao de criar
+  /// registro vira um botao inline no topo do corpo nesse modo.
+  final bool embedded;
 
   @override
   State<GenericGridScreen> createState() => GenericGridScreenState();
@@ -100,7 +108,13 @@ class GenericGridScreenState extends State<GenericGridScreen> {
       return;
     }
 
-    final data = response.body?['data'] ?? response.body?['dados'] ?? [];
+    dynamic data = response.body?['data'] ?? response.body?['dados'] ?? [];
+    // Achado Pitfall 1 (RESEARCH.md Fase 2): alguns endpoints (ex.
+    // AplicativoController) retornam a lista aninhada em `data.dados` ou
+    // `data.content` (formato paginado), nao `data` como lista direta.
+    if (data is Map) {
+      data = data['dados'] ?? data['content'] ?? [];
+    }
     final rows = (data is List)
         ? data
             .whereType<Map>()
@@ -207,6 +221,10 @@ class GenericGridScreenState extends State<GenericGridScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      return _buildEmbeddedBody();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -241,6 +259,46 @@ class GenericGridScreenState extends State<GenericGridScreen> {
             Expanded(child: _buildBody()),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmbeddedBody() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('grid_search_field'),
+                  decoration: const InputDecoration(
+                    labelText: 'Buscar',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: _onSearchChanged,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              IconButton(
+                key: const Key('grid_refresh_button'),
+                icon: const Icon(Icons.refresh),
+                onPressed: _load,
+                tooltip: 'Atualizar',
+              ),
+              ElevatedButton.icon(
+                key: const Key('grid_add_button_inline'),
+                onPressed: () => _openForm(),
+                icon: const Icon(Icons.add),
+                label: const Text('Novo'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Expanded(child: _buildBody()),
+        ],
       ),
     );
   }

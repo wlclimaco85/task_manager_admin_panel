@@ -28,6 +28,17 @@ NetworkCaller _callerReturning(List<Map<String, dynamic>> data,
   return NetworkCaller(client: client);
 }
 
+NetworkCaller _callerReturningBody(Map<String, dynamic> body) {
+  final client = MockClient((request) async {
+    return http.Response(
+      jsonEncode(body),
+      200,
+      headers: {'content-type': 'application/json'},
+    );
+  });
+  return NetworkCaller(client: client);
+}
+
 void main() {
   testWidgets('mostra estado de carregamento e depois os dados',
       (tester) async {
@@ -114,5 +125,85 @@ void main() {
 
     expect(find.text('Ana'), findsWidgets);
     expect(find.text('Bruno'), findsNothing);
+  });
+
+  testWidgets(
+      'popula linhas quando data e um Map aninhado ({data:{dados:[...],total:N}})',
+      (tester) async {
+    final caller = _callerReturningBody({
+      'data': {
+        'dados': [
+          {'id': 1, 'nome': 'Contato A', 'email': 'a@x.com'},
+        ],
+        'total': 1,
+      },
+    });
+
+    await tester.pumpWidget(_wrap(GenericGridScreen(
+      title: 'Contatos',
+      listUrl: 'http://backend/api/contatos',
+      createUrl: 'http://backend/api/contatos',
+      updateUrl: (id) => 'http://backend/api/contatos/$id',
+      deleteUrl: (id) => 'http://backend/api/contatos/$id',
+      fields: _fields,
+      networkCaller: caller,
+    )));
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('grid_data_table')), findsOneWidget);
+    expect(find.text('Contato A'), findsOneWidget);
+  });
+
+  testWidgets('popula linhas quando dados vem direto na raiz ({dados:[...]})',
+      (tester) async {
+    final caller = _callerReturningBody({
+      'dados': [
+        {'id': 1, 'nome': 'Contato A', 'email': 'a@x.com'},
+      ],
+    });
+
+    await tester.pumpWidget(_wrap(GenericGridScreen(
+      title: 'Contatos',
+      listUrl: 'http://backend/api/contatos',
+      createUrl: 'http://backend/api/contatos',
+      updateUrl: (id) => 'http://backend/api/contatos/$id',
+      deleteUrl: (id) => 'http://backend/api/contatos/$id',
+      fields: _fields,
+      networkCaller: caller,
+    )));
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('grid_data_table')), findsOneWidget);
+    expect(find.text('Contato A'), findsOneWidget);
+  });
+
+  testWidgets(
+      'GenericGridScreen embedded:true nao renderiza Scaffold/AppBar proprio e mostra botao Novo inline',
+      (tester) async {
+    final caller = _callerReturning([]);
+
+    await tester.pumpWidget(_wrap(Scaffold(
+      appBar: AppBar(title: const Text('Container externo')),
+      body: GenericGridScreen(
+        title: 'Contatos',
+        listUrl: 'http://backend/api/contatos',
+        createUrl: 'http://backend/api/contatos',
+        updateUrl: (id) => 'http://backend/api/contatos/$id',
+        deleteUrl: (id) => 'http://backend/api/contatos/$id',
+        fields: _fields,
+        networkCaller: caller,
+        embedded: true,
+      ),
+    )));
+
+    await tester.pumpAndSettle();
+
+    // So deve existir 1 Scaffold/AppBar (o do container externo).
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byKey(const Key('grid_add_button_inline')), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsNothing);
   });
 }
