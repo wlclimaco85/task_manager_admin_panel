@@ -6,6 +6,7 @@ import '../services/auth_utility.dart';
 import '../widgets/generic/field_config.dart';
 import '../widgets/generic/generic_grid_screen.dart';
 import 'login_screen.dart';
+import 'sistema/sistema_menu_screen.dart';
 
 /// Shell pos-login do Painel do Dono. Nesta Fase 1, expoe um unico modulo
 /// de demonstracao (Contatos) que prova o par grid+form+detail ponta a
@@ -77,6 +78,22 @@ class HomeScreen extends StatelessWidget {
                       deleteUrl: ApiLinks.deleteContato,
                       fields: _contatoFields,
                     ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Card(
+              child: ListTile(
+                key: const Key('home_sistema_tile'),
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('Sistema'),
+                subtitle: const Text(
+                    'Aplicativo, Cadastro Empresa, Configurações Admin, Config. Sistema, Editor de Telas, Permissões, Teste de Endpoints, Query Builder.'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SistemaMenuScreen(),
                   ),
                 ),
               ),
