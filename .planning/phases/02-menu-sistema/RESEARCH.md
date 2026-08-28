@@ -497,13 +497,145 @@ planner.
 4. ~~Teste de Endpoints e Query Builder: pertencem ao "Painel do Dono"?~~ — RESOLVIDO, ver
    Decisões do PO item 4 (sim, ambos ficam).
 
-5. **Leitura incompleta de 4 arquivos grandes** (`cadastro_empresa_wizard.dart` além da linha 150,
-   `configuracoes_sistema_screen.dart` além da linha 1341, `tela_editor_screen.dart` e
-   `role_permissao_screen.dart`/`system_test_screen.dart` além da linha 120).
-   - Recomendação: antes do plan-phase da fase 2, um agente especialista Flutter deve ler os
-     4 arquivos por completo para produzir o detalhamento de tasks — esta pesquisa já classificou
-     corretamente o tipo de cada tela (bespoke vs. CRUD) e mapeou os endpoints confirmados, o que
-     é suficiente para o planejamento de alto nível, mas não para escrever as tasks linha a linha.
+5. ~~Leitura incompleta de 5 arquivos grandes~~ — RESOLVIDO. Os 5 arquivos foram lidos por
+   completo (`cadastro_empresa_wizard.dart` 1395 linhas, `configuracoes_sistema_screen.dart`
+   4569 linhas, `tela_editor_screen.dart` 658 linhas, `role_permissao_screen.dart` 503 linhas,
+   `system_test_screen.dart` 1867 linhas). Ver seção "Leitura completa dos 5 arquivos grandes"
+   abaixo para o detalhamento usado pelo plan-phase.
+
+## Leitura completa dos 5 arquivos grandes (resolve Open Question 5)
+
+### Item 2 — `cadastro_empresa_wizard.dart` (1395 linhas, completo)
+
+Wizard de 7 passos que cria uma empresa + dados de seed em sequência, via `http.post`/`http.delete`
+crus (não `NetworkCaller`), com rollback automático (LIFO) em caso de falha em qualquer etapa.
+
+**Sequência de execução (`_execute`)**: 1) `POST /api/empresa` → guarda `empresaId`. 2) `POST
+/api/login` para 2 usuários fixos (ADMIN, FINANCEIRO; `tipoLogin:1`). 3) Para 5 clientes: `POST
+/api/parceiro` + `POST /api/login` (`tipoLogin:2`, vinculado ao parceiro). 4) `POST
+/api/conta_pagar` ×5 (payload usa campo `parceiro`). 5) `POST /api/conta_receber` ×5 (**atenção**:
+mesmo payload mas campo se chama `cliente`, não `parceiro` — assimetria do backend a replicar
+fielmente). 6) `POST /api/nfe` ×1. 7) `POST /api/chamados` ×3. 8) `POST /api/chat` ×1 (condicional
+a existir cliente). 9) Para 5 funcionários: `POST /api/parceiro` (`tipoAluno:'FUNCIONARIO'`) +
+`POST /api/login` (`tipoLogin:3`).
+
+**Propagação de IDs**: `empresaRef={id:empresaId}` montado uma vez e reutilizado em todos os
+payloads seguintes; `parceiroRef={id:primeiro cliente}` idem para contas/chamados/chat.
+`_extractId` tenta 4 formatos de resposta (`body.id`, `body.data.id`, `body.data.parceiro.id`,
+`body.data.login.id`) — necessário pois cada endpoint devolve formato diferente.
+
+**Erro/rollback**: primeira falha (`id == null`) lança `_CadastroException` e interrompe TUDO
+imediatamente (não continua os itens seguintes da mesma lista); rollback percorre
+`_createdEntities` em ordem reversa chamando `DELETE {url}/{id}` por item, sem parar se uma
+remoção individual falhar.
+
+**Dependências a recriar no admin panel**: `GridColors` (não existe — precisa criar equivalente
+mínimo ou usar tokens do tema próprio do admin panel); confirmar se `NetworkCaller` do admin panel
+tem `deleteRequest` (o wizard original usa `http.delete` cru, precisa migrar para `NetworkCaller`
+por consistência com o resto do app, verificando que `TenantContext.applyToBody`/`headers` não
+conflita com os payloads que já montam `empresa:{id}` manualmente).
+
+**Complexidade de port: MÉDIA.** Lógica de negócio isolada e portável quase 1:1; o trabalho real é
+trocar `http` cru por `NetworkCaller` e recriar `GridColors`. UI (~450 linhas de widgets internos)
+é mecânica/repetitiva, copiável quase sem alteração.
+
+### Item 4 — `configuracoes_sistema_screen.dart`, seções de Importação CSV (linhas 1341-4569, completo)
+
+(Seções 1-1341 já detalhadas na pesquisa original — Geração de Telas, Mock, Notícias, Jobs, Banco
+de Dados.) O restante do arquivo (3228 linhas) é ocupado inteiramente por duas seções de
+importação CSV:
+
+**`_ImportacaoSection` (Contas a Pagar/Receber, linhas 1267-2656) — port BAIXO-MÉDIO.** Delega todo
+o trabalho pesado ao backend: `POST /api/importacao/preview` (multipart, detecta colunas do CSV) e
+`POST /api/importacao/conta-pagar`|`conta-receber` (multipart, importação real; query params
+`empId`, `parId`, `upsert=true`; form-data com o mapeamento de colunas + arquivo no campo
+`arquivo`). Usa `package:file_picker` (`FilePicker.pickFiles(type: FileType.custom,
+allowedExtensions:['csv'], withData:true)`). Auto-mapeamento de colunas via dicionário de
+sinônimos normalizado (minúsculas, sem acento).
+
+**`_ImportacaoCadastrosSection` (Empresas/Parceiros/Funcionários/Logins/Planos, linhas 2658-4569) —
+port ALTO.** NÃO existe endpoint de importação em lote — todo o parsing de CSV (`_parseCsv`,
+RFC4180-ish, separador `;`/`,` auto-detectado) e toda a lógica de negócio (dedup via GET+filtro em
+memória, decisão create-vs-update, resolução de FK empresa/parceiro, heurísticas como
+`_isFaturamentoServico`) rodam no cliente, disparando ~10 endpoints REST individuais por linha do
+CSV (`/api/empresa`, `/api/parceiro/insert`, `/api/logins`, `/api/funcionario`, `/api/planos`,
+`/api/servico-contratado`, cada um com GET de dedup + POST/PUT). Usa um helper próprio
+`pickAndReadFile()` (`lib/helpers/file_upload_helper_web.dart` — `<input type=file>` HTML +
+`FileReader`, não `file_picker`) — **recomendação: reusar este padrão no admin panel para AMBAS
+as seções**, evitando a dependência externa `file_picker` (o próprio código-fonte já demonstra que
+não é necessária).
+
+### Item 5 — `tela_editor_screen.dart` (658 linhas, completo)
+
+**Confirmado**: não é apenas um grid — é um editor de metadados de campo em 2 telas encadeadas.
+
+1. **`TelaEditorScreen`** (grid): `GET /api/telas?tamanho=500` (parse de 3 formatos possíveis de
+   resposta), busca client-side por nome/título, card por tela mostrando contagem de campos, botão
+   "Editar" navega para o editor.
+2. **`_FieldEditorScreen`** (editor, 2 painéis): `GET /api/telas/{telaNome}` carrega `fields`
+   (ordenados por `fieldOrder`); painel esquerdo é `ReorderableListView` dos campos (drag-to-reorder
+   dispara `PUT /api/telas/{telaId}/fields/reorder` com `[{id, fieldOrder}]`); painel direito
+   (`_FieldPropertiesPanel`) edita as propriedades de UM campo selecionado — Identificação
+   (label, fieldName, displayFieldName, fieldOrder), Tipo (`fieldType`: 16 opções incl.
+   dropdown/multiselect/currency/cpf/cnpj — mais `maxLines` se multiline, `dropdownEndpoint` se
+   dropdown/multiselect, `mask`), Visibilidade (6 switches: isInForm, isVisibleByDefault,
+   isFilterable, isSortable, showInInsert, showInUpdate), Comportamento (4 switches: isRequired,
+   enabled, isFixed, multiSelect), Payload (`defaultValue` com parsing especial: aceita JSON,
+   bool, número, string literal ou templates `{{now+Nd}}`/`{{campo:xxx}}`). Salvar dispara `PUT
+   /api/telas/{telaId}/fields/{fieldId}` com o campo inteiro.
+
+**Complexidade de port: BAIXA-MÉDIA.** Arquivo autocontido, sem dependência externa incomum além
+de `GridColors`/`AuthUtility`/`ApiLinks` (mesmos gaps do item 2). Não usa `NetworkCaller` (usa
+`http` cru) — migrar por consistência. O `ReorderableListView` + os 2 endpoints extras de
+reorder/update-por-campo são a única parte não-trivial; o resto é formulário mecânico.
+
+### Item 6 — `role_permissao_screen.dart` (503 linhas, completo)
+
+Confirma a pesquisa original: matriz Role × Tela × Campo. `GET /api/role-permissao/all` (todas as
+permissões de todas as roles, filtro por role feito em memória) + `GET /api/role`. Save individual
+por checkbox é **PUT** `${baseUrl}/api/role-permissao/{roleId}/{telaNome}` (telaNome via
+`Uri.encodeComponent`, body `{campo: valor}`) — não POST batch como se poderia supor; o **POST
+`/api/role-permissao/batch`** só é usado pelo checkbox de "grupo" (marca/desmarca todas as 5
+permissões de todas as telas de um menu de uma vez, via `buildRolePermissionGroupBatch` — função
+externa em `role_permission_group_selection.dart`, precisa ser portada junto).
+
+**Lógica crítica a replicar verbatim** (funções top-level, puras, sem dependência de widget —
+copiáveis 1:1): `_normalizeTelaNome` (lowercase + remove `_`) e `toBackendTelaNome`
+(snake_case→camelCase) — corrigem uma regressão documentada nos cards #460/#471/#493 de mismatch
+entre `menu_config.dart` (snake_case) e `role_permissao.tela_nome` no backend (camelCase). Não
+reinventar esta lógica.
+
+**Dependências a portar**: model `RolePermissao`, `RolePermissionCatalog`/`RolePermissionGroup`/
+`RolePermissionMenuEntry` (`role_permission_catalog.dart`), `buildRolePermissionGroupBatch` e
+funções irmãs (`role_permission_group_selection.dart`). Esse trio de arquivos de suporte é o
+grosso do esforço, não a tela em si.
+
+**Complexidade de port: BAIXA-MÉDIA.**
+
+### Item 7 — `system_test_screen.dart` (1867 linhas, completo)
+
+3 abas via `TabController`:
+
+1. **`_CrudTestTab`** ("Endpoints CRUD") — dois modos: (a) "Iniciar Testes" roda ~25 cenários
+   hardcoded (`_buildScenarios()`) contra ~35 endpoints reais de domínio (login, noticias,
+   comunicado, chamados, contas, cotações, role, parceiro, dashboard, etc.), payloads fixos; (b)
+   "Testar Todos" busca `GET /api/admin/endpoints` (reflection do backend, lista todos os
+   controllers/paths/métodos do sistema) e roda CRUD genérico com payload heurístico
+   (`_buildDynamicPayload`). Port ALTO (cenários muito amarrados ao domínio atual).
+2. **`_TelasTestTab`** ("Telas Dinâmicas") — itera `GET /api/telas` e testa GET/POST/PUT/DELETE de
+   cada tela dinâmica, resolvendo FK real via `_resolveFkId`. Port ALTO — depende do model
+   `TelaConfig`/`telas_model.dart` completo.
+3. **`_EndpointsTestTab`** ("Teste Endpoints") — **não é terminal HTTP livre**: path restrito a
+   lista hardcoded de ~50 endpoints (comentário no código-fonte: "hardcoded 50 endpoints principais
+   (reflection adicionado quando escalar)" — vários nem existem mais no backend real). UI: busca
+   filtra a lista fixa, dropdown de método GET/POST/PUT/DELETE, botão testa o primeiro item
+   filtrado. **Sem campo de body editável** — POST/PUT sempre enviam `{}` fixo. Port BAIXO-MÉDIO
+   **se reconstruído do zero como path livre** (`TextField` de path + editor de JSON de body) em
+   vez de copiar a lista hardcoded — o próprio comentário no código-fonte já sinaliza essa
+   intenção original. **Recomendação para o admin panel**: portar SÓ esta 3ª aba, reconstruída
+   como terminal HTTP genuinamente livre (path digitável, verbo, body JSON editável) — as abas 1
+   e 2 são ferramentas de regressão amarradas a payloads do `task_manager_flutter` atual e têm
+   valor limitado fora daquele contexto; não portar 1:1.
 
 ## Sources
 
