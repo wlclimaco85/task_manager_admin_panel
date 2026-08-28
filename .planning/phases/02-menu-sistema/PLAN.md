@@ -97,7 +97,7 @@ workspace, portanto já avaliado como legítimo).
 
 | Wave | Plano | Item(ns) SIS | Depende de | Arquivos principais (novos, salvo indicação) |
 |---|---|---|---|---|
-| 1 | P01 | SIS-09 (contratos) | — | `generic_grid_screen.dart` (fix), `api_links.dart` (getters) |
+| 1 | P01 | SIS-09 (contratos) | — | `generic_grid_screen.dart` (fix + `embedded`), `api_links.dart` (getters), `pubspec.yaml` (`file_picker`) |
 | 1 | P01b | SIS-09 (infra) | — | `utils/csv_parser.dart`, `screens/sistema/sistema_menu_screen.dart`, `screens/home_screen.dart` (edit) |
 | 2 | P02 | SIS-01, SIS-03 | P01 | `screens/sistema/aplicativo_screen.dart`, `screens/sistema/configuracoes_admin_screen.dart` |
 | 2 | P03 | SIS-02 (lógica) | P01 | `models/cadastro_empresa_models.dart`, `services/cadastro_empresa_service.dart` |
@@ -121,11 +121,13 @@ criados na wave anterior) — não são paralelizáveis com suas dependências.
 
 ## Wave 1
 
-### P01 — Fundação: contrato de parser + ApiLinks
+### P01 — Fundação: contrato de parser + ApiLinks + dependência + embedding
 
-**Objetivo:** corrigir o bug de parsing já conhecido (Pitfall 1) e declarar TODOS os
-endpoints desta fase em `api_links.dart` de uma vez, como contrato para os 13 planos
-seguintes (evita que cada plano precise editar o mesmo arquivo — só este plano o toca).
+**Objetivo:** corrigir o bug de parsing já conhecido (Pitfall 1), declarar TODOS os
+endpoints desta fase em `api_links.dart` de uma vez, adicionar a dependência `file_picker`
+e habilitar `GenericGridScreen` a ser embutido sem `Scaffold` próprio — tudo como contrato
+para os 13 planos seguintes (evita que cada plano precise editar os mesmos arquivos
+compartilhados; achados 1 e 3 do `gsd-plan-checker` incorporados aqui).
 
 1. **Task 01.1 — Corrigir parser do `GenericGridScreen` para respostas paginadas aninhadas.**
    `lib/widgets/generic/generic_grid_screen.dart`: em `_load()`, o parser hoje só aceita
@@ -151,6 +153,21 @@ seguintes (evita que cada plano precise editar o mesmo arquivo — só este plan
      `createChamado` (`/api/chamados`), `createChat` (`/api/chat`), mais
      `deleteEmpresa(id)`/`deleteLogin(id)`/`deleteParceiro(id)`/etc. para o rollback LIFO
      (mesmo path base, verbo `DELETE {url}/{id}`).
+   - SIS-04 Importação Cadastros (`_ImportacaoCadastrosSection` — consumido por P08a, Wave 2):
+     **contrato distinto do de SIS-02 acima, endpoints/verbos diferentes, não reutilizar por
+     engano.** `allEmpresasByAplicativo(codApp)` (`GET /api/empresa?codApp=`),
+     `parceirosByEmpresa(empresaId)` (`GET /api/parceiro/empresa/{empresaId}`),
+     `updateEmpresa(id)` (`PUT /api/empresa/update/{id}`), `insertParceiro`
+     (`POST /api/parceiro/insert`), `updateParceiro(id)` (`PUT /api/parceiro/update/{id}`),
+     `loginsByEmpresa(empId)` (`GET /api/logins?empId=`), `createLoginCadastro`
+     (`POST /api/logins`, plural — distinto de `createLogin` acima que é singular),
+     `updateLoginCadastro(id)` (`PUT /api/logins/{id}`), `funcionariosByEmpresa(empId)`
+     (`GET /api/funcionario?empId=`), `createFuncionario`/`updateFuncionario(id)`
+     (`POST`/`PUT /api/funcionario`[`/{id}`]), `allPlanos`/`allPlanosAcademia`,
+     `createPlano`/`updatePlano(id)` (`/api/planos`), `createPlanoAcademia`/
+     `updatePlanoAcademia(id)` (`/api/planos_academia`), `servicosContratados`
+     (`GET /api/servico-contratado?tamanho=10000`), `createServicoContratado`/
+     `updateServicoContratado(id)` (`/api/servico-contratado`[`/{id}`]).
    - SIS-03 Config. Admin (6 sub-CRUDs): `allCargos`/`createCargo`/`updateCargo(id)`/
      `deleteCargo(id)` (`/api/cargo`); idem para `centroCusto` (`/api/centro-custo`),
      `departamento` (`/api/departamento`), `feriado` (`/api/feriado`), `horarioFunc`
@@ -184,6 +201,38 @@ seguintes (evita que cada plano precise editar o mesmo arquivo — só este plan
    - Verify: `flutter analyze lib/config/api_links.dart` limpo (0 erros/warnings).
    - Done: todos os getters acima existem, compilam, seguem o padrão `static String get` /
      `static String Function(...)` já usado para Contatos.
+
+3. **Task 01.3 — Adicionar dependência `file_picker` ao `pubspec.yaml`.**
+   Achado do `gsd-plan-checker`: `RESEARCH.md` linha 320 já registra que a Fase 1 não instalou
+   `file_picker`, mas nenhuma task anterior declarava a adição — P07 (Task 07.1) e P08b (Task
+   08b.1) referenciam `FilePicker.platform.pickFiles(...)` sem o pacote declarado, quebrando
+   `flutter analyze`/compilação. `pubspec.yaml`: adicionar `file_picker: ^8.1.0` (versão fixada,
+   não `any` — mesma exigência já registrada na mitigação T-02-SC do threat model desta fase)
+   em `dependencies:`, rodar `flutter pub get`.
+   - Verify: `flutter pub get` sem erro; `grep file_picker pubspec.lock` retorna entrada.
+   - Done: `import 'package:file_picker/file_picker.dart';` resolve sem erro em qualquer
+     arquivo do projeto.
+
+4. **Task 01.4 — Extrair corpo embutível de `GenericGridScreen` (sem `Scaffold` próprio).**
+   Achado do `gsd-plan-checker`: `GenericGridScreen.build()` (linha 210) retorna `Scaffold`
+   completo com `AppBar`+`FloatingActionButton` próprios — usá-lo diretamente como corpo de
+   aba (Task 02.2) produziria `Scaffold` aninhado (6 `AppBar`s duplicados dentro do conteúdo
+   da aba), contradizendo a Decisão do PO item 2 ("menor ruído no menu, mais coeso").
+   `lib/widgets/generic/generic_grid_screen.dart`: extrair o conteúdo atual do `Scaffold` (a
+   `Column`/lista/paginação, sem `AppBar`/`FloatingActionButton`) para um widget interno
+   `_GenericGridBody` reutilizável, e adicionar parâmetro `embedded` (default `false`) a
+   `GenericGridScreen`: quando `true`, `build()` retorna `_GenericGridBody` direto (sem
+   `Scaffold`/`AppBar`); a ação de "criar novo" (hoje no FAB) vira um botão inline no topo do
+   corpo quando `embedded==true`, preservando a funcionalidade sem depender de FAB posicionado
+   pelo `Scaffold` externo. Comportamento com `embedded==false` (default, usado pela Fase 1 e
+   por todos os outros itens desta fase que abrem tela cheia) não muda.
+   - Behavior: `GenericGridScreen(embedded:false, ...)` continua retornando `Scaffold`+`AppBar`+
+     `FAB` (regressão zero para os usos existentes). `GenericGridScreen(embedded:true, ...)`
+     retorna o corpo sem `Scaffold`, sem `AppBar`, com botão "Novo" inline visível.
+   - Verify: `flutter test test/widgets/generic_grid_screen_test.dart` (caso novo cobrindo
+     `embedded:true`, mais os casos existentes intactos).
+   - Done: Task 02.2 pode montar 6 instâncias com `embedded:true` dentro de um `TabBarView`
+     sem `Scaffold`/`AppBar` duplicado.
 
 ### P01b — Fundação: utilitário CSV + shell de menu "Sistema"
 
@@ -227,9 +276,9 @@ navegação para os 8 itens (esqueleto, sem wiring real ainda — wiring final �
 2. **Task 02.2 — `ConfiguracoesAdminScreen` (tab container + 6 sub-CRUDs).**
    `lib/screens/sistema/configuracoes_admin_screen.dart`: `StatefulWidget` com `TabBar`/
    `IndexedStack` de 6 abas (Cargos, Centro de Custo, Departamentos, Feriados, Horários,
-   Tipos de Produto — per Decisão do PO item 2, tab único), cada aba um `GenericGridScreen`
-   embutido (não `Navigator.push`, para não abrir 6 telas cheias — usar o widget diretamente
-   como corpo da aba) com os `FieldConfig` mapeados: Cargo(`nome`), CentroCusto(`nome`),
+   Tipos de Produto — per Decisão do PO item 2, tab único), cada aba um `GenericGridScreen(
+   embedded: true, ...)` (Task 01.4 — sem `Scaffold`/`AppBar`/`FAB` próprios, evita telas
+   cheias e duplicação de chrome dentro da aba) com os `FieldConfig` mapeados: Cargo(`nome`), CentroCusto(`nome`),
    Departamento(`nome`,`numeroFolha`:number), Feriado(`nome`,`data`,`repeteAno`:boolean),
    HorarioFunc(`nome`,`tipo`,`ativo`:boolean), TipoProduto(`tipoProduto`).
    - Verify: `flutter test test/screens/sistema/configuracoes_admin_screen_test.dart`
