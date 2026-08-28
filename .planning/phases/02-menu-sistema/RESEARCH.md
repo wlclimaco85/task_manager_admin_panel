@@ -440,42 +440,62 @@ role do usuário autenticado.
 | A5 | `QueryBuilderCaller` chama um controller backend que já existe e está protegido por role admin | Item 8 | Não verificado nesta pesquisa — risco de segurança se assumido incorretamente |
 | A6 | Seções de Importação de CSV (`_ImportacaoSection`, `_ImportacaoCadastrosSection`) de Config. Sistema usam `file_picker`, ainda não instalado no admin panel | Item 4 / Standard Stack | Confirmado pelo import no topo do arquivo (linha 2: `package:file_picker/file_picker.dart`) — risco baixo, mas dependência não avaliada quanto a slop/legitimidade nesta pesquisa |
 
-## Open Questions
+## Decisões do PO (2026-08-28 — resolve Open Questions 1-4)
 
-1. **`task_manager_admin_panel` não está listado no `CLAUDE.md` do workspace (`C:\App_Academia\CLAUDE.md`).**
-   - O que sabemos: o `MEMORY.md` já registra isso como pendência ("Pré-requisito: atualizar
-     CLAUDE.md com path do projeto antes do plan-phase") desde a criação do card do Painel do
-     Dono.
-   - O que não está claro: se isso bloqueia o plan-phase desta fase 2 ou só precisa ser
-     resolvido antes de qualquer merge/PR real.
-   - Recomendação: atualizar `C:\App_Academia\CLAUDE.md` (seção Escopo) incluindo
-     `task_manager_admin_panel` antes de iniciar o plan-phase, para as regras de branch/code
-     review/replicação se aplicarem formalmente a este repositório.
+Registradas pelo usuário/PO ao retomar esta fase, para destravar o plan-phase sem bloquear em
+pergunta adicional:
 
-2. **Configurações Admin: manter UI de abas ou virar 6 itens de menu separados no admin panel?**
-   - O que sabemos: no cliente é 1 item de menu com 6 abas internas.
-   - O que não está claro: se o PO quer replicar a UX de abas ou prefere 6 entradas de menu
-     (mais simples de implementar, sem recriar `TabBar`).
-   - Recomendação: confirmar com o PO antes do plan-phase; não é ambiguidade técnica, é decisão
-     de produto.
+1. **`task_manager_admin_panel` no CLAUDE.md do workspace** — RESOLVIDO. O escopo já foi
+   atualizado em `C:\App_Academia\CLAUDE.md` (seção Escopo) incluindo o path e a descrição do
+   projeto. As regras de branch/code review/replicação do workspace já se aplicam formalmente a
+   este repositório.
 
-3. **Config. Sistema: escopo completo nesta fase ou dividir em sub-fases?**
-   - O que sabemos: arquivo de 4569 linhas com 5+ seções distintas (telas, seed, notícias, jobs,
-     banco de dados, importação CSV). Import CSV traz dependência nova (`file_picker`).
-   - O que não está claro: se o PO considera todas as seções necessárias para o "Painel do Dono"
-     ou se algumas (ex.: importação de CSV, controle de ~18 jobs de scraping/cotação) são
-     ferramentas internas de dev que não pertencem ao painel do dono da academia.
-   - Recomendação: revisar com o PO seção por seção antes do plan-phase; considerar excluir
-     seções claramente "internas de engenharia" (ex.: reset de banco, fix-db) do escopo do
-     Painel do Dono por risco/adequação de persona, mesmo que tecnicamente portáveis.
+2. **Configurações Admin: tabs vs. itens de menu separados** — DECISÃO: manter como
+   tab-container único "Configurações Admin" (menor ruído no menu, mais coeso). Criar um
+   container de abas simples e próprio no admin panel (`TabBar`/`IndexedStack`, ~50 linhas,
+   conforme já estimado na seção Item 3) agrupando os 6 sub-CRUDs (`GenericGridScreen` cada um).
+   Não expor como 6 entradas de menu separadas.
 
-4. **Teste de Endpoints e Query Builder: pertencem ao "Painel do Dono"?**
-   - O que sabemos: são ferramentas de diagnóstico/dev, não operação de negócio da academia.
-   - O que não está claro: se o dono da academia (persona-alvo do admin panel) tem uso real para
-     um terminal de teste HTTP ou um SQL query builder, ou se esses 2 itens deveriam permanecer
-     apenas no cliente como ferramentas internas da equipe de desenvolvimento.
-   - Recomendação: **pergunta direta ao PO antes do plan-phase** — pode reduzir o escopo desta
-     fase em 2 dos 8 itens.
+3. **Config. Sistema: seções dev-tool (reset de banco, jobs) pertencem ao Painel do Dono?** —
+   DECISÃO: SIM, são ferramentas administrativas legítimas do dono do sistema. Migrar todas as
+   seções (Geração de Telas, Dados de Teste/Mock, Notícias, Controle de Jobs, Banco de Dados,
+   Importação CSV) para o admin panel. Ressalva de segurança: as ações destrutivas/sensíveis
+   (reset de banco `POST /api/admin/reset-database`, `fix-db`, apagar empresa mock `DELETE
+   /api/admin/seed`, qualquer ação de job com `forcar=true`) devem ficar atrás de diálogo de
+   confirmação explícita no cliente — reusar/replicar o padrão já existente no arquivo fonte
+   (dialog "digite RESET" para `reset-database`) e adicionar confirmação equivalente onde a tela
+   original não tiver (ex.: `fix-db`, apagar empresa mock). Isso não dispensa a divisão em
+   sub-telas menores já recomendada (ações simples / jobs / importação) — ver Anti-padrão a
+   evitar.
+
+4. **Teste de Endpoints / Query Builder cabem na persona "dono da academia"?** — DECISÃO: SIM,
+   são ferramentas de suporte/diagnóstico que o dono/admin do sistema usa para investigar
+   problemas dos clientes da plataforma; manter as duas no admin panel, sem reduzir o escopo dos
+   8 itens. Query Builder mantém a ressalva de segurança já registrada (Pitfall 4): confirmar
+   proteção de role/tenant no backend antes ou durante o port.
+
+**Consequência prática para o plan-phase:** os 8 itens do grupo "Sistema" (exceto Empresas)
+seguem no escopo integral desta Fase 2 — nenhum item foi cortado. O `gsd-planner` deve, ainda
+assim, avaliar se o volume total (especialmente Config. Sistema, ~4569 linhas de origem, e
+Cadastro Empresa, wizard de 7 passos) justifica dividir a execução em múltiplas tasks/commits
+atômicos dentro da própria Fase 2, em vez de uma fase separada — a decisão de ESCOPO (o quê)
+está fechada acima; a decisão de SEQUENCIAMENTO/granularidade de tasks (como) fica com o
+planner.
+
+## Open Questions (histórico — respondidas acima, mantidas para rastreabilidade)
+
+1. ~~`task_manager_admin_panel` não está listado no `CLAUDE.md` do workspace~~ — RESOLVIDO, ver
+   Decisões do PO item 1.
+
+2. ~~Configurações Admin: manter UI de abas ou virar 6 itens de menu separados?~~ — RESOLVIDO,
+   ver Decisões do PO item 2 (tab-container único).
+
+3. ~~Config. Sistema: escopo completo nesta fase ou dividir em sub-fases?~~ — RESOLVIDO, ver
+   Decisões do PO item 3 (escopo completo nesta fase, com confirmação explícita nas ações
+   destrutivas).
+
+4. ~~Teste de Endpoints e Query Builder: pertencem ao "Painel do Dono"?~~ — RESOLVIDO, ver
+   Decisões do PO item 4 (sim, ambos ficam).
 
 5. **Leitura incompleta de 4 arquivos grandes** (`cadastro_empresa_wizard.dart` além da linha 150,
    `configuracoes_sistema_screen.dart` além da linha 1341, `tela_editor_screen.dart` e
