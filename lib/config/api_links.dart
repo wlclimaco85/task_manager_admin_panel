@@ -34,13 +34,6 @@ class ApiLinks {
   // Auth — mesmo endpoint do app cliente.
   static String get login => '$_baseUrl/rest/auth/login';
 
-  // Exemplo de dominio de demonstracao (Fase 1: prova grid/form/detail).
-  // Endpoints reais de Contatos/Licenca/OS/Modulos entram na Fase 3.
-  static String get allContatos => '$_baseUrl/api/contatos';
-  static String get createContato => '$_baseUrl/api/contatos';
-  static String updateContato(String id) => '$_baseUrl/api/contatos/$id';
-  static String deleteContato(String id) => '$_baseUrl/api/contatos/$id';
-
   // ===========================================================================
   // Fase 2 — Migracao do menu "Sistema" (RESEARCH.md/PLAN.md da fase). Todos os
   // getters abaixo sao declarados de uma vez (Task 01.2) como contrato para os
