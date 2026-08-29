@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/network_caller.dart';
 import 'field_config.dart';
@@ -17,6 +18,7 @@ class GenericDetailFormScreen extends StatefulWidget {
     this.updateUrl,
     this.initialValues,
     this.networkCaller,
+    this.transformPayload,
   });
 
   final String title;
@@ -28,6 +30,14 @@ class GenericDetailFormScreen extends StatefulWidget {
   final String? updateUrl;
   final Map<String, dynamic>? initialValues;
   final NetworkCaller? networkCaller;
+
+  /// Aplicado ao payload logo apos `_collectFormData()`, antes do
+  /// POST/PUT — permite adaptar o payload por endpoint (ex. aninhar FKs
+  /// planas em `{id:...}`, ou payload assimetrico por verbo, ver
+  /// `_transformChamadoPayload` na Fase 3 Task 05.1). Quando `null`, o
+  /// payload coletado segue sem alteracao.
+  final Map<String, dynamic> Function(Map<String, dynamic> raw, bool isEditing)?
+      transformPayload;
 
   bool get isEditing => updateUrl != null;
 
@@ -42,6 +52,10 @@ class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
   bool get _ownsCaller => widget.networkCaller == null;
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, bool> _boolValues = {};
+  final Map<String, DateTime?> _dateValues = {};
+  final Map<String, dynamic> _dropdownValues = {};
+  final Map<String, List<DropdownOption>> _loadedOptions = {};
+  final Set<String> _loadingOptionKeys = {};
 
   bool _saving = false;
   String? _errorMessage;
@@ -53,11 +67,33 @@ class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
       final initial = widget.initialValues?[field.key];
       if (field.type == FieldType.boolean) {
         _boolValues[field.key] = initial == true;
+      } else if (field.type == FieldType.date) {
+        _dateValues[field.key] = DateTime.tryParse(initial?.toString() ?? '');
+      } else if (field.type == FieldType.dropdown) {
+        _dropdownValues[field.key] =
+            initial is Map ? initial['id'] : initial;
+        final loader = field.optionsLoader;
+        if (loader != null) {
+          _loadOptions(field.key, loader);
+        }
       } else {
         _controllers[field.key] =
             TextEditingController(text: initial?.toString() ?? '');
       }
     }
+  }
+
+  Future<void> _loadOptions(
+    String key,
+    Future<List<DropdownOption>> Function(NetworkCaller) loader,
+  ) async {
+    setState(() => _loadingOptionKeys.add(key));
+    final options = await loader(_caller);
+    if (!mounted) return;
+    setState(() {
+      _loadedOptions[key] = options;
+      _loadingOptionKeys.remove(key);
+    });
   }
 
   @override
@@ -77,6 +113,16 @@ class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
       } else if (field.type == FieldType.number) {
         final text = _controllers[field.key]!.text.trim();
         data[field.key] = text.isEmpty ? null : num.tryParse(text);
+      } else if (field.type == FieldType.date) {
+        final date = _dateValues[field.key];
+        if (date == null) {
+          data[field.key] = null;
+        } else {
+          final formatted = DateFormat('yyyy-MM-dd').format(date);
+          data[field.key] = field.dateTime ? '${formatted}T00:00:00' : formatted;
+        }
+      } else if (field.type == FieldType.dropdown) {
+        data[field.key] = _dropdownValues[field.key];
       } else {
         data[field.key] = _controllers[field.key]!.text.trim();
       }
@@ -92,10 +138,13 @@ class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
       _errorMessage = null;
     });
 
-    final data = _collectFormData();
+    final collected = _collectFormData();
+    final payload =
+        widget.transformPayload?.call(collected, widget.isEditing) ??
+            collected;
     final response = widget.isEditing
-        ? await _caller.putRequest(widget.updateUrl!, data)
-        : await _caller.postRequest(widget.createUrl, data);
+        ? await _caller.putRequest(widget.updateUrl!, payload)
+        : await _caller.postRequest(widget.createUrl, payload);
 
     if (!mounted) return;
 
@@ -169,6 +218,14 @@ class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
       );
     }
 
+    if (field.type == FieldType.date) {
+      return _buildDateField(field);
+    }
+
+    if (field.type == FieldType.dropdown) {
+      return _buildDropdownField(field);
+    }
+
     return TextFormField(
       key: Key('form_field_${field.key}'),
       controller: _controllers[field.key],
@@ -182,6 +239,71 @@ class GenericDetailFormScreenState extends State<GenericDetailFormScreen> {
         labelText: field.required ? '${field.label} *' : field.label,
       ),
       validator: (value) => _validate(field, value),
+    );
+  }
+
+  Widget _buildDateField(FieldConfig field) {
+    final date = _dateValues[field.key];
+    final text = date == null ? 'Selecionar data' : DateFormat('dd/MM/yyyy').format(date);
+    return InkWell(
+      key: Key('form_field_${field.key}'),
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date ?? DateTime.now(),
+          firstDate: DateTime(1900),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) {
+          setState(() => _dateValues[field.key] = picked);
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: field.required ? '${field.label} *' : field.label,
+        ),
+        child: Text(text),
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(FieldConfig field) {
+    if (_loadingOptionKeys.contains(field.key)) {
+      return Padding(
+        key: Key('form_field_${field.key}'),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(field.required ? '${field.label} *' : field.label),
+            const SizedBox(height: AppSpacing.sm),
+            const LinearProgressIndicator(),
+          ],
+        ),
+      );
+    }
+
+    final options = field.options ?? _loadedOptions[field.key] ?? [];
+    return DropdownButtonFormField<dynamic>(
+      key: Key('form_field_${field.key}'),
+      initialValue: _dropdownValues[field.key],
+      decoration: InputDecoration(
+        labelText: field.required ? '${field.label} *' : field.label,
+      ),
+      items: [
+        if (!field.required)
+          const DropdownMenuItem<dynamic>(value: null, child: Text('Nenhum')),
+        ...options.map(
+          (o) => DropdownMenuItem<dynamic>(value: o.value, child: Text(o.label)),
+        ),
+      ],
+      onChanged: (value) => setState(() => _dropdownValues[field.key] = value),
+      validator: (value) {
+        if (field.required && value == null) {
+          return '${field.label} e obrigatorio.';
+        }
+        return null;
+      },
     );
   }
 }

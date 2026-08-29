@@ -25,7 +25,7 @@ void main() {
     expect(grid.listUrl, ApiLinks.allAplicativos);
     expect(grid.createUrl, ApiLinks.createAplicativo);
     expect(grid.updateUrl('1'), ApiLinks.updateAplicativo('1'));
-    expect(grid.deleteUrl('1'), ApiLinks.deleteAplicativo('1'));
+    expect(grid.deleteUrl!('1'), ApiLinks.deleteAplicativo('1'));
     expect(grid.fields.map((f) => f.key), ['nome', 'observacao']);
   });
 }

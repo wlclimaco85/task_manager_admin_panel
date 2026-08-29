@@ -33,21 +33,30 @@ class GenericGridScreen extends StatefulWidget {
     required this.listUrl,
     required this.createUrl,
     required this.updateUrl,
-    required this.deleteUrl,
+    this.deleteUrl,
     required this.fields,
     this.networkCaller,
     this.rowsPerPage = 10,
     this.embedded = false,
+    this.transformPayload,
   });
 
   final String title;
   final String listUrl;
   final String createUrl;
   final String Function(String id) updateUrl;
-  final String Function(String id) deleteUrl;
+
+  /// Quando `null`, a acao de excluir nao e exibida (backend nao suporta
+  /// `DELETE` — ex. Licenca, Fase 3 LIC-01, que usa `ativo=false`).
+  final String Function(String id)? deleteUrl;
   final List<FieldConfig> fields;
   final NetworkCaller? networkCaller;
   final int rowsPerPage;
+
+  /// Repassado ao [GenericDetailFormScreen], aplicado no payload logo antes
+  /// do POST/PUT — ver `transformPayload` la para o contrato completo.
+  final Map<String, dynamic> Function(Map<String, dynamic> raw, bool isEditing)?
+      transformPayload;
 
   /// Quando `true`, `build()` retorna so o corpo (sem `Scaffold`/`AppBar`/
   /// `FloatingActionButton` proprios) para ser embutido dentro de um
@@ -58,6 +67,26 @@ class GenericGridScreen extends StatefulWidget {
 
   @override
   State<GenericGridScreen> createState() => GenericGridScreenState();
+
+  /// Normaliza o corpo de uma resposta de listagem em uma lista de linhas.
+  /// Aceita `{data:[...]}`, `{dados:[...]}`, `{data:{dados:[...]}}`,
+  /// `{data:{content:[...]}}` — reutilizado por `dropdown_source.dart` para
+  /// nao duplicar essa logica (achado gsd-plan-checker, Fase 3 Task 03.3).
+  static List<Map<String, dynamic>> extractRows(Map<String, dynamic>? body) {
+    dynamic data = body?['data'] ?? body?['dados'] ?? [];
+    // Achado Pitfall 1 (RESEARCH.md Fase 2): alguns endpoints (ex.
+    // AplicativoController) retornam a lista aninhada em `data.dados` ou
+    // `data.content` (formato paginado), nao `data` como lista direta.
+    if (data is Map) {
+      data = data['dados'] ?? data['content'] ?? [];
+    }
+    return (data is List)
+        ? data
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList()
+        : <Map<String, dynamic>>[];
+  }
 }
 
 class GenericGridScreenState extends State<GenericGridScreen> {
@@ -108,19 +137,7 @@ class GenericGridScreenState extends State<GenericGridScreen> {
       return;
     }
 
-    dynamic data = response.body?['data'] ?? response.body?['dados'] ?? [];
-    // Achado Pitfall 1 (RESEARCH.md Fase 2): alguns endpoints (ex.
-    // AplicativoController) retornam a lista aninhada em `data.dados` ou
-    // `data.content` (formato paginado), nao `data` como lista direta.
-    if (data is Map) {
-      data = data['dados'] ?? data['content'] ?? [];
-    }
-    final rows = (data is List)
-        ? data
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList()
-        : <Map<String, dynamic>>[];
+    final rows = GenericGridScreen.extractRows(response.body);
 
     setState(() {
       _allRows = rows;
@@ -163,6 +180,7 @@ class GenericGridScreenState extends State<GenericGridScreen> {
               ? widget.updateUrl(existing['id'].toString())
               : null,
           networkCaller: _caller,
+          transformPayload: widget.transformPayload,
         ),
       ),
     );
@@ -172,6 +190,9 @@ class GenericGridScreenState extends State<GenericGridScreen> {
   }
 
   Future<void> _delete(Map<String, dynamic> row) async {
+    final deleteUrl = widget.deleteUrl;
+    if (deleteUrl == null) return;
+
     final id = row['id']?.toString();
     if (id == null) return;
 
@@ -195,7 +216,7 @@ class GenericGridScreenState extends State<GenericGridScreen> {
 
     if (confirmed != true) return;
 
-    final response = await _caller.deleteRequest(widget.deleteUrl(id));
+    final response = await _caller.deleteRequest(deleteUrl(id));
     if (!mounted) return;
 
     if (response.isSuccess) {
@@ -303,6 +324,25 @@ class GenericGridScreenState extends State<GenericGridScreen> {
     );
   }
 
+  /// Texto exibido na celula da grid para um campo/linha. Campos
+  /// `FieldType.dropdown` com `options` fixas resolvem o valor bruto para o
+  /// label correspondente; campos com `optionsLoader` (FK remota) mostram o
+  /// valor bruto (recomendado usar `showInGrid:false` nesses, ver PLAN.md).
+  String _cellText(FieldConfig field, Map<String, dynamic> row) {
+    final rawValue = row[field.key];
+    if (field.type == FieldType.dropdown && field.options != null) {
+      final option = field.options!.firstWhere(
+        (o) => o.value == rawValue,
+        orElse: () => DropdownOption(
+          value: rawValue,
+          label: rawValue?.toString() ?? '',
+        ),
+      );
+      return option.label;
+    }
+    return rawValue?.toString() ?? '';
+  }
+
   Widget _buildBody() {
     if (_loading) {
       return const Center(
@@ -344,7 +384,7 @@ class GenericGridScreenState extends State<GenericGridScreen> {
                 rows: _pageRows
                     .map((row) => DataRow(cells: [
                           ..._gridFields.map(
-                            (f) => DataCell(Text(row[f.key]?.toString() ?? '')),
+                            (f) => DataCell(Text(_cellText(f, row))),
                           ),
                           DataCell(Row(
                             mainAxisSize: MainAxisSize.min,
@@ -354,11 +394,13 @@ class GenericGridScreenState extends State<GenericGridScreen> {
                                 onPressed: () => _openForm(existing: row),
                                 tooltip: 'Editar',
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 18),
-                                onPressed: () => _delete(row),
-                                tooltip: 'Excluir',
-                              ),
+                              if (widget.deleteUrl != null)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      size: 18),
+                                  onPressed: () => _delete(row),
+                                  tooltip: 'Excluir',
+                                ),
                             ],
                           )),
                         ]))
