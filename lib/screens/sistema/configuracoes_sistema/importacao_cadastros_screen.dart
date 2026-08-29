@@ -246,34 +246,36 @@ class ImportacaoCadastrosScreenState extends State<ImportacaoCadastrosScreen> {
     final podeImportar =
         _arquivo != null && _linhasCsv.length > 1 && !_importando;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Importação CSV — Cadastros')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTipoCard(),
+    // Achado do code-review da Fase 2 (WR-01, mesmo padrao encontrado em
+    // ImportacaoContasScreen): esta tela e' instanciada so' embutida como
+    // aba de ConfiguracoesSistemaScreen (TabBarView), que ja tem seu
+    // proprio Scaffold/AppBar/TabBar -- Scaffold/AppBar aqui duplicava o
+    // chrome dentro da area de conteudo da aba. Sem Scaffold proprio.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTipoCard(),
+          const SizedBox(height: AppSpacing.md),
+          _buildArquivoCard(podeImportar: podeImportar),
+          if (_linhasCsv.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
-            _buildArquivoCard(podeImportar: podeImportar),
-            if (_linhasCsv.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.md),
-              _buildPreviewCard(),
-            ],
-            if (_importando || _resultado != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              _buildProgressoCard(),
-            ],
-            if (_erro != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                key: const Key('importacao_cadastros_erro_text'),
-                _erro!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
+            _buildPreviewCard(),
           ],
-        ),
+          if (_importando || _resultado != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            _buildProgressoCard(),
+          ],
+          if (_erro != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              key: const Key('importacao_cadastros_erro_text'),
+              _erro!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
       ),
     );
   }

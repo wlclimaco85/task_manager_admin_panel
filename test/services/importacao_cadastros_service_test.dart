@@ -147,6 +147,48 @@ void main() {
     });
   });
 
+  group('ImportacaoCadastrosService — regressao WR-03 (falha de rede no dedup)', () {
+    test(
+        'GET de dedup falhando (500) marca a linha como erro, NAO cria duplicata via POST',
+        () async {
+      final requests = <http.Request>[];
+      final mockClient = MockClient((request) async {
+        requests.add(request);
+        if (request.method == 'GET' && request.url.path.endsWith('/api/logins')) {
+          // Simula falha transitoria na consulta de dedup -- antes do fix,
+          // isso era engolido e tratado como "nao existe", seguindo para
+          // POST (duplicata silenciosa).
+          return http.Response('erro interno', 500);
+        }
+        if (request.method == 'POST' && request.url.path.endsWith('/api/logins')) {
+          return http.Response(jsonEncode({'id': 999}), 200);
+        }
+        return http.Response('nao mapeado: ${request.method} ${request.url}', 404);
+      });
+
+      final service =
+          ImportacaoCadastrosService(networkCaller: NetworkCaller(client: mockClient));
+
+      final resultado = await service.importar(
+        tipo: ImportacaoCadastroTipo.funcionarios,
+        rows: const [
+          {'nome': 'Joao Silva', 'email': 'joao@teste.com', 'cpf': '12345678900'},
+        ],
+        empresaIdSelecionada: '3',
+        atualizar: true,
+      );
+
+      expect(resultado.erros, 1, reason: 'falha na consulta de dedup deve virar erro na linha');
+      expect(resultado.sucesso, 0);
+      expect(resultado.detalhes[0].status, 'erro');
+
+      final postLogin = requests
+          .where((r) => r.method == 'POST' && r.url.path.endsWith('/api/logins'));
+      expect(postLogin, isEmpty,
+          reason: 'NAO deveria criar duplicata via POST quando o dedup falhou de consultar');
+    });
+  });
+
   group('ImportacaoCadastrosService.importar — tipo empresa (dedup por CNPJ)', () {
     test('CNPJ existente gera PUT em vez de POST', () async {
       final requests = <http.Request>[];

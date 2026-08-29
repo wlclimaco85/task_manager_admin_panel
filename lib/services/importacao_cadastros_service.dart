@@ -855,14 +855,29 @@ class ImportacaoCadastrosService {
   // Helpers de rede (via NetworkCaller — nunca `http` cru).
   // ---------------------------------------------------------------------------
 
+  // Achado do code-review da Fase 2 (WR-03): antes, qualquer falha de rede
+  // (timeout, DNS, erro de parsing) OU resposta HTTP de erro era engolida
+  // aqui e devolvida como `null` -- o mesmo valor usado para "consulta
+  // OK, nenhum registro encontrado" em _buscarExistente(). Resultado: uma
+  // falha transitoria durante a checagem de dedup de uma linha do CSV
+  // fazia o servico concluir erroneamente "nao existe" e seguir para
+  // criacao (POST) em vez de atualizacao (PUT), duplicando o registro
+  // silenciosamente. Agora a falha de consulta e' propagada como
+  // ImportacaoCadastroException (a linha do CSV vira "erro", nao
+  // "sucesso" com duplicata) -- so' uma resposta HTTP bem-sucedida com
+  // corpo vazio/sem match continua significando "nao existe".
   Future<Map<String, dynamic>?> _get(String url) async {
+    final NetworkResponse resp;
     try {
-      final resp = await _networkCaller.getRequest(url);
-      if (!resp.isSuccess) return null;
-      return resp.body;
-    } catch (_) {
-      return null;
+      resp = await _networkCaller.getRequest(url);
+    } catch (e) {
+      throw ImportacaoCadastroException('Falha ao consultar $url: $e');
     }
+    if (!resp.isSuccess) {
+      throw ImportacaoCadastroException(
+          'Falha ao consultar $url (HTTP ${resp.statusCode})');
+    }
+    return resp.body;
   }
 
   Future<Map<String, dynamic>?> _post(String url, Map<String, dynamic> body) async {

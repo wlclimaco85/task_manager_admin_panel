@@ -41,4 +41,26 @@ void main() {
 
     expect(find.text('Importação Contas'), findsWidgets);
   });
+
+  testWidgets(
+      'nenhuma aba duplica Scaffold/AppBar proprio (regressao WR-01)',
+      (tester) async {
+    await tester.pumpWidget(wrap());
+    await tester.pump();
+
+    // So' deve existir 1 AppBar (a do container) em cada aba -- uma tela
+    // embutida com AppBar proprio duplicaria o chrome dentro do conteudo.
+    expect(find.byType(AppBar), findsOneWidget);
+
+    for (final tabKey in [
+      'config_sistema_tab_jobs',
+      'config_sistema_tab_importacao_contas',
+      'config_sistema_tab_importacao_cadastros',
+      'config_sistema_tab_acoes',
+    ]) {
+      await tester.tap(find.byKey(Key(tabKey)));
+      await tester.pumpAndSettle();
+      expect(find.byType(AppBar), findsOneWidget, reason: 'aba $tabKey');
+    }
+  });
 }

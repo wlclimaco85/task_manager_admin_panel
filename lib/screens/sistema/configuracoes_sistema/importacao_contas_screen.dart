@@ -417,34 +417,39 @@ class _ImportacaoContasScreenState extends State<ImportacaoContasScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Importação CSV — Contas')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDestinoCard(),
-            const SizedBox(height: AppSpacing.md),
-            _buildImportCard(
-              secao: _cp,
-              isCP: true,
-              titulo: 'Importar Contas a Pagar',
-              subtitulo:
-                  'Importa lançamentos de Contas a Pagar a partir de um CSV.',
-              prefixo: 'cp',
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildImportCard(
-              secao: _cr,
-              isCP: false,
-              titulo: 'Importar Contas a Receber',
-              subtitulo:
-                  'Importa lançamentos de Contas a Receber a partir de um CSV.',
-              prefixo: 'cr',
-            ),
-          ],
-        ),
+    // Achado do code-review da Fase 2 (WR-01): esta tela e' instanciada so'
+    // embutida como aba de ConfiguracoesSistemaScreen (TabBarView), que ja
+    // tem seu proprio Scaffold/AppBar/TabBar -- um Scaffold/AppBar aqui
+    // duplicava o chrome dentro da area de conteudo da aba, exatamente o
+    // anti-padrao que o parametro `embedded` de GenericGridScreen (Task
+    // 01.4) foi criado para evitar. Sem Scaffold proprio, igual ao padrao
+    // ja usado por ImportacaoCadastrosScreen (a outra aba do mesmo
+    // container).
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDestinoCard(),
+          const SizedBox(height: AppSpacing.md),
+          _buildImportCard(
+            secao: _cp,
+            isCP: true,
+            titulo: 'Importar Contas a Pagar',
+            subtitulo:
+                'Importa lançamentos de Contas a Pagar a partir de um CSV.',
+            prefixo: 'cp',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _buildImportCard(
+            secao: _cr,
+            isCP: false,
+            titulo: 'Importar Contas a Receber',
+            subtitulo:
+                'Importa lançamentos de Contas a Receber a partir de um CSV.',
+            prefixo: 'cr',
+          ),
+        ],
       ),
     );
   }
