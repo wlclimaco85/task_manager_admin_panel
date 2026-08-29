@@ -179,6 +179,65 @@ void main() {
     expect(find.text('Contato A'), findsOneWidget);
   });
 
+  testWidgets('deleteUrl nulo nao mostra icone de excluir na grid',
+      (tester) async {
+    final caller = _callerReturning([
+      {'id': 1, 'nome': 'Contato A', 'email': 'a@x.com'},
+    ]);
+
+    await tester.pumpWidget(_wrap(GenericGridScreen(
+      title: 'Licencas',
+      listUrl: 'http://backend/api/licencas',
+      createUrl: 'http://backend/api/licencas',
+      updateUrl: (id) => 'http://backend/api/licencas/$id',
+      deleteUrl: null,
+      fields: _fields,
+      networkCaller: caller,
+    )));
+
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+  });
+
+  test('extractRows normaliza data/dados/content e Map vazio/nulo', () {
+    expect(
+      GenericGridScreen.extractRows({
+        'data': [
+          {'id': 1},
+        ],
+      }),
+      [
+        {'id': 1}
+      ],
+    );
+    expect(
+      GenericGridScreen.extractRows({
+        'dados': [
+          {'id': 2}
+        ]
+      }),
+      [
+        {'id': 2}
+      ],
+    );
+    expect(
+      GenericGridScreen.extractRows({
+        'data': {
+          'content': [
+            {'id': 3}
+          ]
+        }
+      }),
+      [
+        {'id': 3}
+      ],
+    );
+    expect(GenericGridScreen.extractRows(null), isEmpty);
+    expect(GenericGridScreen.extractRows({}), isEmpty);
+  });
+
   testWidgets(
       'GenericGridScreen embedded:true nao renderiza Scaffold/AppBar proprio e mostra botao Novo inline',
       (tester) async {
