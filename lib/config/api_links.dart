@@ -199,4 +199,60 @@ class ApiLinks {
       '$_baseUrl/api/ferramentas/query-builder/tabelas/$schema/$tabela/colunas';
   static String get queryBuilderExecutar =>
       '$_baseUrl/api/ferramentas/query-builder/executar';
+
+  // ===========================================================================
+  // Fase 3 — Licenca, Contatos, Ordem de Servico, Modulos Contratados +
+  // Dashboard de Crescimento. Todos os getters abaixo sao declarados de uma
+  // vez (P03/Task 03.1) como contrato para os planos das waves 2-3 seguintes.
+  // ===========================================================================
+
+  // Fase 3 - LIC-01 (sem deleteLicenca: backend nao expoe DELETE, ativo=false)
+  static String get allLicencas => '$_baseUrl/api/licencas';
+  static String get createLicenca => '$_baseUrl/api/licencas';
+  static String updateLicenca(String id) => '$_baseUrl/api/licencas/$id';
+
+  // Fase 3 - CONT-01 (dominio novo ContatoComercial, NAO e /api/contatos)
+  static String get allContatosComerciais =>
+      '$_baseUrl/api/contato-comercial';
+  static String get createContatoComercial =>
+      '$_baseUrl/api/contato-comercial';
+  static String updateContatoComercial(String id) =>
+      '$_baseUrl/api/contato-comercial/$id';
+  static String deleteContatoComercial(String id) =>
+      '$_baseUrl/api/contato-comercial/$id';
+
+  // Fase 3 - OS-01 (via dominio Chamado ja existente; createChamado/
+  // deleteChamado ja existem na secao Fase 2 SIS-02, reusados aqui)
+  static String get allChamadosOS => '$_baseUrl/api/chamados?tamanho=200';
+  static String updateChamadoOS(String id) => '$_baseUrl/api/chamados/$id';
+
+  // Fase 3 - MOD-01 (catalogo ModuloServico + atribuicao Parceiro/Empresa)
+  static String get allModulosServico =>
+      '$_baseUrl/api/modulo-servico?tamanho=1000';
+  static String get createModuloServico => '$_baseUrl/api/modulo-servico';
+  static String updateModuloServico(String id) =>
+      '$_baseUrl/api/modulo-servico/$id';
+  static String deleteModuloServico(String id) =>
+      '$_baseUrl/api/modulo-servico/$id';
+  static String parceiroModulos(String parceiroId) =>
+      '$_baseUrl/api/parceiro-modulo?parceiroId=$parceiroId';
+  static String get vincularParceiroModulos =>
+      '$_baseUrl/api/parceiro-modulo';
+  static String empresaModulos(String empresaId) =>
+      '$_baseUrl/api/empresa-modulo?empresaId=$empresaId';
+  static String get vincularEmpresaModulos => '$_baseUrl/api/empresa-modulo';
+
+  // Fase 3 - DASH-01 (agregacoes MASTER-only, contagem por mes)
+  static String parceirosPorMes({int meses = 12}) =>
+      '$_baseUrl/api/dashboard/crescimento/parceiros-por-mes?meses=$meses';
+  static String empresasPorMes({int meses = 12}) =>
+      '$_baseUrl/api/dashboard/crescimento/empresas-por-mes?meses=$meses';
+  static String modulosPorMes({int meses = 12}) =>
+      '$_baseUrl/api/dashboard/crescimento/modulos-por-mes?meses=$meses';
+
+  // Fase 3 - dropdowns de FK (fonte de opcoes, carregadas 1x). allAplicativos
+  // ja existe na secao Fase 2 SIS-01, reusado para o dropdown de Licenca.
+  static String get dropdownParceiros => '$_baseUrl/api/parceiro?tamanho=500';
+  static String get dropdownEmpresas => '$_baseUrl/api/empresa?tamanho=500';
+  static String get dropdownSetores => '$_baseUrl/api/setor?tamanho=500';
 }
