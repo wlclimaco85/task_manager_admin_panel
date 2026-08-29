@@ -520,6 +520,12 @@ enviado não bate com o índice esperado.
 explícita antes do `plan-phase`** — as outras 3 têm default seguro já aplicado e podem ser
 ajustadas durante o planejamento sem re-trabalho significativo.
 
+**DECISÃO CONFIRMADA PELO USUÁRIO (2026-08-29):** item 1 — criar domínio novo. Card desta fase
+passa a ser **full-stack** (`AppAcademia` + `task_manager_admin_panel`), não Flutter-only. Nome
+de tabela/entidade sugerido nesta pesquisa (`contato_comercial`/`ContatoComercial`) fica como
+default a confirmar/ajustar durante o `plan-phase` se o planner achar nome melhor — não é
+decisão de alto risco, só nomenclatura.
+
 ## Open Questions
 
 1. **Contatos — ver `## Decisões do PO` item 1.** Bloqueia até resposta do usuário.
