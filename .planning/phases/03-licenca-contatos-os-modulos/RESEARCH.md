@@ -526,13 +526,13 @@ de tabela/entidade sugerido nesta pesquisa (`contato_comercial`/`ContatoComercia
 default a confirmar/ajustar durante o `plan-phase` se o planner achar nome melhor — não é
 decisão de alto risco, só nomenclatura.
 
-## Open Questions
+## Open Questions (RESOLVED — ver PLAN.md desta fase para o fechamento de cada uma)
 
-1. **Contatos — ver `## Decisões do PO` item 1.** Bloqueia até resposta do usuário.
-2. **Setor/dropdowns de FK do Item 3 (`/api/setor`, `/api/parceiro`, `/api/empresa` para listagem
-   simples)** — não lidos nesta pesquisa (assumido via convenção, ver Assumption A3). Recomenda-se
-   1 leitura rápida desses 3 controllers no início do `plan-phase` antes de estimar as tasks de
-   dropdown do Item 3/4, para confirmar contrato de paginação/parâmetros de busca.
+1. **Contatos — (RESOLVED)** ver `## Decisões do PO` item 1 acima: usuário confirmou criar
+   domínio novo `ContatoComercial` em 2026-08-29.
+2. **Setor/dropdowns de FK do Item 3 — (RESOLVED)** `SetorContabilController` confirmado
+   existente durante o `plan-phase` (ver PLAN.md, seção "Achados desta sessão"), campo de label
+   é `descricao` (não `nome`).
 3. **`LicencaFilter` bloqueia com HTTP 402 — o Flutter cliente/admin panel já tratam esse código
    de status de forma amigável, ou aparece como erro genérico?** Não verificado nesta pesquisa
    (fora do escopo — a tela de gestão em si não precisa tratar 402, só o consumo do bloqueio nos

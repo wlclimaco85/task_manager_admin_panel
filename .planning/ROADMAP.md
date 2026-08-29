@@ -78,17 +78,38 @@ implementacao, ja que "cadastrar cliente novo" e' o fluxo mais fundamental
 do produto — mas so' apos a Fase 2 (migracao do menu "Sistema") estar
 concluida e revisada, pra nao acumular mudanca demais numa unica rodada.
 
-## Fase 3 — Licenca, Contatos, Ordem de Servico, Modulos contratados
+## Fase 3 — Licenca, Contatos, Ordem de Servico, Modulos contratados, Dashboard de Crescimento
 
 CRUD completo de:
-- Gestao de licenca (pode exigir schema/backend novo — pesquisa dedicada de
-  backend antes de detalhar o PLAN.md desta fase).
-- Contatos.
-- Ordem de servico.
-- Gestao de modulos contratados (reusa dominio de `modulo-servico`/
-  `servico-contratado` ja existente no backend, ver `ApiLinks`).
+- Gestao de licenca (backend ja existente — `LicencaController`/`Licenca`/
+  `V110__Licenca.sql` -- confirmado na pesquisa desta fase).
+- Contatos (dominio full-stack NOVO, `ContatoComercial` -- o unico dominio
+  "Contatos" que ja existia no backend, `/api/contatos`, e' log de
+  negociacao de compra/venda de graos, sem relacao com o Painel do Dono;
+  decisao confirmada pelo usuario em 2026-08-29).
+- Ordem de servico (via dominio `Chamado` ja existente, cross-tenant-safe).
+- Gestao de modulos contratados (mecanismo real e'
+  `ParceiroModuloController`/`EmpresaModuloController` -- `ServicoContratado`
+  citado antes neste ROADMAP era impreciso, e' dominio fiscal/NFS-e, sem
+  relacao).
+
+**Antecipado da Fase 4 para esta fase (pedido explicito do usuario em
+2026-08-29, ver PLAN.md desta fase, item DASH-01):** Dashboard de
+Crescimento com grafico de novos Parceiros/Empresas por mes, grafico de
+novos Modulos contratados por mes, e projecao mensal simples (media
+movel/regressao linear). Limitacao de dados conhecida: `parceiro`/`empresa`
+nao tinham timestamp de criacao (migration nova adiciona, sem retroagir
+historico); `parceiro_modulo`/`empresa_modulo` fazem DELETE+INSERT completo
+a cada atribuicao, entao o "mes de contratacao" reflete a ultima
+atualizacao do conjunto, nao a contratacao original -- aviso visivel na
+tela sobre essa limitacao.
 
 ## Fase 4 — Dashboards de acesso/performance + telas mais usadas (analytics)
+
+Nota: o Dashboard de Crescimento (novos Parceiros/Empresas/Modulos + projecao)
+foi antecipado para a Fase 3 (ver acima) — esta fase cobre analytics de
+ACESSO/PERFORMANCE/uso de tela, dominio diferente, nao duplica o que ja foi
+feito.
 
 Dashboards de acesso e performance do sistema, e gestao/analytics de telas
 mais usadas. Pre-requisito a checar: se ja existe instrumentacao de eventos

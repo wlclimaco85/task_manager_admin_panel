@@ -209,7 +209,9 @@ seguindo o padrão trivial já usado por `ContatoController`/`Contatos` (CRUD ge
    `delete`) adaptados para `ContatoComercial` com `nome`/`email`/`telefone`.
    - Behavior: `POST /api/contato-comercial` com `{nome,email,telefone,cargo,parceiro:{id}}`
      retorna 201; `GET /api/contato-comercial` retorna 200 com envelope
-     `{data:{dados:[...],total:N}}`.
+     `{data:{dados:[...],totalElements:N}}` (achado do `gsd-plan-checker`: o campo real do
+     `GenericResponseDTO` é `totalElements`, não `total` — corrigido aqui para não induzir uma
+     asserção `jsonPath` errada).
    - Verify: `mvn -q test -Dtest=ContatoComercialControllerTest`
 
 ### P02 — Backend: agregações do Dashboard de Crescimento (DASH-01)
@@ -279,9 +281,10 @@ como contrato para os 4 planos da wave 2 seguinte — mesmo padrão já usado na
      `deleteLicenca` — backend não expõe `DELETE`, ver `RESEARCH.md` Pitfall 2).
    - CONT-01: `allContatosComerciais`, `createContatoComercial`,
      `updateContatoComercial(id)`, `deleteContatoComercial(id)` → `/api/contato-comercial`.
-   - OS-01: `allChamadosOS` (`/api/chamados?tamanho=200`), `updateChamadoOS(id)`,
-     `deleteChamadoOS(id)` → `/api/chamados/{id}` (`createChamado` já existe da Fase 2, SIS-02
-     — reusar, não duplicar getter).
+   - OS-01: `allChamadosOS` (`/api/chamados?tamanho=200`), `updateChamadoOS(id)` →
+     `/api/chamados/{id}` (`createChamado`/`deleteChamado` já existem da Fase 2, SIS-02 —
+     achado do `gsd-plan-checker`: `deleteChamadoOS` seria sinônimo duplicado do
+     `ApiLinks.deleteChamado(id)` já existente, mesma URL — reusar, não criar getter novo).
    - MOD-01: `allModulosServico` (`/api/modulo-servico?tamanho=1000`), `createModuloServico`,
      `updateModuloServico(id)`, `deleteModuloServico(id)` → `/api/modulo-servico`;
      `parceiroModulos(parceiroId)` (`GET /api/parceiro-modulo?parceiroId=`),
@@ -430,7 +433,7 @@ como contrato para os 4 planos da wave 2 seguinte — mesmo padrão já usado na
    `showInGrid:false`), `dataVencimentoObrigacao` (`FieldType.date`, `dateTime:false`,
    `showInGrid:false`). `GenericGridScreen(listUrl: ApiLinks.allChamadosOS, createUrl:
    ApiLinks.createChamado, updateUrl: ApiLinks.updateChamadoOS, deleteUrl:
-   ApiLinks.deleteChamadoOS, transformPayload: _transformChamadoPayload)`.
+   ApiLinks.deleteChamado, transformPayload: _transformChamadoPayload)`.
    `_transformChamadoPayload(raw, isEditing)`: monta o payload correto por verbo (ver `##
    Achados desta sessão` item 3) — se `isEditing`: `{...raw, if (raw['parceiro'] != null)
    'parceiro': {'id': raw['parceiro']}, if (raw['empresa'] != null) 'empresa': {'id':
@@ -472,7 +475,11 @@ como contrato para os 4 planos da wave 2 seguinte — mesmo padrão já usado na
    `RESEARCH.md`, volume real de produção pode ser grande; buscar por ID é a opção mais simples
    e mais segura de escala aqui); (c) ao carregar com sucesso, dispara em paralelo `GET
    ApiLinks.allModulosServico` (catálogo completo) e `GET ApiLinks.parceiroModulos(id)`/
-   `empresaModulos(id)` (módulos já vinculados) e monta uma `List<CheckboxListTile>` com o
+   `empresaModulos(id)` (módulos já vinculados) — **ambos retornam `List` raiz direto (`GET
+   /api/parceiro-modulo`/`empresa-modulo` → `ResponseEntity<List<Map>>`, confirmado por leitura
+   do controller, não o envelope `{data:...}` padrão), então parsear com o mesmo
+   `GenericGridScreen.extractRows(response.body)` estático criado na Task 03.3 em vez de
+   reinventar a normalização aqui** — e monta uma `List<CheckboxListTile>` com o
    catálogo completo, pré-marcado conforme os já vinculados (`Set<int> _moduloIdsMarcados`); (d)
    botão "Salvar" — `showDialog` de confirmação com o texto **"Isto substitui TODO o conjunto de
    módulos deste Parceiro/Empresa — módulos não marcados serão desvinculados."** antes de
