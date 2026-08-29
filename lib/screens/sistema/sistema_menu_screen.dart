@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import 'aplicativo_screen.dart';
+import 'cadastro_empresa_wizard_screen.dart';
+import 'configuracoes_admin_screen.dart';
+import 'configuracoes_sistema/configuracoes_sistema_screen.dart';
+import 'endpoint_tester_screen.dart';
+import 'query_builder_screen.dart';
+import 'role_permissao_screen.dart';
+import 'tela_editor_screen.dart';
 
-/// Esqueleto de navegacao do menu "Sistema" (Fase 2, Task 01b.2). Lista os 8
-/// itens migrados de `menu_config.dart` (grupo `sistema`, exceto
-/// "Empresas" — fica no cliente, ver PLAN.md/RESEARCH.md desta fase). Nesta
-/// task todos os itens mostram um `SnackBar` de "Em construcao" — o wiring
-/// real para cada tela bespoke/CRUD entra na Task 13.2 (Wave 4), depois que
-/// todos os 8 itens existirem.
+/// Menu "Sistema" (Fase 2). Lista os 8 itens migrados de `menu_config.dart`
+/// (grupo `sistema`, exceto "Empresas" — fica no cliente, ver
+/// PLAN.md/RESEARCH.md desta fase). Cada item navega para a tela real
+/// correspondente (Task 13.2, Wave 4 — wiring final, depois que todos os 8
+/// itens já existiam das waves anteriores).
 class SistemaMenuScreen extends StatelessWidget {
   const SistemaMenuScreen({super.key});
 
@@ -63,10 +70,43 @@ class SistemaMenuScreen extends StatelessWidget {
     ),
   ];
 
+  static const _builders = <String, WidgetBuilder>{
+    'aplicativo': _buildAplicativo,
+    'cadastro_empresa': _buildCadastroEmpresa,
+    'config_admin': _buildConfigAdmin,
+    'config_sistema': _buildConfigSistema,
+    'editor_telas': _buildEditorTelas,
+    'permissoes': _buildPermissoes,
+    'teste_endpoints': _buildTesteEndpoints,
+    'query_builder': _buildQueryBuilder,
+  };
+
+  static Widget _buildAplicativo(BuildContext context) =>
+      const AplicativoScreen();
+  static Widget _buildCadastroEmpresa(BuildContext context) =>
+      const CadastroEmpresaWizardScreen();
+  static Widget _buildConfigAdmin(BuildContext context) =>
+      const ConfiguracoesAdminScreen();
+  static Widget _buildConfigSistema(BuildContext context) =>
+      const ConfiguracoesSistemaScreen();
+  static Widget _buildEditorTelas(BuildContext context) =>
+      const TelaEditorScreen();
+  static Widget _buildPermissoes(BuildContext context) =>
+      const RolePermissaoScreen();
+  static Widget _buildTesteEndpoints(BuildContext context) =>
+      const EndpointTesterScreen();
+  static Widget _buildQueryBuilder(BuildContext context) =>
+      const QueryBuilderScreen();
+
   void _onTap(BuildContext context, _SistemaMenuItem item) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Em construção — ${item.titulo}')),
-    );
+    final builder = _builders[item.id];
+    if (builder == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Em construção — ${item.titulo}')),
+      );
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(builder: builder));
   }
 
   @override
