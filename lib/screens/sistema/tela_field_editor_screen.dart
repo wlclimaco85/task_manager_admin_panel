@@ -98,7 +98,6 @@ class TelaFieldEditorScreenState extends State<TelaFieldEditorScreen> {
 
   Future<void> _reordenar(int oldIndex, int newIndex) async {
     setState(() {
-      if (newIndex > oldIndex) newIndex--;
       final item = _fields.removeAt(oldIndex);
       _fields.insert(newIndex, item);
       for (var i = 0; i < _fields.length; i++) {
@@ -199,7 +198,7 @@ class TelaFieldEditorScreenState extends State<TelaFieldEditorScreen> {
                             child: ReorderableListView.builder(
                               key: const Key('field_editor_reorderable_list'),
                               itemCount: _fields.length,
-                              onReorder: _reordenar,
+                              onReorderItem: _reordenar,
                               itemBuilder: (_, i) {
                                 final f = _fields[i];
                                 final isSelected = _selectedField?['id'] == f['id'];

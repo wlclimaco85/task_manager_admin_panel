@@ -94,11 +94,9 @@ void main() {
     final reorderable = tester.widget<ReorderableListView>(
       find.byKey(const Key('field_editor_reorderable_list')),
     );
-    // onReorder e declarado como `void Function(int,int)` na API publica do
-    // widget, mas a implementacao real (_reordenar) retorna Future<void> —
-    // cast para invocar e aguardar o efeito assincrono (PUT) no teste.
-    final onReorder = reorderable.onReorder as Future<void> Function(int, int);
-    await onReorder(0, 2); // move o 1o item (Campo A) para depois do 2o.
+    final onReorder =
+        reorderable.onReorderItem as Future<void> Function(int, int);
+    await onReorder(0, 1); // move o 1o item (Campo A) para depois do 2o.
     await tester.pumpAndSettle();
 
     final putReorder = recorder.requests.firstWhere(
