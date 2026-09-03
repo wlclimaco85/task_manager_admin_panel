@@ -81,7 +81,7 @@ class LoginModel {
 
   factory LoginModel.fromJson(Map<String, dynamic> json) => LoginModel(
         status: json['status'] as String?,
-        token: json['token'] as String?,
+        token: (json['access_token'] ?? json['token']) as String?,
         login: json['login'] is Map
             ? LoginInfo.fromJson(Map<String, dynamic>.from(json['login']))
             : null,

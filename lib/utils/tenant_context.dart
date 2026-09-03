@@ -32,16 +32,21 @@ class TenantContext {
     final token = AuthUtility.userInfo?.token;
     final tenantId = empresaId?.toString();
     return {
-      'Authorization': ?token != null ? 'Bearer $token' : null,
-      'X-Tenant-ID': ?tenantId,
+      if (token != null) 'Authorization': 'Bearer $token',
+      if (tenantId != null) 'X-Tenant-ID': tenantId,
       'Accept-Encoding': 'gzip',
     };
   }
 
-  static Map<String, String> get jsonHeaders => {
-        ...headers,
-        'Content-Type': 'application/json',
-      };
+  static Map<String, String> get jsonHeaders {
+    final token = AuthUtility.userInfo?.token;
+    final tenantId = empresaId?.toString();
+    return {
+      if (token != null) 'Authorization': 'Bearer $token',
+      if (tenantId != null) 'X-Tenant-ID': tenantId,
+      'Content-Type': 'application/json',
+    };
+  }
 
   /// Injeta empresaId/userId na URL quando ainda nao foram informados
   /// explicitamente (mesmos nomes de parametro aceitos pelos controllers
