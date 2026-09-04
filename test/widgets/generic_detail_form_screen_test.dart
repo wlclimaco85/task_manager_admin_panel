@@ -6,8 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
-import 'package:task_manager_admin_panel/widgets/generic/field_config.dart';
-import 'package:task_manager_admin_panel/widgets/generic/generic_detail_form_screen.dart';
+import 'package:task_manager_admin_panel/widgets/generic_detail_form_screen.dart';
 
 Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.darkTheme, home: child);
 
@@ -22,16 +21,16 @@ void main() {
 
     await tester.pumpWidget(_wrap(GenericDetailFormScreen(
       title: 'Licenca',
-      fields: const [
-        FieldConfig(
-          key: 'venc',
+      fieldConfigs: const [
+        FieldConfigWindows(
+          fieldName: 'venc',
           label: 'Vencimento',
-          type: FieldType.date,
+          fieldType: FieldType.date,
         ),
       ],
-      createUrl: 'http://backend/api/licencas',
+      createEndpoint: 'http://backend/api/licencas',
       initialValues: const {'venc': '2026-12-31'},
-      networkCaller: caller,
+      
     )));
 
     await tester.pumpAndSettle();
@@ -49,15 +48,15 @@ void main() {
 
     await tester.pumpWidget(_wrap(GenericDetailFormScreen(
       title: 'Licenca',
-      fields: const [
-        FieldConfig(
-          key: 'venc',
+      fieldConfigs: const [
+        FieldConfigWindows(
+          fieldName: 'venc',
           label: 'Vencimento',
-          type: FieldType.date,
+          fieldType: FieldType.date,
         ),
       ],
-      createUrl: 'http://backend/api/licencas',
-      networkCaller: caller,
+      createEndpoint: 'http://backend/api/licencas',
+      
     )));
 
     await tester.pumpAndSettle();
@@ -77,11 +76,11 @@ void main() {
 
     await tester.pumpWidget(_wrap(GenericDetailFormScreen(
       title: 'Chamado',
-      fields: const [
-        FieldConfig(key: 'titulo', label: 'Titulo', required: true),
+      fieldConfigs: const [
+        FieldConfigWindows(fieldName: 'titulo', label: 'Titulo', isRequired: true),
       ],
-      createUrl: 'http://backend/api/chamados',
-      networkCaller: caller,
+      createEndpoint: 'http://backend/api/chamados',
+      
       transformPayload: (raw, isEditing) => {
         ...raw,
         'extra': isEditing ? 'edit' : 'create',
@@ -112,11 +111,11 @@ void main() {
 
     await tester.pumpWidget(_wrap(GenericDetailFormScreen(
       title: 'Contato',
-      fields: const [
-        FieldConfig(key: 'nome', label: 'Nome', required: true),
+      fieldConfigs: const [
+        FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
       ],
-      createUrl: 'http://backend/api/contato-comercial',
-      networkCaller: caller,
+      createEndpoint: 'http://backend/api/contato-comercial',
+      
     )));
 
     await tester.pumpAndSettle();
@@ -139,19 +138,19 @@ void main() {
 
     await tester.pumpWidget(_wrap(GenericDetailFormScreen(
       title: 'Chamado',
-      fields: const [
-        FieldConfig(
-          key: 'status',
+      fieldConfigs: const [
+        FieldConfigWindows(
+          fieldName: 'status',
           label: 'Status',
-          type: FieldType.dropdown,
-          options: [
-            DropdownOption(value: 'ABERTO', label: 'Aberto'),
-            DropdownOption(value: 'FECHADO', label: 'Fechado'),
+          fieldType: FieldType.dropdown,
+          dropdownOptions: [
+            {'value': 'ABERTO', 'label': 'Aberto'},
+            {'value': 'FECHADO', 'label': 'Fechado'},
           ],
         ),
       ],
-      createUrl: 'http://backend/api/chamados',
-      networkCaller: caller,
+      createEndpoint: 'http://backend/api/chamados',
+      
     )));
 
     await tester.pumpAndSettle();

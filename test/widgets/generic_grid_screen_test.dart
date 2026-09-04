@@ -6,12 +6,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
-import 'package:task_manager_admin_panel/widgets/generic/field_config.dart';
-import 'package:task_manager_admin_panel/widgets/generic/generic_grid_screen.dart';
+import 'package:task_manager_admin_panel/widgets/generic_grid_windows_screen.dart';
 
 const _fields = [
-  FieldConfig(key: 'nome', label: 'Nome', required: true),
-  FieldConfig(key: 'email', label: 'E-mail', type: FieldType.email),
+  FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+  FieldConfigWindows(fieldName: 'email', label: 'E-mail', fieldType: FieldType.email),
 ];
 
 Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.darkTheme, home: child);
@@ -47,14 +46,14 @@ void main() {
       {'id': 2, 'nome': 'Contato B', 'email': 'b@x.com'},
     ]);
 
-    await tester.pumpWidget(_wrap(GenericGridScreen(
+    await tester.pumpWidget(_wrap(GenericGridWindowsScreen(
       title: 'Contatos',
-      listUrl: 'http://backend/api/contatos',
-      createUrl: 'http://backend/api/contatos',
-      updateUrl: (id) => 'http://backend/api/contatos/$id',
-      deleteUrl: (id) => 'http://backend/api/contatos/$id',
-      fields: _fields,
-      networkCaller: caller,
+      fetchEndpoint: 'http://backend/api/contatos',
+      createEndpoint: 'http://backend/api/contatos',
+      updateEndpoint: 'http://backend/api/contatos/',
+      deleteEndpoint: 'http://backend/api/contatos/',
+      fieldConfigs: _fields,
+      
     )));
 
     expect(find.byKey(const Key('grid_loading')), findsOneWidget);
@@ -70,14 +69,14 @@ void main() {
   testWidgets('mostra estado vazio quando nao ha registros', (tester) async {
     final caller = _callerReturning([]);
 
-    await tester.pumpWidget(_wrap(GenericGridScreen(
+    await tester.pumpWidget(_wrap(GenericGridWindowsScreen(
       title: 'Contatos',
-      listUrl: 'http://backend/api/contatos',
-      createUrl: 'http://backend/api/contatos',
-      updateUrl: (id) => 'http://backend/api/contatos/$id',
-      deleteUrl: (id) => 'http://backend/api/contatos/$id',
-      fields: _fields,
-      networkCaller: caller,
+      fetchEndpoint: 'http://backend/api/contatos',
+      createEndpoint: 'http://backend/api/contatos',
+      updateEndpoint: 'http://backend/api/contatos/',
+      deleteEndpoint: 'http://backend/api/contatos/',
+      fieldConfigs: _fields,
+      
     )));
 
     await tester.pumpAndSettle();
@@ -88,14 +87,14 @@ void main() {
   testWidgets('mostra estado de erro quando o backend falha', (tester) async {
     final caller = _callerReturning([], statusCode: 500);
 
-    await tester.pumpWidget(_wrap(GenericGridScreen(
+    await tester.pumpWidget(_wrap(GenericGridWindowsScreen(
       title: 'Contatos',
-      listUrl: 'http://backend/api/contatos',
-      createUrl: 'http://backend/api/contatos',
-      updateUrl: (id) => 'http://backend/api/contatos/$id',
-      deleteUrl: (id) => 'http://backend/api/contatos/$id',
-      fields: _fields,
-      networkCaller: caller,
+      fetchEndpoint: 'http://backend/api/contatos',
+      createEndpoint: 'http://backend/api/contatos',
+      updateEndpoint: 'http://backend/api/contatos/',
+      deleteEndpoint: 'http://backend/api/contatos/',
+      fieldConfigs: _fields,
+      
     )));
 
     await tester.pumpAndSettle();
@@ -109,14 +108,14 @@ void main() {
       {'id': 2, 'nome': 'Bruno', 'email': 'bruno@x.com'},
     ]);
 
-    await tester.pumpWidget(_wrap(GenericGridScreen(
+    await tester.pumpWidget(_wrap(GenericGridWindowsScreen(
       title: 'Contatos',
-      listUrl: 'http://backend/api/contatos',
-      createUrl: 'http://backend/api/contatos',
-      updateUrl: (id) => 'http://backend/api/contatos/$id',
-      deleteUrl: (id) => 'http://backend/api/contatos/$id',
-      fields: _fields,
-      networkCaller: caller,
+      fetchEndpoint: 'http://backend/api/contatos',
+      createEndpoint: 'http://backend/api/contatos',
+      updateEndpoint: 'http://backend/api/contatos/',
+      deleteEndpoint: 'http://backend/api/contatos/',
+      fieldConfigs: _fields,
+      
     )));
     await tester.pumpAndSettle();
 
@@ -139,14 +138,14 @@ void main() {
       },
     });
 
-    await tester.pumpWidget(_wrap(GenericGridScreen(
+    await tester.pumpWidget(_wrap(GenericGridWindowsScreen(
       title: 'Contatos',
-      listUrl: 'http://backend/api/contatos',
-      createUrl: 'http://backend/api/contatos',
-      updateUrl: (id) => 'http://backend/api/contatos/$id',
-      deleteUrl: (id) => 'http://backend/api/contatos/$id',
-      fields: _fields,
-      networkCaller: caller,
+      fetchEndpoint: 'http://backend/api/contatos',
+      createEndpoint: 'http://backend/api/contatos',
+      updateEndpoint: 'http://backend/api/contatos/',
+      deleteEndpoint: 'http://backend/api/contatos/',
+      fieldConfigs: _fields,
+      
     )));
 
     await tester.pumpAndSettle();
@@ -163,14 +162,14 @@ void main() {
       ],
     });
 
-    await tester.pumpWidget(_wrap(GenericGridScreen(
+    await tester.pumpWidget(_wrap(GenericGridWindowsScreen(
       title: 'Contatos',
-      listUrl: 'http://backend/api/contatos',
-      createUrl: 'http://backend/api/contatos',
-      updateUrl: (id) => 'http://backend/api/contatos/$id',
-      deleteUrl: (id) => 'http://backend/api/contatos/$id',
-      fields: _fields,
-      networkCaller: caller,
+      fetchEndpoint: 'http://backend/api/contatos',
+      createEndpoint: 'http://backend/api/contatos',
+      updateEndpoint: 'http://backend/api/contatos/',
+      deleteEndpoint: 'http://backend/api/contatos/',
+      fieldConfigs: _fields,
+      
     )));
 
     await tester.pumpAndSettle();
@@ -185,14 +184,14 @@ void main() {
       {'id': 1, 'nome': 'Contato A', 'email': 'a@x.com'},
     ]);
 
-    await tester.pumpWidget(_wrap(GenericGridScreen(
+    await tester.pumpWidget(_wrap(GenericGridWindowsScreen(
       title: 'Licencas',
-      listUrl: 'http://backend/api/licencas',
-      createUrl: 'http://backend/api/licencas',
-      updateUrl: (id) => 'http://backend/api/licencas/$id',
-      deleteUrl: null,
-      fields: _fields,
-      networkCaller: caller,
+      fetchEndpoint: 'http://backend/api/licencas',
+      createEndpoint: 'http://backend/api/licencas',
+      updateEndpoint: 'http://backend/api/licencas/',
+      deleteEndpoint: '',
+      fieldConfigs: _fields,
+      
     )));
 
     await tester.pumpAndSettle();
@@ -203,7 +202,7 @@ void main() {
 
   test('extractRows normaliza data/dados/content e Map vazio/nulo', () {
     expect(
-      GenericGridScreen.extractRows({
+      GenericGridWindowsScreen.extractRows({
         'data': [
           {'id': 1},
         ],
@@ -213,7 +212,7 @@ void main() {
       ],
     );
     expect(
-      GenericGridScreen.extractRows({
+      GenericGridWindowsScreen.extractRows({
         'dados': [
           {'id': 2}
         ]
@@ -223,7 +222,7 @@ void main() {
       ],
     );
     expect(
-      GenericGridScreen.extractRows({
+      GenericGridWindowsScreen.extractRows({
         'data': {
           'content': [
             {'id': 3}
@@ -234,25 +233,25 @@ void main() {
         {'id': 3}
       ],
     );
-    expect(GenericGridScreen.extractRows(null), isEmpty);
-    expect(GenericGridScreen.extractRows({}), isEmpty);
+    expect(GenericGridWindowsScreen.extractRows(null), isEmpty);
+    expect(GenericGridWindowsScreen.extractRows({}), isEmpty);
   });
 
   testWidgets(
-      'GenericGridScreen embedded:true nao renderiza Scaffold/AppBar proprio e mostra botao Novo inline',
+      'GenericGridWindowsScreen embedded:true nao renderiza Scaffold/AppBar proprio e mostra botao Novo inline',
       (tester) async {
     final caller = _callerReturning([]);
 
     await tester.pumpWidget(_wrap(Scaffold(
       appBar: AppBar(title: const Text('Container externo')),
-      body: GenericGridScreen(
+      body: GenericGridWindowsScreen(
         title: 'Contatos',
-        listUrl: 'http://backend/api/contatos',
-        createUrl: 'http://backend/api/contatos',
-        updateUrl: (id) => 'http://backend/api/contatos/$id',
-        deleteUrl: (id) => 'http://backend/api/contatos/$id',
-        fields: _fields,
-        networkCaller: caller,
+        fetchEndpoint: 'http://backend/api/contatos',
+        createEndpoint: 'http://backend/api/contatos',
+        updateEndpoint: 'http://backend/api/contatos/',
+        deleteEndpoint: 'http://backend/api/contatos/',
+        fieldConfigs: _fields,
+        
         embedded: true,
       ),
     )));

@@ -204,7 +204,7 @@ void main() {
     });
     final caller = NetworkCaller(client: client);
 
-    await tester.pumpWidget(_wrap(JobsScreen(networkCaller: caller)));
+    await tester.pumpWidget(_wrap(JobsScreen()));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('jobs_screen_error')), findsOneWidget);

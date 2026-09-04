@@ -40,7 +40,7 @@ void main() {
     });
 
     await tester
-        .pumpWidget(_wrap(TelaEditorScreen(networkCaller: caller)));
+        .pumpWidget(_wrap(TelaEditorScreen()));
 
     expect(find.byKey(const Key('tela_editor_loading')), findsOneWidget);
 
@@ -65,7 +65,7 @@ void main() {
     });
 
     await tester
-        .pumpWidget(_wrap(TelaEditorScreen(networkCaller: caller)));
+        .pumpWidget(_wrap(TelaEditorScreen()));
     await tester.pumpAndSettle();
 
     expect(find.text('Contatos'), findsOneWidget);
@@ -80,7 +80,7 @@ void main() {
     });
 
     await tester
-        .pumpWidget(_wrap(TelaEditorScreen(networkCaller: caller)));
+        .pumpWidget(_wrap(TelaEditorScreen()));
     await tester.pumpAndSettle();
 
     expect(find.text('NFe'), findsOneWidget);
@@ -90,7 +90,7 @@ void main() {
     final caller = _callerReturningBody({'data': []});
 
     await tester
-        .pumpWidget(_wrap(TelaEditorScreen(networkCaller: caller)));
+        .pumpWidget(_wrap(TelaEditorScreen()));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('tela_editor_empty_state')), findsOneWidget);
@@ -100,7 +100,7 @@ void main() {
     final caller = _callerReturningBody({}, statusCode: 500);
 
     await tester
-        .pumpWidget(_wrap(TelaEditorScreen(networkCaller: caller)));
+        .pumpWidget(_wrap(TelaEditorScreen()));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('tela_editor_error_text')), findsOneWidget);
@@ -116,7 +116,7 @@ void main() {
     });
 
     await tester
-        .pumpWidget(_wrap(TelaEditorScreen(networkCaller: caller)));
+        .pumpWidget(_wrap(TelaEditorScreen()));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -136,7 +136,7 @@ void main() {
     });
 
     await tester
-        .pumpWidget(_wrap(TelaEditorScreen(networkCaller: caller)));
+        .pumpWidget(_wrap(TelaEditorScreen()));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('tela_editor_edit_button_1')));

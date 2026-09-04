@@ -27,7 +27,7 @@ void main() {
     final caller = NetworkCaller(client: client);
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen(networkCaller: caller)),
+      _wrap(EndpointTesterScreen()),
     );
     await tester.pumpAndSettle();
 
@@ -60,7 +60,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen(networkCaller: caller)),
+      _wrap(EndpointTesterScreen()),
     );
     await tester.pumpAndSettle();
 
@@ -97,7 +97,7 @@ void main() {
     final caller = NetworkCaller(client: client);
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen(networkCaller: caller)),
+      _wrap(EndpointTesterScreen()),
     );
     await tester.pumpAndSettle();
 
@@ -137,7 +137,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen(networkCaller: caller)),
+      _wrap(EndpointTesterScreen()),
     );
     await tester.pumpAndSettle();
 

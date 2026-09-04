@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../config/api_links.dart';
 import '../../services/network_caller.dart';
-import '../../widgets/generic/generic_grid_screen.dart';
+import '../../widgets/generic_grid_windows_screen.dart';
 
 /// MOD-01 Modulos Contratados — tela de atribuicao de modulos a um Parceiro
 /// OU Empresa. NAO usa o par generico (GenericGridScreen/
@@ -132,8 +132,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
       return;
     }
 
-    final catalogo = GenericGridScreen.extractRows(resCatalogo.body);
-    final vinculados = GenericGridScreen.extractRows(resVinculados.body);
+    final catalogo = GenericGridWindowsScreen.extractRows(resCatalogo.body);
+    final vinculados = GenericGridWindowsScreen.extractRows(resVinculados.body);
     final idsVinculados = vinculados
         .map(_extractId)
         .whereType<int>()

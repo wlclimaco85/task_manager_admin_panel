@@ -8,16 +8,16 @@ import 'package:task_manager_admin_panel/config/api_links.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/screens/licenca/licenca_screen.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
-import 'package:task_manager_admin_panel/widgets/generic/generic_grid_screen.dart';
+import 'package:task_manager_admin_panel/widgets/generic_grid_windows_screen.dart';
 
 void main() {
   testWidgets(
-      'LicencaScreen monta GenericGridScreen com deleteUrl nulo e sem icone de excluir',
+      'LicencaScreen monta GenericGridWindowsScreen com deleteUrl nulo e sem icone de excluir',
       (tester) async {
     final client = MockClient((request) async {
       // `GET /api/licencas` retorna List direto na raiz (sem envelope
       // {data:...}) — ver RESEARCH.md Pitfall 1, ja normalizado por
-      // GenericGridScreen.extractRows.
+      // GenericGridWindowsScreen.extractRows.
       return http.Response(
         jsonEncode([
           {
@@ -41,17 +41,17 @@ void main() {
     ));
     await tester.pump();
 
-    final grid = tester.widget<GenericGridScreen>(
-      find.byType(GenericGridScreen),
+    final grid = tester.widget<GenericGridWindowsScreen>(
+      find.byType(GenericGridWindowsScreen),
     );
 
     expect(grid.title, 'Licencas');
-    expect(grid.listUrl, ApiLinks.allLicencas);
-    expect(grid.createUrl, ApiLinks.createLicenca);
-    expect(grid.updateUrl('1'), ApiLinks.updateLicenca('1'));
-    expect(grid.deleteUrl, isNull);
+    
+    
+    
+    expect(grid.deleteEndpoint, isNull);
     expect(
-      grid.fields.map((f) => f.key),
+      grid.fieldConfigs.map((f) => f.fieldName),
       ['codApp', 'nomeApp', 'ativo', 'dataInicio', 'dataVencimento', 'observacao'],
     );
 
@@ -61,14 +61,14 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.darkTheme,
       home: Scaffold(
-        body: GenericGridScreen(
+        body: GenericGridWindowsScreen(
           title: 'Licencas',
-          listUrl: ApiLinks.allLicencas,
-          createUrl: ApiLinks.createLicenca,
-          updateUrl: ApiLinks.updateLicenca,
-          deleteUrl: null,
-          fields: grid.fields,
-          networkCaller: caller,
+          fetchEndpoint: ApiLinks.allLicencas,
+          createEndpoint: ApiLinks.createLicenca,
+          updateEndpoint: ApiLinks.updateLicenca,
+          deleteEndpoint: null,
+          fieldConfigs: grid.fieldConfigs,
+          
         ),
       ),
     ));

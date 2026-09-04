@@ -1,7 +1,7 @@
 /// Links de API do Painel do Dono (task_manager_admin_panel).
 ///
 /// Reaproveita o MESMO backend/contrato JWT do app cliente
-/// (task_manager_flutter/lib/utils/api_links.dart) — mesmo host, mesmo
+/// (task_manager_flutter/lib/config/api_links.dart) — mesmo host, mesmo
 /// context-path, mesmo endpoint de login.
 ///
 /// ATENCAO (incidente historico documentado no CLAUDE.md do workspace):
@@ -40,6 +40,13 @@ class ApiLinks {
   // 13 planos seguintes, mesmo que consumidos so nas waves 2-4.
   // ===========================================================================
 
+
+  // File operations
+  static String uploadFile = '$_baseUrl/api/upload';
+  static String downloadFile(String id) => '$_baseUrl/api/download/$id';
+
+  // Tela Ajuda
+  static String telaAjudaPorTela(String tela) => '$_baseUrl/api/tela-ajuda/tela/$tela';
   // SIS-01 Aplicativo
   static String get allAplicativos => '$_baseUrl/api/aplicativo';
   static String get createAplicativo => '$_baseUrl/api/aplicativo';

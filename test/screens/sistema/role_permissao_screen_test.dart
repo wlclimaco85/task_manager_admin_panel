@@ -60,7 +60,7 @@ void main() {
 
       final caller = NetworkCaller(client: client);
 
-      await tester.pumpWidget(_wrap(RolePermissaoScreen(networkCaller: caller)));
+      await tester.pumpWidget(_wrap(RolePermissaoScreen()));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('permissoes_role_dropdown')), findsOneWidget);
@@ -109,7 +109,7 @@ void main() {
 
       final caller = NetworkCaller(client: client);
 
-      await tester.pumpWidget(_wrap(RolePermissaoScreen(networkCaller: caller)));
+      await tester.pumpWidget(_wrap(RolePermissaoScreen()));
       await tester.pumpAndSettle();
 
       // Primeiro checkbox de dados da tabela (coluna "Ver" da linha "aplicativo").
@@ -174,7 +174,7 @@ void main() {
       final caller = NetworkCaller(client: networkClient);
 
       await tester.pumpWidget(_wrap(RolePermissaoScreen(
-        networkCaller: caller,
+        
         httpClient: batchClient,
       )));
       await tester.pumpAndSettle();
@@ -247,7 +247,7 @@ void main() {
 
       final caller = NetworkCaller(client: client);
 
-      await tester.pumpWidget(_wrap(RolePermissaoScreen(networkCaller: caller)));
+      await tester.pumpWidget(_wrap(RolePermissaoScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('Aplicativo'), findsWidgets);

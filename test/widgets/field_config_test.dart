@@ -1,11 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
-import 'package:task_manager_admin_panel/widgets/generic/field_config.dart';
 
 void main() {
   group('DropdownOption', () {
     test('constroi com value e label', () {
-      const option = DropdownOption(value: 1, label: 'Um');
+      const option = {'value': 1, 'label': 'Um'};
 
       expect(option.value, 1);
       expect(option.label, 'Um');
@@ -13,11 +12,11 @@ void main() {
   });
 
   group('FieldConfig - campos novos da Fase 3', () {
-    test('type: FieldType.date com dateTime:true expoe dateTime == true', () {
-      const field = FieldConfig(
-        key: 'dataAbertura',
+    test('fieldType: FieldType.date com dateTime:true expoe dateTime == true', () {
+      const field = FieldConfigWindows(
+        fieldName: 'dataAbertura',
         label: 'Data de abertura',
-        type: FieldType.date,
+        fieldType: FieldType.date,
         dateTime: true,
       );
 
@@ -26,23 +25,23 @@ void main() {
     });
 
     test('dateTime tem default false quando nao informado', () {
-      const field = FieldConfig(
-        key: 'dataVencimento',
+      const field = FieldConfigWindows(
+        fieldName: 'dataVencimento',
         label: 'Data de vencimento',
-        type: FieldType.date,
+        fieldType: FieldType.date,
       );
 
       expect(field.dateTime, isFalse);
     });
 
-    test('type: FieldType.dropdown com options fixas sincronas', () {
-      const field = FieldConfig(
-        key: 'status',
+    test('fieldType: FieldType.dropdown com options fixas sincronas', () {
+      const field = FieldConfigWindows(
+        fieldName: 'status',
         label: 'Status',
-        type: FieldType.dropdown,
-        options: [
-          DropdownOption(value: 'ABERTO', label: 'Aberto'),
-          DropdownOption(value: 'FECHADO', label: 'Fechado'),
+        fieldType: FieldType.dropdown,
+        dropdownOptions: [
+          {'value': 'ABERTO', 'label': 'Aberto'},
+          {'value': 'FECHADO', 'label': 'Fechado'},
         ],
       );
 
@@ -54,10 +53,10 @@ void main() {
 
     test('optionsLoader opcional aceita funcao assincrona de carregamento',
         () {
-      const field = FieldConfig(
-        key: 'empresa',
+      const field = FieldConfigWindows(
+        fieldName: 'empresa',
         label: 'Empresa',
-        type: FieldType.dropdown,
+        fieldType: FieldType.dropdown,
         optionsLoader: _loaderFalso,
       );
 

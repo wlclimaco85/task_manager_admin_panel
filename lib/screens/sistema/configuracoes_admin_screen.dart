@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
-import '../../widgets/generic/field_config.dart';
-import '../../widgets/generic/generic_grid_screen.dart';
+import '../../widgets/generic_grid_windows_screen.dart';
 
 /// SIS-03 Configuracoes Admin. Tab container unico com os 6 sub-CRUDs
 /// (Decisao do PO item 2 do RESEARCH.md da Fase 2: "menor ruido no menu,
@@ -29,40 +28,40 @@ class _ConfiguracoesAdminScreenState extends State<ConfiguracoesAdminScreen>
   ];
 
   static const _cargoFields = [
-    FieldConfig(key: 'nome', label: 'Nome', required: true),
+    FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
   ];
 
   static const _centroCustoFields = [
-    FieldConfig(key: 'nome', label: 'Nome', required: true),
+    FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
   ];
 
   static const _departamentoFields = [
-    FieldConfig(key: 'nome', label: 'Nome', required: true),
-    FieldConfig(
-      key: 'numeroFolha',
+    FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+    FieldConfigWindows(
+      fieldName: 'numeroFolha',
       label: 'Número da Folha',
-      type: FieldType.number,
+      fieldType: FieldType.number,
     ),
   ];
 
   static const _feriadoFields = [
-    FieldConfig(key: 'nome', label: 'Nome', required: true),
-    FieldConfig(key: 'data', label: 'Data', required: true),
-    FieldConfig(
-      key: 'repeteAno',
+    FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+    FieldConfigWindows(fieldName: 'data', label: 'Data', isRequired: true),
+    FieldConfigWindows(
+      fieldName: 'repeteAno',
       label: 'Repete todo ano',
-      type: FieldType.boolean,
+      fieldType: FieldType.boolean,
     ),
   ];
 
   static const _horarioFuncFields = [
-    FieldConfig(key: 'nome', label: 'Nome', required: true),
-    FieldConfig(key: 'tipo', label: 'Tipo'),
-    FieldConfig(key: 'ativo', label: 'Ativo', type: FieldType.boolean),
+    FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+    FieldConfigWindows(fieldName: 'tipo', label: 'Tipo'),
+    FieldConfigWindows(fieldName: 'ativo', label: 'Ativo', fieldType: FieldType.boolean),
   ];
 
   static const _tipoProdutoFields = [
-    FieldConfig(key: 'tipoProduto', label: 'Tipo de Produto', required: true),
+    FieldConfigWindows(fieldName: 'tipoProduto', label: 'Tipo de Produto', isRequired: true),
   ];
 
   late final TabController _tabController =
@@ -89,59 +88,53 @@ class _ConfiguracoesAdminScreenState extends State<ConfiguracoesAdminScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          GenericGridScreen(
+          GenericGridWindowsScreen(
             title: 'Cargos',
-            listUrl: ApiLinks.allCargos,
-            createUrl: ApiLinks.createCargo,
-            updateUrl: ApiLinks.updateCargo,
-            deleteUrl: ApiLinks.deleteCargo,
-            fields: _cargoFields,
-            embedded: true,
+            fetchEndpoint: ApiLinks.allCargos,
+            createEndpoint: ApiLinks.createCargo,
+            updateEndpoint: ApiLinks.allCargos,
+            deleteEndpoint: ApiLinks.allCargos,
+            fieldConfigs: _cargoFields,
           ),
-          GenericGridScreen(
+          GenericGridWindowsScreen(
             title: 'Centro de Custo',
-            listUrl: ApiLinks.allCentroCusto,
-            createUrl: ApiLinks.createCentroCusto,
-            updateUrl: ApiLinks.updateCentroCusto,
-            deleteUrl: ApiLinks.deleteCentroCusto,
-            fields: _centroCustoFields,
-            embedded: true,
+            fetchEndpoint: ApiLinks.allCentroCusto,
+            createEndpoint: ApiLinks.createCentroCusto,
+            updateEndpoint: ApiLinks.allCentroCusto,
+            deleteEndpoint: ApiLinks.allCentroCusto,
+            fieldConfigs: _centroCustoFields,
           ),
-          GenericGridScreen(
+          GenericGridWindowsScreen(
             title: 'Departamentos',
-            listUrl: ApiLinks.allDepartamento,
-            createUrl: ApiLinks.createDepartamento,
-            updateUrl: ApiLinks.updateDepartamento,
-            deleteUrl: ApiLinks.deleteDepartamento,
-            fields: _departamentoFields,
-            embedded: true,
+            fetchEndpoint: ApiLinks.allDepartamento,
+            createEndpoint: ApiLinks.createDepartamento,
+            updateEndpoint: ApiLinks.allDepartamento,
+            deleteEndpoint: ApiLinks.allDepartamento,
+            fieldConfigs: _departamentoFields,
           ),
-          GenericGridScreen(
+          GenericGridWindowsScreen(
             title: 'Feriados',
-            listUrl: ApiLinks.allFeriado,
-            createUrl: ApiLinks.createFeriado,
-            updateUrl: ApiLinks.updateFeriado,
-            deleteUrl: ApiLinks.deleteFeriado,
-            fields: _feriadoFields,
-            embedded: true,
+            fetchEndpoint: ApiLinks.allFeriado,
+            createEndpoint: ApiLinks.createFeriado,
+            updateEndpoint: ApiLinks.allFeriado,
+            deleteEndpoint: ApiLinks.allFeriado,
+            fieldConfigs: _feriadoFields,
           ),
-          GenericGridScreen(
+          GenericGridWindowsScreen(
             title: 'Horários',
-            listUrl: ApiLinks.allHorarioFunc,
-            createUrl: ApiLinks.createHorarioFunc,
-            updateUrl: ApiLinks.updateHorarioFunc,
-            deleteUrl: ApiLinks.deleteHorarioFunc,
-            fields: _horarioFuncFields,
-            embedded: true,
+            fetchEndpoint: ApiLinks.allHorarioFunc,
+            createEndpoint: ApiLinks.createHorarioFunc,
+            updateEndpoint: ApiLinks.allHorarioFunc,
+            deleteEndpoint: ApiLinks.allHorarioFunc,
+            fieldConfigs: _horarioFuncFields,
           ),
-          GenericGridScreen(
+          GenericGridWindowsScreen(
             title: 'Tipos de Produto',
-            listUrl: ApiLinks.allTipoProduto,
-            createUrl: ApiLinks.createTipoProduto,
-            updateUrl: ApiLinks.updateTipoProduto,
-            deleteUrl: ApiLinks.deleteTipoProduto,
-            fields: _tipoProdutoFields,
-            embedded: true,
+            fetchEndpoint: ApiLinks.allTipoProduto,
+            createEndpoint: ApiLinks.createTipoProduto,
+            updateEndpoint: ApiLinks.allTipoProduto,
+            deleteEndpoint: ApiLinks.allTipoProduto,
+            fieldConfigs: _tipoProdutoFields,
           ),
         ],
       ),

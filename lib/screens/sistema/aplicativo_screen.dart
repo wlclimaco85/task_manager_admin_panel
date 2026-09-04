@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
-import '../../widgets/generic/field_config.dart';
-import '../../widgets/generic/generic_grid_screen.dart';
+import '../../widgets/generic_grid_windows_screen.dart';
 
 /// SIS-01 Aplicativo. Wrapper fino sobre [GenericGridScreen] — sem logica
 /// nova, mesmo padrao do `aplicativo_screen.dart` original do cliente,
@@ -11,23 +10,23 @@ class AplicativoScreen extends StatelessWidget {
   const AplicativoScreen({super.key});
 
   static const _fields = [
-    FieldConfig(key: 'nome', label: 'Nome', required: true),
-    FieldConfig(
-      key: 'observacao',
+    FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+    FieldConfigWindows(
+      fieldName: 'observacao',
       label: 'Observação',
-      type: FieldType.multiline,
+      fieldType: FieldType.multiline,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return GenericGridScreen(
+    return GenericGridWindowsScreen(
       title: 'Aplicativo',
-      listUrl: ApiLinks.allAplicativos,
-      createUrl: ApiLinks.createAplicativo,
-      updateUrl: ApiLinks.updateAplicativo,
-      deleteUrl: ApiLinks.deleteAplicativo,
-      fields: _fields,
+      fetchEndpoint: ApiLinks.allAplicativos,
+      createEndpoint: ApiLinks.createAplicativo,
+      updateEndpoint: ApiLinks.allAplicativos,
+      deleteEndpoint: ApiLinks.allAplicativos,
+      fieldConfigs: _fields,
     );
   }
 }

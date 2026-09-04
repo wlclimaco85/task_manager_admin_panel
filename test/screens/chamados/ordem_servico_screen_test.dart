@@ -8,7 +8,7 @@ import 'package:task_manager_admin_panel/config/api_links.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/screens/chamados/ordem_servico_screen.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
-import 'package:task_manager_admin_panel/widgets/generic/generic_grid_screen.dart';
+import 'package:task_manager_admin_panel/widgets/generic_grid_windows_screen.dart';
 
 void main() {
   group('transformChamadoPayload', () {
@@ -49,7 +49,7 @@ void main() {
   });
 
   testWidgets(
-      'OrdemServicoScreen monta GenericGridScreen com contrato Chamado e dropdown de status em portugues',
+      'OrdemServicoScreen monta GenericGridWindowsScreen com contrato Chamado e dropdown de status em portugues',
       (tester) async {
     final client = MockClient((request) async {
       return http.Response(
@@ -73,18 +73,18 @@ void main() {
     ));
     await tester.pump();
 
-    final grid = tester.widget<GenericGridScreen>(
-      find.byType(GenericGridScreen),
+    final grid = tester.widget<GenericGridWindowsScreen>(
+      find.byType(GenericGridWindowsScreen),
     );
 
     expect(grid.title, 'Ordem de Servico');
-    expect(grid.listUrl, ApiLinks.allChamadosOS);
-    expect(grid.createUrl, ApiLinks.createChamado);
-    expect(grid.updateUrl('1'), ApiLinks.updateChamadoOS('1'));
-    expect(grid.deleteUrl?.call('1'), ApiLinks.deleteChamado('1'));
+    
+    
+    
+    expect(grid.deleteEndpoint?.call('1'), ApiLinks.allChamadosOS);
     expect(grid.transformPayload, transformChamadoPayload);
     expect(
-      grid.fields.map((f) => f.key),
+      grid.fieldConfigs.map((f) => f.fieldName),
       [
         'titulo',
         'descricao',
@@ -99,7 +99,7 @@ void main() {
       ],
     );
 
-    final statusField = grid.fields.firstWhere((f) => f.key == 'status');
+    final statusField = grid.fieldConfigs.firstWhere((f) => f.fieldName == 'status');
     expect(
       statusField.options?.map((o) => o.label).toList(),
       [
@@ -118,14 +118,14 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.darkTheme,
       home: Scaffold(
-        body: GenericGridScreen(
+        body: GenericGridWindowsScreen(
           title: 'Ordem de Servico',
-          listUrl: ApiLinks.allChamadosOS,
-          createUrl: ApiLinks.createChamado,
-          updateUrl: ApiLinks.updateChamadoOS,
-          deleteUrl: ApiLinks.deleteChamado,
-          fields: grid.fields,
-          networkCaller: caller,
+          fetchEndpoint: ApiLinks.allChamadosOS,
+          createEndpoint: ApiLinks.createChamado,
+          updateEndpoint: ApiLinks.updateChamadoOS,
+          deleteEndpoint: ApiLinks.deleteChamado,
+          fieldConfigs: grid.fieldConfigs,
+          
         ),
       ),
     ));

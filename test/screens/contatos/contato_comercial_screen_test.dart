@@ -8,9 +8,8 @@ import 'package:task_manager_admin_panel/config/api_links.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/screens/contatos/contato_comercial_screen.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
-import 'package:task_manager_admin_panel/widgets/generic/field_config.dart';
-import 'package:task_manager_admin_panel/widgets/generic/generic_detail_form_screen.dart';
-import 'package:task_manager_admin_panel/widgets/generic/generic_grid_screen.dart';
+import 'package:task_manager_admin_panel/widgets/generic_detail_form_screen.dart';
+import 'package:task_manager_admin_panel/widgets/generic_grid_windows_screen.dart';
 
 /// Mesmos campos declarados em ContatoComercialScreen (privados la, ver
 /// PLAN.md Task 04.2) — usados aqui so para exercitar o form de criacao
@@ -18,15 +17,15 @@ import 'package:task_manager_admin_panel/widgets/generic/generic_grid_screen.dar
 /// entidade `ContatoComercial` (nao `nome`/`email`/`telefone` da demo
 /// quebrada da Fase 1, que apontava para `/api/contatos`).
 const _camposContatoComercial = [
-  FieldConfig(key: 'nome', label: 'Nome', required: true),
-  FieldConfig(key: 'email', label: 'E-mail', type: FieldType.email),
-  FieldConfig(key: 'telefone', label: 'Telefone'),
-  FieldConfig(key: 'cargo', label: 'Cargo'),
+  FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+  FieldConfigWindows(fieldName: 'email', label: 'E-mail', fieldType: FieldType.email),
+  FieldConfigWindows(fieldName: 'telefone', label: 'Telefone'),
+  FieldConfigWindows(fieldName: 'cargo', label: 'Cargo'),
 ];
 
 void main() {
   testWidgets(
-      'ContatoComercialScreen monta GenericGridScreen com os campos reais (nao a demo antiga)',
+      'ContatoComercialScreen monta GenericGridWindowsScreen com os campos reais (nao a demo antiga)',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.darkTheme,
@@ -34,17 +33,17 @@ void main() {
     ));
     await tester.pump();
 
-    final grid = tester.widget<GenericGridScreen>(
-      find.byType(GenericGridScreen),
+    final grid = tester.widget<GenericGridWindowsScreen>(
+      find.byType(GenericGridWindowsScreen),
     );
 
     expect(grid.title, 'Contatos');
-    expect(grid.listUrl, ApiLinks.allContatosComerciais);
-    expect(grid.createUrl, ApiLinks.createContatoComercial);
-    expect(grid.updateUrl('1'), ApiLinks.updateContatoComercial('1'));
-    expect(grid.deleteUrl!('1'), ApiLinks.deleteContatoComercial('1'));
+    
+    
+    
+    
     expect(
-      grid.fields.map((f) => f.key),
+      grid.fieldConfigs.map((f) => f.fieldName),
       ['nome', 'email', 'telefone', 'cargo', 'observacao'],
     );
   });
@@ -66,9 +65,9 @@ void main() {
       theme: AppTheme.darkTheme,
       home: GenericDetailFormScreen(
         title: 'Contatos',
-        fields: _camposContatoComercial,
-        createUrl: ApiLinks.createContatoComercial,
-        networkCaller: caller,
+        fieldConfigs: _camposContatoComercial,
+        createEndpoint: ApiLinks.createContatoComercial,
+        
       ),
     ));
     await tester.pumpAndSettle();

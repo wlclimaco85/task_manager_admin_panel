@@ -61,7 +61,7 @@ void main() {
       final caller = NetworkCaller(client: client);
 
       await tester.pumpWidget(MaterialApp(
-        home: ModuloAtribuicaoScreen(networkCaller: caller),
+        home: ModuloAtribuicaoScreen(),
       ));
       await tester.pump();
 
@@ -115,7 +115,7 @@ void main() {
       final caller = NetworkCaller(client: client);
 
       await tester.pumpWidget(MaterialApp(
-        home: ModuloAtribuicaoScreen(networkCaller: caller),
+        home: ModuloAtribuicaoScreen(),
       ));
       await tester.pump();
 
@@ -168,7 +168,7 @@ void main() {
       final caller = NetworkCaller(client: client);
 
       await tester.pumpWidget(MaterialApp(
-        home: ModuloAtribuicaoScreen(networkCaller: caller),
+        home: ModuloAtribuicaoScreen(),
       ));
       await tester.pump();
 

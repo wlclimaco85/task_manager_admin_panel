@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
-import '../../widgets/generic/field_config.dart';
-import '../../widgets/generic/generic_grid_screen.dart';
+import '../../widgets/generic_grid_windows_screen.dart';
 
 /// CONT-01 Contatos. Dominio NOVO `ContatoComercial` (backend Fase 3
 /// P01) — CRUD completo (inclusive exclusao) contra `/api/contato-comercial`,
@@ -13,27 +12,27 @@ class ContatoComercialScreen extends StatelessWidget {
   const ContatoComercialScreen({super.key});
 
   static const _fields = [
-    FieldConfig(key: 'nome', label: 'Nome', required: true),
-    FieldConfig(key: 'email', label: 'E-mail', type: FieldType.email),
-    FieldConfig(key: 'telefone', label: 'Telefone'),
-    FieldConfig(key: 'cargo', label: 'Cargo'),
-    FieldConfig(
-      key: 'observacao',
+    FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+    FieldConfigWindows(fieldName: 'email', label: 'E-mail', fieldType: FieldType.email),
+    FieldConfigWindows(fieldName: 'telefone', label: 'Telefone'),
+    FieldConfigWindows(fieldName: 'cargo', label: 'Cargo'),
+    FieldConfigWindows(
+      fieldName: 'observacao',
       label: 'Observacao',
-      type: FieldType.multiline,
-      showInGrid: false,
+      fieldType: FieldType.multiline,
+      isInGrid: false,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return GenericGridScreen(
+    return GenericGridWindowsScreen(
       title: 'Contatos',
-      listUrl: ApiLinks.allContatosComerciais,
-      createUrl: ApiLinks.createContatoComercial,
-      updateUrl: ApiLinks.updateContatoComercial,
-      deleteUrl: ApiLinks.deleteContatoComercial,
-      fields: _fields,
+      fetchEndpoint: ApiLinks.allContatosComerciais,
+      createEndpoint: ApiLinks.createContatoComercial,
+      updateEndpoint: ApiLinks.allContatosComerciais,
+      deleteEndpoint: ApiLinks.allContatosComerciais,
+      fieldConfigs: _fields,
     );
   }
 }

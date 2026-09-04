@@ -5,7 +5,7 @@ import '../../config/api_links.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/network_caller.dart';
 import '../../utils/growth_projection.dart';
-import '../../widgets/generic/generic_grid_screen.dart';
+import '../../widgets/generic_grid_windows_screen.dart';
 
 /// DASH-01 Dashboard de Crescimento — item adicionado durante o planejamento
 /// da Fase 3 a pedido explicito do usuario (nao estava no ROADMAP.md
@@ -141,7 +141,7 @@ class _GrowthMetricCardState extends State<GrowthMetricCard> {
       if (!response.isSuccess) {
         throw Exception('HTTP ${response.statusCode}');
       }
-      final rows = GenericGridScreen.extractRows(response.body);
+      final rows = GenericGridWindowsScreen.extractRows(response.body);
       final points = rows.map(MonthlyPoint.fromJson).toList();
       if (!mounted) return;
       setState(() {

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
-import '../../widgets/generic/dropdown_source.dart';
-import '../../widgets/generic/field_config.dart';
-import '../../widgets/generic/generic_grid_screen.dart';
+import '../../widgets/generic_grid_windows_screen.dart';
 
 /// OS-01 Ordem de Servico, via dominio `Chamado` ja existente (nao ha
 /// endpoint literal "OrdemServico" no backend, ver RESEARCH.md A1). Reusa
@@ -19,113 +17,84 @@ class OrdemServicoScreen extends StatelessWidget {
   const OrdemServicoScreen({super.key});
 
   static final _fields = [
-    const FieldConfig(
-      key: 'titulo',
+    const FieldConfigWindows(
+      fieldName: 'titulo',
       label: 'Titulo',
-      required: true,
-      showInGrid: true,
+      isRequired: true,
+      isInGrid: true,
     ),
-    const FieldConfig(
-      key: 'descricao',
+    const FieldConfigWindows(
+      fieldName: 'descricao',
       label: 'Descricao',
-      type: FieldType.multiline,
-      showInGrid: false,
+      fieldType: FieldType.multiline,
+      isInGrid: false,
     ),
-    const FieldConfig(
-      key: 'status',
+    const FieldConfigWindows(
+      fieldName: 'status',
       label: 'Status',
-      type: FieldType.dropdown,
-      showInGrid: true,
-      options: [
-        DropdownOption(value: 'ABERTO', label: 'Aberto'),
-        DropdownOption(value: 'EM_ANDAMENTO', label: 'Em andamento'),
-        DropdownOption(value: 'FECHADO', label: 'Fechado'),
-        DropdownOption(value: 'CANCELADO', label: 'Cancelado'),
-        DropdownOption(value: 'AGUARDANDO_CLIENTE', label: 'Aguardando cliente'),
-        DropdownOption(value: 'BLOQUEADO', label: 'Bloqueado'),
+      fieldType: FieldType.dropdown,
+      isInGrid: true,
+      dropdownOptions: [
+        {'value': 'ABERTO', 'label': 'Aberto'},
+        {'value': 'EM_ANDAMENTO', 'label': 'Em andamento'},
+        {'value': 'FECHADO', 'label': 'Fechado'},
+        {'value': 'CANCELADO', 'label': 'Cancelado'},
+        {'value': 'AGUARDANDO_CLIENTE', 'label': 'Aguardando cliente'},
+        {'value': 'BLOQUEADO', 'label': 'Bloqueado'},
       ],
     ),
-    const FieldConfig(
-      key: 'prioridade',
+    const FieldConfigWindows(
+      fieldName: 'prioridade',
       label: 'Prioridade',
-      type: FieldType.dropdown,
-      showInGrid: true,
-      options: [
-        DropdownOption(value: 'BAIXA', label: 'Baixa'),
-        DropdownOption(value: 'MEDIA', label: 'Media'),
-        DropdownOption(value: 'ALTA', label: 'Alta'),
-        DropdownOption(value: 'URGENTE', label: 'Urgente'),
-        DropdownOption(value: 'NORMAL', label: 'Normal'),
+      fieldType: FieldType.dropdown,
+      isInGrid: true,
+      dropdownOptions: [
+        {'value': 'BAIXA', 'label': 'Baixa'},
+        {'value': 'MEDIA', 'label': 'Media'},
+        {'value': 'ALTA', 'label': 'Alta'},
+        {'value': 'URGENTE', 'label': 'Urgente'},
+        {'value': 'NORMAL', 'label': 'Normal'},
       ],
     ),
-    FieldConfig(
-      key: 'empresa',
-      label: 'Empresa',
-      type: FieldType.dropdown,
-      required: false,
-      showInGrid: false,
-      optionsLoader: remoteDropdownSource(
-        url: ApiLinks.dropdownEmpresas,
-        valueKey: 'id',
-        labelBuilder: (r) => r['nome']?.toString() ?? '',
-      ),
-    ),
-    FieldConfig(
-      key: 'parceiro',
-      label: 'Parceiro',
-      type: FieldType.dropdown,
-      required: false,
-      showInGrid: false,
-      optionsLoader: remoteDropdownSource(
-        url: ApiLinks.dropdownParceiros,
-        valueKey: 'id',
-        labelBuilder: (r) => r['nome']?.toString() ?? '',
-      ),
-    ),
-    FieldConfig(
-      key: 'setor',
+    FieldConfigWindows(
+      fieldName: 'setor',
       label: 'Setor',
-      type: FieldType.dropdown,
-      required: false,
-      showInGrid: false,
-      optionsLoader: remoteDropdownSource(
-        url: ApiLinks.dropdownSetores,
-        valueKey: 'id',
-        labelBuilder: (r) => r['descricao']?.toString() ?? '',
-      ),
+      fieldType: FieldType.dropdown,
+      isRequired: false,
+      isInGrid: false,
     ),
-    const FieldConfig(
-      key: 'dataAbertura',
+    const FieldConfigWindows(
+      fieldName: 'dataAbertura',
       label: 'Data de abertura',
-      type: FieldType.date,
-      dateTime: true,
-      showInGrid: false,
+      fieldType: FieldType.date,
+      fieldType: FieldType.datetime,
+      isInGrid: false,
     ),
-    const FieldConfig(
-      key: 'dataFechamento',
+    const FieldConfigWindows(
+      fieldName: 'dataFechamento',
       label: 'Data de fechamento',
-      type: FieldType.date,
-      dateTime: true,
-      showInGrid: false,
+      fieldType: FieldType.date,
+      fieldType: FieldType.datetime,
+      isInGrid: false,
     ),
-    const FieldConfig(
-      key: 'dataVencimentoObrigacao',
+    const FieldConfigWindows(
+      fieldName: 'dataVencimentoObrigacao',
       label: 'Vencimento da obrigacao',
-      type: FieldType.date,
-      showInGrid: false,
+      fieldType: FieldType.date,
+      isInGrid: false,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return GenericGridScreen(
+    return GenericGridWindowsScreen(
       title: 'Ordem de Servico',
-      listUrl: ApiLinks.allChamadosOS,
-      createUrl: ApiLinks.createChamado,
-      updateUrl: ApiLinks.updateChamadoOS,
-      deleteUrl: ApiLinks.deleteChamado,
-      fields: _fields,
-      transformPayload: transformChamadoPayload,
+      fetchEndpoint: ApiLinks.allChamadosOS,
+      createEndpoint: ApiLinks.createChamado,
+      updateEndpoint: ApiLinks.allChamadosOS,
+      deleteEndpoint: ApiLinks.allChamadosOS,
+      fieldConfigs: _fields,
+      
     );
   }
 }

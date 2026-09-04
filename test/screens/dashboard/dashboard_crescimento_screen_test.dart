@@ -47,7 +47,7 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.darkTheme,
-      home: DashboardCrescimentoScreen(networkCaller: caller),
+      home: DashboardCrescimentoScreen(),
     ));
 
     // Antes de resolver as requests: os 3 cards mostram "Carregando...".
@@ -85,7 +85,7 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.darkTheme,
-      home: DashboardCrescimentoScreen(networkCaller: caller),
+      home: DashboardCrescimentoScreen(),
     ));
     await tester.pumpAndSettle();
 

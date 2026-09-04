@@ -61,7 +61,7 @@ void main() {
       telaId: 10,
       telaNome: 'aplicativo',
       telaTitulo: 'Aplicativo',
-      networkCaller: caller,
+      
     )));
     await tester.pumpAndSettle();
 
@@ -87,7 +87,7 @@ void main() {
       telaId: 10,
       telaNome: 'aplicativo',
       telaTitulo: 'Aplicativo',
-      networkCaller: caller,
+      
     )));
     await tester.pumpAndSettle();
 
@@ -122,7 +122,7 @@ void main() {
         telaId: 10,
         telaNome: 'aplicativo',
         telaTitulo: 'Aplicativo',
-        networkCaller: caller,
+        
       )));
       await tester.pumpAndSettle();
 

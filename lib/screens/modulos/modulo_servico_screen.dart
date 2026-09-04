@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
-import '../../widgets/generic/field_config.dart';
-import '../../widgets/generic/generic_grid_screen.dart';
+import '../../widgets/generic_grid_windows_screen.dart';
 
 /// MOD-01 Modulos Contratados — catalogo `ModuloServico`. CRUD simples via
 /// par generico, sem adaptacao especial: `ModuloServicoController` ja usa o
@@ -10,20 +9,20 @@ class ModuloServicoScreen extends StatelessWidget {
   const ModuloServicoScreen({super.key});
 
   static final _fields = [
-    const FieldConfig(key: 'nome', label: 'Nome', required: true),
-    const FieldConfig(key: 'descricao', label: 'Descricao'),
-    const FieldConfig(key: 'ativo', label: 'Ativo', type: FieldType.boolean),
+    const FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
+    const FieldConfigWindows(fieldName: 'descricao', label: 'Descricao'),
+    const FieldConfigWindows(fieldName: 'ativo', label: 'Ativo', fieldType: FieldType.boolean),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return GenericGridScreen(
+    return GenericGridWindowsScreen(
       title: 'Modulos (catalogo)',
-      listUrl: ApiLinks.allModulosServico,
-      createUrl: ApiLinks.createModuloServico,
-      updateUrl: ApiLinks.updateModuloServico,
-      deleteUrl: ApiLinks.deleteModuloServico,
-      fields: _fields,
+      fetchEndpoint: ApiLinks.allModulosServico,
+      createEndpoint: ApiLinks.createModuloServico,
+      updateEndpoint: ApiLinks.allModulosServico,
+      deleteEndpoint: ApiLinks.allModulosServico,
+      fieldConfigs: _fields,
     );
   }
 }
