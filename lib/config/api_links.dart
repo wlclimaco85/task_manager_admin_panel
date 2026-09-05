@@ -73,6 +73,12 @@ class ApiLinks {
   static String get createChat => '$_baseUrl/api/chat';
   static String deleteChat(String id) => '$_baseUrl/api/chat/$id';
 
+  // Card cUlANCTt - importacao de arquivo SINTEGRA/SPED (EFD ICMS/IPI).
+  static String get nfeImportacaoSintegra =>
+      '$_baseUrl/api/nfe-import/importacao-sintegra';
+  static String get nfeImportacaoSped =>
+      '$_baseUrl/api/nfe-import/importacao-sped';
+
   // SIS-04 Importacao Cadastros (_ImportacaoCadastrosSection — contrato
   // DISTINTO do de SIS-02 acima: endpoints/verbos diferentes, nao reutilizar).
   static String allEmpresasByAplicativo(String codApp) =>

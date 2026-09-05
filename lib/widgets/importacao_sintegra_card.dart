@@ -51,12 +51,92 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
   bool _loadingEmpresas = false;
   bool _importando = false;
 
+  // Pedido explicito do usuario: trazer os campos de conta bancaria/caixa e
+  // centro de custo na propria tela de import, ANTES de mandar processar --
+  // usados na geracao do financeiro quando a empresa nao tiver defaults
+  // financeiros configurados. Ambos opcionais.
+  List<Map<String, dynamic>> _contasBancarias = [];
+  List<Map<String, dynamic>> _centrosCusto = [];
+  String? _contaBancariaId;
+  String? _centroCustoId;
+  bool _loadingFinanceiro = false;
+
   @override
   void initState() {
     super.initState();
     _arquivo = widget.arquivoInicial;
     _empresaId = widget.empresaIdInicial;
     _carregarEmpresas();
+    _carregarOpcoesFinanceiro();
+  }
+
+  Future<void> _carregarOpcoesFinanceiro() async {
+    setState(() => _loadingFinanceiro = true);
+    try {
+      final resultados = await Future.wait([
+        _carregarContasBancariasApi(),
+        _carregarCentrosCustoApi(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _contasBancarias = resultados[0];
+        _centrosCusto = resultados[1];
+      });
+    } catch (_) {
+      // Campos opcionais -- falha ao carregar nao bloqueia a importacao.
+    } finally {
+      if (mounted) setState(() => _loadingFinanceiro = false);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _carregarContasBancariasApi() async {
+    final query = StringBuffer('?tamanho=200');
+    if (_empresaId != null && _empresaId!.isNotEmpty) {
+      query.write('&empresa=$_empresaId');
+    }
+    final url = '${widget.baseUrl}/api/contas-bancaria$query';
+    final resp = await http.get(Uri.parse(url), headers: TenantContext.headers);
+    if (resp.statusCode != 200) {
+      throw Exception('HTTP ${resp.statusCode}');
+    }
+    return _extractList(jsonDecode(resp.body)).map<Map<String, dynamic>>((item) {
+      final descricao = item['descricao']?.toString().trim() ?? '';
+      final banco = item['banco']?.toString().trim() ?? '';
+      final numero = item['numero']?.toString().trim() ?? '';
+      final bancoNumero = [
+        if (banco.isNotEmpty) banco,
+        if (numero.isNotEmpty) numero,
+      ].join(' - ');
+      final nome = [
+        if (descricao.isNotEmpty) descricao,
+        if (bancoNumero.isNotEmpty) bancoNumero,
+      ].join(' • ');
+      return {
+        'id': item['id']?.toString() ?? '',
+        'nome': nome.isNotEmpty ? nome : (item['nome']?.toString() ?? ''),
+      };
+    }).where((item) => item['id']!.isNotEmpty).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _carregarCentrosCustoApi() async {
+    final query = StringBuffer('?tamanho=200');
+    if (_empresaId != null && _empresaId!.isNotEmpty) {
+      query.write('&empId=$_empresaId');
+    }
+    final url = '${ApiLinks.allCentroCusto}$query';
+    final resp = await http.get(Uri.parse(url), headers: TenantContext.headers);
+    if (resp.statusCode != 200) {
+      throw Exception('HTTP ${resp.statusCode}');
+    }
+    return _extractList(jsonDecode(resp.body))
+        .map<Map<String, dynamic>>(
+          (item) => {
+            'id': item['id']?.toString() ?? '',
+            'nome': item['nome']?.toString() ?? '',
+          },
+        )
+        .where((item) => item['id']!.isNotEmpty)
+        .toList();
   }
 
   Future<void> _carregarEmpresas() async {
@@ -85,9 +165,7 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
   }
 
   Future<List<Map<String, dynamic>>> _carregarEmpresasApi() async {
-    final appId = TenantContext.aplicativoId;
-    final url =
-        '${widget.baseUrl}/api/empresa${appId != null ? '?codApp=$appId' : ''}';
+    final url = '${widget.baseUrl}/api/empresa';
     final resp = await http.get(Uri.parse(url), headers: TenantContext.headers);
     if (resp.statusCode != 200) {
       throw Exception('HTTP ${resp.statusCode}');
@@ -106,7 +184,7 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
   }
 
   Future<void> _selecionarArquivo() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       withData: kIsWeb,
       type: FileType.custom,
@@ -174,6 +252,12 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
       (key, _) => key.toLowerCase() == 'content-type',
     );
     request.fields['empId'] = empresaId;
+    if (_contaBancariaId != null && _contaBancariaId!.isNotEmpty) {
+      request.fields['contaBancariaId'] = _contaBancariaId!;
+    }
+    if (_centroCustoId != null && _centroCustoId!.isNotEmpty) {
+      request.fields['centroCustoId'] = _centroCustoId!;
+    }
     if (arquivo.bytes != null) {
       request.files.add(
         http.MultipartFile.fromBytes(
@@ -293,7 +377,10 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
                       : 'Selecione a empresa',
                   enabled: !_loadingEmpresas && !_importando,
                   isRequired: true,
-                  onChanged: (value) => setState(() => _empresaId = value),
+                  onChanged: (value) {
+                    setState(() => _empresaId = value);
+                    _carregarOpcoesFinanceiro();
+                  },
                 );
                 final arquivo = _arquivoResumo();
                 final importar = _botaoImportar();
@@ -319,6 +406,8 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
                 );
               },
             ),
+            const SizedBox(height: 8),
+            _camposFinanceiro(),
             if (_erro != null) ...[
               const SizedBox(height: 10),
               _feedback(_erro!, GridColors.error, Icons.error_outline),
@@ -371,6 +460,55 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
     );
   }
 
+  Widget _camposFinanceiro() {
+    final contaDropdown = SearchableDropdownField(
+      key: const Key('importacao-sintegra-conta-bancaria'),
+      label: 'Conta bancaria/caixa (opcional)',
+      value: _contaBancariaId,
+      items: _contasBancarias,
+      valueField: 'id',
+      displayField: 'nome',
+      hintText: _loadingFinanceiro
+          ? 'Carregando contas...'
+          : 'Usar default da empresa',
+      enabled: !_loadingFinanceiro && !_importando,
+      onChanged: (value) => setState(() => _contaBancariaId = value),
+    );
+    final centroCustoDropdown = SearchableDropdownField(
+      key: const Key('importacao-sintegra-centro-custo'),
+      label: 'Centro de custo (opcional)',
+      value: _centroCustoId,
+      items: _centrosCusto,
+      valueField: 'id',
+      displayField: 'nome',
+      hintText: _loadingFinanceiro
+          ? 'Carregando centros de custo...'
+          : 'Usar default da empresa',
+      enabled: !_loadingFinanceiro && !_importando,
+      onChanged: (value) => setState(() => _centroCustoId = value),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) {
+          return Column(
+            children: [
+              contaDropdown,
+              const SizedBox(height: 8),
+              centroCustoDropdown,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: contaDropdown),
+            const SizedBox(width: 12),
+            Expanded(child: centroCustoDropdown),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _botaoImportar() {
     return ElevatedButton.icon(
       key: const Key('importacao-sintegra-importar'),
@@ -407,6 +545,7 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
       _ResumoItem('Parceiros novos', resultado['parceirosCriados']),
       _ResumoItem('Parceiros atualizados', resultado['parceirosAtualizados']),
       _ResumoItem('Tributacoes', resultado['tributacoes']),
+      _ResumoItem('Financeiro gerado', resultado['financeirosGerados']),
       _ResumoItem('Financeiro pendente', resultado['financeirosPendentes']),
     ];
     return Container(
