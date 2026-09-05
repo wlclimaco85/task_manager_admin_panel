@@ -4,6 +4,7 @@ import 'acoes_screen.dart';
 import 'importacao_cadastros_screen.dart';
 import 'importacao_contas_screen.dart';
 import 'jobs_screen.dart';
+import 'importacao_fiscal_screen.dart';
 
 /// SIS-04 Config. Sistema. Tab container único que agrupa as 4 seções já
 /// implementadas nas waves anteriores (Ações simples, Jobs, Importação de
@@ -33,6 +34,10 @@ class _ConfiguracoesSistemaScreenState
     Tab(
       text: 'Importação Cadastros',
       key: Key('config_sistema_tab_importacao_cadastros'),
+    ),
+    Tab(
+      text: 'Importação Fiscal',
+      key: Key('config_sistema_tab_importacao_fiscal'),
     ),
   ];
 
@@ -64,6 +69,7 @@ class _ConfiguracoesSistemaScreenState
           const JobsScreen(),
           ImportacaoContasScreen(),
           ImportacaoCadastrosScreen(),
+          const ImportacaoFiscalScreen(),
         ],
       ),
     );
