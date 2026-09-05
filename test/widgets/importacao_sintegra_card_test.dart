@@ -193,7 +193,7 @@ void main() {
               carregarEmpresas: () async => [
                 {'id': '7', 'nome': 'Empresa do Tenant'},
               ],
-              carregarContasBancarias: (empresaId) async {
+              carregarContasBancarias: (empresaId, parceiroId) async {
                 idsRecebidosConta.add(empresaId);
                 return [
                   {'id': '10', 'nome': 'Conta da empresa 7'},
@@ -215,6 +215,59 @@ void main() {
       expect(idsRecebidosCentro, isNot(contains(null)));
       expect(idsRecebidosConta, contains('7'));
       expect(idsRecebidosCentro, contains('7'));
+    },
+  );
+
+  // Bug real reportado pelo usuario: o combo de conta bancaria trazia TODOS
+  // os parceiros da empresa ("Conta Padrao do Parceiro" repetido varias
+  // vezes) em vez de so as contas do parceiro do proprio arquivo. Verifica
+  // que, ao identificar o parceiro (via CNPJ do arquivo), o combo de conta
+  // bancaria e' recarregado com esse parceiroId -- centro de custo continua
+  // so por empresa (nao tem campo parceiro no schema).
+  testWidgets(
+    'identifica o parceiro do arquivo e filtra o combo de conta bancaria por ele',
+    (tester) async {
+      final idsParceiroRecebidosConta = <String?>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ImportacaoSintegraCard(
+              baseUrl: 'http://localhost',
+              empresaIdInicial: '1',
+              carregarEmpresas: () async => [
+                {'id': '1', 'nome': 'Empresa Smoke Test'},
+              ],
+              identificarParceiro: (empresaId, arquivo) async => {
+                'parceiroId': '55',
+                'parceiroNome': 'Fornecedor Lana',
+              },
+              carregarContasBancarias: (empresaId, parceiroId) async {
+                idsParceiroRecebidosConta.add(parceiroId);
+                return [
+                  {'id': '10', 'nome': 'Conta do parceiro 55'},
+                ];
+              },
+              carregarCentrosCusto: (empresaId) async => [
+                {'id': '20', 'nome': 'Centro qualquer'},
+              ],
+              arquivoInicial: PlatformFile(
+                name: 'sintegra.txt',
+                size: 3,
+                bytes: Uint8List.fromList([49, 48, 32]),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(idsParceiroRecebidosConta, contains('55'));
+      expect(
+        find.byKey(const Key('importacao-sintegra-parceiro-identificado')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Fornecedor Lana'), findsOneWidget);
     },
   );
 }

@@ -78,6 +78,13 @@ class ApiLinks {
       '$_baseUrl/api/nfe-import/importacao-sintegra';
   static String get nfeImportacaoSped =>
       '$_baseUrl/api/nfe-import/importacao-sped';
+  // Pedido explicito do usuario: identificar o parceiro do arquivo (pelo
+  // CNPJ) ANTES de processar, pra filtrar os combos de conta bancaria pelo
+  // parceiro certo (nao todos da empresa).
+  static String get nfeImportacaoSintegraIdentificarParceiro =>
+      '$_baseUrl/api/nfe-import/importacao-sintegra/identificar-parceiro';
+  static String get nfeImportacaoSpedIdentificarParceiro =>
+      '$_baseUrl/api/nfe-import/importacao-sped/identificar-parceiro';
 
   // SIS-04 Importacao Cadastros (_ImportacaoCadastrosSection — contrato
   // DISTINTO do de SIS-02 acima: endpoints/verbos diferentes, nao reutilizar).

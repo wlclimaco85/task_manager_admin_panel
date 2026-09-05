@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../utils/api_links.dart';
-import '../../../../widgets/importacao_sintegra_card.dart';
-import '../../../../widgets/importacao_sped_card.dart';
+import '../../../config/api_links.dart';
+import '../../../widgets/importacao_sintegra_card.dart';
+import '../../../widgets/importacao_sped_card.dart';
 
 class ImportacaoFiscalScreen extends StatelessWidget {
   const ImportacaoFiscalScreen({super.key});

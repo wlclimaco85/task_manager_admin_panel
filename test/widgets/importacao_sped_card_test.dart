@@ -186,7 +186,7 @@ void main() {
               carregarEmpresas: () async => [
                 {'id': '7', 'nome': 'Empresa do Tenant'},
               ],
-              carregarContasBancarias: (empresaId) async {
+              carregarContasBancarias: (empresaId, parceiroId) async {
                 idsRecebidosConta.add(empresaId);
                 return [
                   {'id': '10', 'nome': 'Conta da empresa 7'},
@@ -208,6 +208,55 @@ void main() {
       expect(idsRecebidosCentro, isNot(contains(null)));
       expect(idsRecebidosConta, contains('7'));
       expect(idsRecebidosCentro, contains('7'));
+    },
+  );
+
+  // Bug real reportado pelo usuario -- ver comentario completo no teste
+  // equivalente de importacao_sintegra_card_test.dart.
+  testWidgets(
+    'identifica o parceiro do arquivo e filtra o combo de conta bancaria por ele',
+    (tester) async {
+      final idsParceiroRecebidosConta = <String?>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ImportacaoSpedCard(
+              baseUrl: 'http://localhost',
+              empresaIdInicial: '1',
+              carregarEmpresas: () async => [
+                {'id': '1', 'nome': 'Empresa Smoke Test'},
+              ],
+              identificarParceiro: (empresaId, arquivo) async => {
+                'parceiroId': '55',
+                'parceiroNome': 'Fornecedor Lana',
+              },
+              carregarContasBancarias: (empresaId, parceiroId) async {
+                idsParceiroRecebidosConta.add(parceiroId);
+                return [
+                  {'id': '10', 'nome': 'Conta do parceiro 55'},
+                ];
+              },
+              carregarCentrosCusto: (empresaId) async => [
+                {'id': '20', 'nome': 'Centro qualquer'},
+              ],
+              arquivoInicial: PlatformFile(
+                name: 'sped.txt',
+                size: 3,
+                bytes: Uint8List.fromList([49, 48, 32]),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(idsParceiroRecebidosConta, contains('55'));
+      expect(
+        find.byKey(const Key('importacao-sped-parceiro-identificado')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Fornecedor Lana'), findsOneWidget);
     },
   );
 }

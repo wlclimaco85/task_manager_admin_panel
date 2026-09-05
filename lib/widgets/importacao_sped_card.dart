@@ -26,13 +26,20 @@ typedef ImportacaoSpedSubmit = Future<Map<String, dynamic>> Function(
 // regressao sem depender do TenantContext/HTTP reais.
 typedef ImportacaoFinanceiroLoader = Future<List<Map<String, dynamic>>>
     Function(String? empresaId);
+// Ver comentario completo em ImportacaoSintegraCard.
+typedef ImportacaoContasBancariasLoader = Future<List<Map<String, dynamic>>>
+    Function(String? empresaId, String? parceiroId);
+typedef ImportacaoIdentificarParceiroLoader
+    = Future<Map<String, dynamic>?> Function(
+        String empresaId, PlatformFile arquivo);
 
 class ImportacaoSpedCard extends StatefulWidget {
   final String baseUrl;
   final ImportacaoSpedLoader? carregarEmpresas;
   final ImportacaoSpedSubmit? importar;
-  final ImportacaoFinanceiroLoader? carregarContasBancarias;
+  final ImportacaoContasBancariasLoader? carregarContasBancarias;
   final ImportacaoFinanceiroLoader? carregarCentrosCusto;
+  final ImportacaoIdentificarParceiroLoader? identificarParceiro;
   final PlatformFile? arquivoInicial;
   final String? empresaIdInicial;
 
@@ -43,6 +50,7 @@ class ImportacaoSpedCard extends StatefulWidget {
     this.importar,
     this.carregarContasBancarias,
     this.carregarCentrosCusto,
+    this.identificarParceiro,
     this.arquivoInicial,
     this.empresaIdInicial,
   });
@@ -70,6 +78,11 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
   String? _centroCustoId;
   bool _loadingFinanceiro = false;
 
+  // Ver comentario completo em ImportacaoSintegraCard.
+  String? _parceiroIdentificadoId;
+  String? _parceiroIdentificadoNome;
+  bool _identificandoParceiro = false;
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +95,7 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
     // trazia conta/centro de custo de TODAS as empresas.
     if (_empresaId != null && _empresaId!.isNotEmpty) {
       _carregarOpcoesFinanceiro();
+      _identificarParceiroSeNecessario();
     }
   }
 
@@ -90,7 +104,7 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
     try {
       final resultados = await Future.wait([
         widget.carregarContasBancarias != null
-            ? widget.carregarContasBancarias!(_empresaId)
+            ? widget.carregarContasBancarias!(_empresaId, _parceiroIdentificadoId)
             : _carregarContasBancariasApi(),
         widget.carregarCentrosCusto != null
             ? widget.carregarCentrosCusto!(_empresaId)
@@ -100,6 +114,10 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
       setState(() {
         _contasBancarias = resultados[0];
         _centrosCusto = resultados[1];
+        if (_contaBancariaId != null &&
+            !_contasBancarias.any((c) => c['id'] == _contaBancariaId)) {
+          _contaBancariaId = null;
+        }
       });
     } catch (_) {
       // Campos opcionais -- falha ao carregar nao bloqueia a importacao.
@@ -108,10 +126,78 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
     }
   }
 
+  // Ver comentario completo em ImportacaoSintegraCard.
+  Future<void> _identificarParceiroSeNecessario() async {
+    final empresaId = _empresaId;
+    final arquivo = _arquivo;
+    if (empresaId == null || empresaId.isEmpty || arquivo == null) return;
+    setState(() => _identificandoParceiro = true);
+    try {
+      final identificado = widget.identificarParceiro != null
+          ? await widget.identificarParceiro!(empresaId, arquivo)
+          : await _identificarParceiroApi(empresaId, arquivo);
+      if (!mounted) return;
+      setState(() {
+        _parceiroIdentificadoId = identificado?['parceiroId']?.toString();
+        _parceiroIdentificadoNome = identificado?['parceiroNome']?.toString();
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _parceiroIdentificadoId = null;
+          _parceiroIdentificadoNome = null;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _identificandoParceiro = false);
+    }
+    if (mounted) _carregarOpcoesFinanceiro();
+  }
+
+  Future<Map<String, dynamic>?> _identificarParceiroApi(
+    String empresaId,
+    PlatformFile arquivo,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse(ApiLinks.nfeImportacaoSpedIdentificarParceiro),
+    );
+    request.headers.addAll(TenantContext.headers);
+    request.headers.removeWhere(
+      (key, _) => key.toLowerCase() == 'content-type',
+    );
+    request.fields['empId'] = empresaId;
+    if (arquivo.bytes != null) {
+      request.files.add(http.MultipartFile.fromBytes(
+        'arquivo',
+        arquivo.bytes!,
+        filename: arquivo.name,
+      ));
+    } else if (arquivo.path != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'arquivo',
+        arquivo.path!,
+        filename: arquivo.name,
+      ));
+    } else {
+      return null;
+    }
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      return null;
+    }
+    final decoded = body.isEmpty ? <String, dynamic>{} : jsonDecode(body);
+    return decoded is Map<String, dynamic> ? decoded : null;
+  }
+
   Future<List<Map<String, dynamic>>> _carregarContasBancariasApi() async {
     final query = StringBuffer('?tamanho=200');
     if (_empresaId != null && _empresaId!.isNotEmpty) {
       query.write('&empresa=$_empresaId');
+    }
+    if (_parceiroIdentificadoId != null && _parceiroIdentificadoId!.isNotEmpty) {
+      query.write('&parceiro=$_parceiroIdentificadoId');
     }
     final url = '${widget.baseUrl}/api/contas-bancaria$query';
     final resp = await http.get(Uri.parse(url), headers: TenantContext.headers);
@@ -177,6 +263,7 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
       });
       if (!empresaJaEscolhida && _empresaId != null && _empresaId!.isNotEmpty) {
         _carregarOpcoesFinanceiro();
+        _identificarParceiroSeNecessario();
       }
     } catch (_) {
       if (mounted) {
@@ -219,7 +306,10 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
       _erro = null;
       _trace = null;
       _resultado = null;
+      _parceiroIdentificadoId = null;
+      _parceiroIdentificadoNome = null;
     });
+    _identificarParceiroSeNecessario();
   }
 
   Future<void> _importar() async {
@@ -401,8 +491,13 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
                   enabled: !_loadingEmpresas && !_importando,
                   isRequired: true,
                   onChanged: (value) {
-                    setState(() => _empresaId = value);
+                    setState(() {
+                      _empresaId = value;
+                      _parceiroIdentificadoId = null;
+                      _parceiroIdentificadoNome = null;
+                    });
                     _carregarOpcoesFinanceiro();
+                    _identificarParceiroSeNecessario();
                   },
                 );
                 final arquivo = _arquivoResumo();
@@ -491,10 +586,10 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
       items: _contasBancarias,
       valueField: 'id',
       displayField: 'nome',
-      hintText: _loadingFinanceiro
+      hintText: _loadingFinanceiro || _identificandoParceiro
           ? 'Carregando contas...'
           : 'Usar default da empresa',
-      enabled: !_loadingFinanceiro && !_importando,
+      enabled: !_loadingFinanceiro && !_identificandoParceiro && !_importando,
       onChanged: (value) => setState(() => _contaBancariaId = value),
     );
     final centroCustoDropdown = SearchableDropdownField(
@@ -512,20 +607,41 @@ class _ImportacaoSpedCardState extends State<ImportacaoSpedCard> {
     );
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 760) {
-          return Column(
-            children: [
-              contaDropdown,
-              const SizedBox(height: 8),
-              centroCustoDropdown,
-            ],
-          );
-        }
-        return Row(
+        final compacto = constraints.maxWidth < 760;
+        final campos = compacto
+            ? Column(
+                children: [
+                  contaDropdown,
+                  const SizedBox(height: 8),
+                  centroCustoDropdown,
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: contaDropdown),
+                  const SizedBox(width: 12),
+                  Expanded(child: centroCustoDropdown),
+                ],
+              );
+        if (_parceiroIdentificadoNome == null) return campos;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: contaDropdown),
-            const SizedBox(width: 12),
-            Expanded(child: centroCustoDropdown),
+            campos,
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.link, size: 12, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Conta bancaria filtrada pelo parceiro do arquivo: $_parceiroIdentificadoNome',
+                    key: const Key('importacao-sped-parceiro-identificado'),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ),
           ],
         );
       },
