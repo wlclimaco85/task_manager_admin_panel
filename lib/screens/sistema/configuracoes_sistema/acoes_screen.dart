@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../widgets/importacao_sintegra_card.dart';
+import '../../../widgets/importacao_sped_card.dart';
 import '../../../config/api_links.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/network_caller.dart';
@@ -266,6 +268,11 @@ class ConfiguracoesSistemaAcoesScreenState
               return _post(ApiLinks.resetDatabase);
             },
           ),
+          const SizedBox(height: AppSpacing.lg),
+          _sectionTitle('Importação Fiscal', Icons.receipt_long_outlined),
+          ImportacaoSintegraCard(baseUrl: ApiLinks.baseUrl),
+          const SizedBox(height: AppSpacing.sm),
+          ImportacaoSpedCard(baseUrl: ApiLinks.baseUrl),
         ],
       ),
     );
