@@ -17,11 +17,18 @@ typedef ImportacaoSintegraSubmit = Future<Map<String, dynamic>> Function(
   String empresaId,
   PlatformFile arquivo,
 );
+// Pedido explicito do usuario: combos de conta bancaria/centro de custo
+// escopados pela empresa selecionada -- injetavel pra permitir teste de
+// regressao sem depender do TenantContext/HTTP reais.
+typedef ImportacaoFinanceiroLoader = Future<List<Map<String, dynamic>>>
+    Function(String? empresaId);
 
 class ImportacaoSintegraCard extends StatefulWidget {
   final String baseUrl;
   final ImportacaoSintegraLoader? carregarEmpresas;
   final ImportacaoSintegraSubmit? importar;
+  final ImportacaoFinanceiroLoader? carregarContasBancarias;
+  final ImportacaoFinanceiroLoader? carregarCentrosCusto;
   final PlatformFile? arquivoInicial;
   final String? empresaIdInicial;
 
@@ -30,6 +37,8 @@ class ImportacaoSintegraCard extends StatefulWidget {
     required this.baseUrl,
     this.carregarEmpresas,
     this.importar,
+    this.carregarContasBancarias,
+    this.carregarCentrosCusto,
     this.arquivoInicial,
     this.empresaIdInicial,
   });
@@ -67,15 +76,27 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
     _arquivo = widget.arquivoInicial;
     _empresaId = widget.empresaIdInicial;
     _carregarEmpresas();
-    _carregarOpcoesFinanceiro();
+    // So' carrega os combos de financeiro aqui se a empresa ja veio definida
+    // (empresaIdInicial). Quando ela precisa ser resolvida via TenantContext
+    // (usuario logado sem empresa explicita), _carregarEmpresas() dispara
+    // esse carregamento depois de resolver o id -- ver comentario la' embaixo
+    // sobre a corrida que isso evita (bug real: combos vinham sem filtro de
+    // empresa, trazendo conta/centro de custo de TODAS as empresas).
+    if (_empresaId != null && _empresaId!.isNotEmpty) {
+      _carregarOpcoesFinanceiro();
+    }
   }
 
   Future<void> _carregarOpcoesFinanceiro() async {
     setState(() => _loadingFinanceiro = true);
     try {
       final resultados = await Future.wait([
-        _carregarContasBancariasApi(),
-        _carregarCentrosCustoApi(),
+        widget.carregarContasBancarias != null
+            ? widget.carregarContasBancarias!(_empresaId)
+            : _carregarContasBancariasApi(),
+        widget.carregarCentrosCusto != null
+            ? widget.carregarCentrosCusto!(_empresaId)
+            : _carregarCentrosCustoApi(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -146,6 +167,7 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
           ? await widget.carregarEmpresas!()
           : await _carregarEmpresasApi();
       if (!mounted) return;
+      final empresaJaEscolhida = _empresaId != null && _empresaId!.isNotEmpty;
       setState(() {
         _empresas = empresas;
         final contexto = TenantContext.empresaId?.toString();
@@ -155,6 +177,9 @@ class _ImportacaoSintegraCardState extends State<ImportacaoSintegraCard> {
           _empresaId = contexto;
         }
       });
+      if (!empresaJaEscolhida && _empresaId != null && _empresaId!.isNotEmpty) {
+        _carregarOpcoesFinanceiro();
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _erro = 'Nao foi possivel carregar as empresas.');
