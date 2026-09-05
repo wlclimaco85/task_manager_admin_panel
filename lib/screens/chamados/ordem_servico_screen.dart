@@ -66,14 +66,12 @@ class OrdemServicoScreen extends StatelessWidget {
     const FieldConfigWindows(
       fieldName: 'dataAbertura',
       label: 'Data de abertura',
-      fieldType: FieldType.date,
       fieldType: FieldType.datetime,
       isInGrid: false,
     ),
     const FieldConfigWindows(
       fieldName: 'dataFechamento',
       label: 'Data de fechamento',
-      fieldType: FieldType.date,
       fieldType: FieldType.datetime,
       isInGrid: false,
     ),

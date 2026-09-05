@@ -34,7 +34,7 @@ class AuthService {
       final response = await _client.post(
         Uri.parse(ApiLinks.login),
         headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'senha': senha}),
+        body: jsonEncode({'email': email, 'password': senha}),
       );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
