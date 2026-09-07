@@ -99,6 +99,41 @@ void main() {
     );
   });
 
+  testWidgets('exibe mensagem amigavel quando importacao retorna erro tecnico', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ImportacaoSintegraCard(
+            baseUrl: 'http://localhost',
+            empresaIdInicial: '1',
+            carregarEmpresas: () async => [
+              {'id': '1', 'nome': 'Empresa Smoke Test'},
+            ],
+            arquivoInicial: PlatformFile(
+              name: 'sintegra.txt',
+              size: 3,
+              bytes: Uint8List.fromList([49, 48, 32]),
+            ),
+            importar: (empresaId, arquivo) async {
+              throw Exception('FormatException: Unexpected character');
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('importacao-sintegra-importar')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Não foi possível importar o arquivo SINTEGRA.'),
+      findsOneWidget,
+    );
+  });
+
   // Pedido explicito do usuario: erro inesperado na importacao mostra o
   // stack trace completo, com botao pra copiar.
   testWidgets('exibe trace completo e botao de copiar quando erro traz trace', (
