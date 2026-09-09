@@ -23,6 +23,9 @@ class FakeSistemaLogService extends SistemaLogService {
     String? origem,
     String? busca,
     int? empresaId,
+    int? parceiroId,
+    String? usuario,
+    String? plataforma,
     DateTime? dataInicio,
     DateTime? dataFim,
     int page = 0,
@@ -74,5 +77,12 @@ void main() {
     expect(find.text('Timeout de conexao com servidor'), findsOneWidget);
     expect(find.text('ERROR'), findsWidgets);
     expect(find.text('WARN'), findsWidgets);
+
+    // Valida botao Copiar Erros e novos filtros
+    expect(find.text('Copiar Erros'), findsOneWidget);
+    expect(find.text('Empresa ID'), findsOneWidget);
+    expect(find.text('Parceiro ID'), findsOneWidget);
+    expect(find.text('Usuário'), findsOneWidget);
+    expect(find.text('Plataforma: Todas'), findsOneWidget);
   });
 }

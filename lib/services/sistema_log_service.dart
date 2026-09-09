@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../config/api_links.dart';
 import '../models/sistema_log_model.dart';
 import 'network_caller.dart';
@@ -13,6 +12,9 @@ class SistemaLogService {
     String? origem,
     String? busca,
     int? empresaId,
+    int? parceiroId,
+    String? usuario,
+    String? plataforma,
     DateTime? dataInicio,
     DateTime? dataFim,
     int page = 0,
@@ -26,6 +28,9 @@ class SistemaLogService {
     if (origem != null && origem.isNotEmpty && origem != 'TODOS') params['origem'] = origem;
     if (busca != null && busca.trim().isNotEmpty) params['busca'] = busca.trim();
     if (empresaId != null) params['empresaId'] = empresaId.toString();
+    if (parceiroId != null) params['parceiroId'] = parceiroId.toString();
+    if (usuario != null && usuario.trim().isNotEmpty) params['usuario'] = usuario.trim();
+    if (plataforma != null && plataforma.isNotEmpty && plataforma != 'TODAS') params['plataforma'] = plataforma;
     if (dataInicio != null) params['dataInicio'] = dataInicio.toUtc().toIso8601String();
     if (dataFim != null) params['dataFim'] = dataFim.toUtc().toIso8601String();
 
