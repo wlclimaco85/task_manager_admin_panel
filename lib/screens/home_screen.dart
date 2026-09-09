@@ -9,6 +9,7 @@ import 'licenca/licenca_screen.dart';
 import 'login_screen.dart';
 import 'modulos/modulo_atribuicao_screen.dart';
 import 'modulos/modulo_servico_screen.dart';
+import 'monitoramento/sistema_logs_screen.dart';
 import 'sistema/sistema_menu_screen.dart';
 
 /// Shell pos-login do Painel do Dono. Fase 3: os 5 modulos reais (Licenca,
@@ -158,6 +159,22 @@ class HomeScreen extends StatelessWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const DashboardCrescimentoScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Card(
+              child: ListTile(
+                key: const Key('home_sistema_logs_tile'),
+                leading: const Icon(Icons.monitor_heart_outlined, color: Colors.indigo),
+                title: const Text('Logs & Monitoramento'),
+                subtitle: const Text(
+                    'Monitorar exceções e warnings do backend Java e apps Flutter (histórico de 7 dias).'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SistemaLogsScreen(),
                   ),
                 ),
               ),

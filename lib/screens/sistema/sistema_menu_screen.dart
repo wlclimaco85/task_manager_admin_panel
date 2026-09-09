@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../monitoramento/sistema_logs_screen.dart';
 import 'aplicativo_screen.dart';
 import 'cadastro_empresa_wizard_screen.dart';
 import 'configuracoes_admin_screen.dart';
@@ -68,6 +69,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Editor SQL ad-hoc (somente SELECT/WITH) (SIS-08).',
       icone: Icons.storage_outlined,
     ),
+    _SistemaMenuItem(
+      id: 'sistema_logs',
+      titulo: 'Logs & Monitoramento',
+      subtitulo: 'Exceções, erros e warnings do Backend Java e Apps Flutter (7 dias).',
+      icone: Icons.monitor_heart_outlined,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -79,6 +86,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'permissoes': _buildPermissoes,
     'teste_endpoints': _buildTesteEndpoints,
     'query_builder': _buildQueryBuilder,
+    'sistema_logs': _buildSistemaLogs,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -97,6 +105,8 @@ class SistemaMenuScreen extends StatelessWidget {
       const EndpointTesterScreen();
   static Widget _buildQueryBuilder(BuildContext context) =>
       const QueryBuilderScreen();
+  static Widget _buildSistemaLogs(BuildContext context) =>
+      const SistemaLogsScreen();
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {
     final builder = _builders[item.id];

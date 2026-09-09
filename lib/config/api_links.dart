@@ -45,6 +45,11 @@ class ApiLinks {
   static String uploadFile = '$_baseUrl/api/upload';
   static String downloadFile(String id) => '$_baseUrl/api/download/$id';
 
+  // Sistema Logs e Monitoramento
+  static String get sistemaLogs => '$_baseUrl/api/sistema-logs';
+  static String get sistemaLogsMetricas => '$_baseUrl/api/sistema-logs/metricas';
+  static String expurgarSistemaLogs(int dias) => '$_baseUrl/api/sistema-logs/expurgar?dias=$dias';
+
   // Tela Ajuda
   static String telaAjudaPorTela(String tela) => '$_baseUrl/api/tela-ajuda/tela/$tela';
   // SIS-01 Aplicativo
