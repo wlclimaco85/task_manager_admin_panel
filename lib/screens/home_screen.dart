@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/auth_utility.dart';
+import '../widgets/server_status_footer.dart';
 import 'chamados/ordem_servico_screen.dart';
 import 'contatos/contato_comercial_screen.dart';
 import 'dashboard/dashboard_crescimento_screen.dart';
@@ -199,6 +200,8 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: const ServerStatusFooter(),
     );
   }
 }
+

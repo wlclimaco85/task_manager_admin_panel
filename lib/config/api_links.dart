@@ -27,9 +27,18 @@ class ApiLinks {
     defaultValue: '/boletobancos',
   );
 
+  // URL publica do frontend web no Railway (deixar vazio desabilita o check).
+  static const String frontendWebUrl = String.fromEnvironment(
+    'FRONTEND_WEB_URL',
+    defaultValue: '',
+  );
+
   static final String _baseUrl = '$_backendUrl$_backendContextPath';
 
   static String get baseUrl => _baseUrl;
+
+  // Endpoint de saude do backend (Spring Boot Actuator — exposto em prod).
+  static String get backendHealth => '$_backendUrl/actuator/health';
 
   // Auth — mesmo endpoint do app cliente.
   static String get login => '$_baseUrl/rest/auth/login';
