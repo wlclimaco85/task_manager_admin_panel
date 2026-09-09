@@ -176,7 +176,7 @@ class TelaEditorScreenState extends State<TelaEditorScreen> {
     return ListView.separated(
       key: const Key('tela_editor_list'),
       itemCount: telas.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+      separatorBuilder: (_, index) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (_, i) {
         final tela = telas[i];
         final fieldsCount = (tela['fields'] as List?)?.length ?? 0;
