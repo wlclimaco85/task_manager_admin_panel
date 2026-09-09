@@ -41,18 +41,20 @@ void main() {
         }
         if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
           return jsonResponse({
-            'data': {
-              'dados': [
-                {'id': 1, 'nome': 'Financeiro', 'descricao': 'Modulo financeiro'},
-                {'id': 2, 'nome': 'Estoque', 'descricao': 'Modulo estoque'},
-              ],
-              'totalElements': 2,
-            },
+            'data': [
+              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Modulo financeiro'},
+              {'id': 2, 'nome': 'Estoque', 'descricao': 'Modulo estoque'},
+            ],
           });
         }
         if (url.contains('/api/parceiro-modulo')) {
           return jsonResponse([
             {'moduloId': 1, 'valor': 10.0, 'diaVencimento': 5},
+          ]);
+        }
+        if (url.contains('/api/parceiro')) {
+          return jsonResponse([
+            {'id': parceiroId, 'nome': 'Fazenda Boa Vista'},
           ]);
         }
         return http.Response('Not Found', 404);
@@ -61,9 +63,9 @@ void main() {
       final caller = NetworkCaller(client: client);
 
       await tester.pumpWidget(MaterialApp(
-        home: ModuloAtribuicaoScreen(),
+        home: ModuloAtribuicaoScreen(networkCaller: caller),
       ));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await carregarParceiro(tester);
 
@@ -71,10 +73,10 @@ void main() {
       expect(find.byKey(const Key('modulo_atribuicao_checkbox_1')), findsOneWidget);
       expect(find.byKey(const Key('modulo_atribuicao_checkbox_2')), findsOneWidget);
 
-      final checkboxFinanceiro = tester.widget<CheckboxListTile>(
+      final checkboxFinanceiro = tester.widget<Checkbox>(
         find.byKey(const Key('modulo_atribuicao_checkbox_1')),
       );
-      final checkboxEstoque = tester.widget<CheckboxListTile>(
+      final checkboxEstoque = tester.widget<Checkbox>(
         find.byKey(const Key('modulo_atribuicao_checkbox_2')),
       );
 
@@ -98,16 +100,18 @@ void main() {
         }
         if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
           return jsonResponse({
-            'data': {
-              'dados': [
-                {'id': 1, 'nome': 'Financeiro', 'descricao': 'Modulo financeiro'},
-              ],
-              'totalElements': 1,
-            },
+            'data': [
+              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Modulo financeiro'},
+            ],
           });
         }
         if (url.contains('/api/parceiro-modulo')) {
           return jsonResponse(<Map<String, dynamic>>[]);
+        }
+        if (url.contains('/api/parceiro')) {
+          return jsonResponse([
+            {'id': parceiroId, 'nome': 'Fazenda Boa Vista'},
+          ]);
         }
         return http.Response('Not Found', 404);
       });
@@ -115,9 +119,9 @@ void main() {
       final caller = NetworkCaller(client: client);
 
       await tester.pumpWidget(MaterialApp(
-        home: ModuloAtribuicaoScreen(),
+        home: ModuloAtribuicaoScreen(networkCaller: caller),
       ));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await carregarParceiro(tester);
 
@@ -148,18 +152,20 @@ void main() {
         }
         if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
           return jsonResponse({
-            'data': {
-              'dados': [
-                {'id': 1, 'nome': 'Financeiro', 'descricao': 'Modulo financeiro'},
-                {'id': 2, 'nome': 'Estoque', 'descricao': 'Modulo estoque'},
-              ],
-              'totalElements': 2,
-            },
+            'data': [
+              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Modulo financeiro'},
+              {'id': 2, 'nome': 'Estoque', 'descricao': 'Modulo estoque'},
+            ],
           });
         }
         if (url.contains('/api/parceiro-modulo')) {
           return jsonResponse([
             {'moduloId': 1, 'valor': 10.0, 'diaVencimento': 5},
+          ]);
+        }
+        if (url.contains('/api/parceiro')) {
+          return jsonResponse([
+            {'id': parceiroId, 'nome': 'Fazenda Boa Vista'},
           ]);
         }
         return http.Response('Not Found', 404);
@@ -168,9 +174,9 @@ void main() {
       final caller = NetworkCaller(client: client);
 
       await tester.pumpWidget(MaterialApp(
-        home: ModuloAtribuicaoScreen(),
+        home: ModuloAtribuicaoScreen(networkCaller: caller),
       ));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await carregarParceiro(tester);
 
