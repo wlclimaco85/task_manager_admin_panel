@@ -1,10 +1,26 @@
-# Build stage - compile Flutter web
-FROM cirrusci/flutter:latest AS builder
+# =============================================================================
+# Dockerfile — task_manager_admin_panel (Flutter Web + Nginx)
+# =============================================================================
+
+# ── Stage 1: Build Flutter Web ────────────────────────────────────────────────
+FROM ghcr.io/cirruslabs/flutter:stable AS builder
 
 WORKDIR /app
+
+# Enable web target
+RUN flutter config --enable-web
+
+# Cache dependencies
+COPY pubspec.yaml pubspec.lock* ./
+RUN flutter pub get
+
+# Precache web SDK
+RUN flutter precache --web
+
+# Copy full source
 COPY . .
 
-RUN flutter pub get
+# Build Flutter web
 RUN flutter build web --release --no-tree-shake-icons
 
 # Runtime stage - serve with nginx
