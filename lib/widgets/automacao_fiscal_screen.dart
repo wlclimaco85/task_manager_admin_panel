@@ -273,6 +273,66 @@ class _AutomacaoFiscalScreenState extends State<AutomacaoFiscalScreen> {
     );
   }
 
+  /// Observação com a hierarquia exata de pastas esperada, pra tirar
+  /// qualquer dúvida de nome/estrutura antes de configurar a pasta raiz.
+  /// Pedido do usuário (2026-09-10): deixar claro nome e nível de cada
+  /// subpasta -- boletos/speds/sintegra são criadas automaticamente pelo
+  /// backend, junto com sucesso/erro dentro de cada uma; o usuário só
+  /// precisa soltar os arquivos direto em boletos/, speds/ ou sintegra/.
+  Widget _hierarquiaObservacao() {
+    const monoStyle = TextStyle(
+      fontFamily: 'monospace',
+      fontSize: 12.5,
+      color: GridColors.textSecondary,
+      height: 1.5,
+    );
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: GridColors.filterBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: GridColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Observação: hierarquia de pastas esperada',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 12.5,
+              color: GridColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            '<pasta raiz>\n'
+            '├── boletos\\      (PDFs: boletos, guias de tributo, comprovantes)\n'
+            '│    ├── sucesso\n'
+            '│    └── erro\n'
+            '├── speds\\        (arquivos .txt de SPED)\n'
+            '│    ├── sucesso\n'
+            '│    └── erro\n'
+            '└── sintegra\\     (arquivos .txt de SINTEGRA)\n'
+            '     ├── sucesso\n'
+            '     └── erro',
+            style: monoStyle,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Os nomes "boletos", "speds", "sintegra", "sucesso" e "erro" são fixos '
+            '(minúsculo, sem acento) e criados automaticamente pelo sistema dentro da '
+            'pasta raiz. Basta colocar os arquivos direto em "boletos", "speds" ou '
+            '"sintegra" — as subpastas "sucesso"/"erro" são só de saída, não coloque '
+            'arquivos nelas.',
+            style: TextStyle(fontSize: 12, color: GridColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Card de configuração ─────────────────────────────────────────────
 
   Widget _configCard() {
@@ -314,6 +374,8 @@ class _AutomacaoFiscalScreenState extends State<AutomacaoFiscalScreen> {
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Informe o caminho da pasta raiz.' : null,
               ),
+              const SizedBox(height: 10),
+              _hierarquiaObservacao(),
               const SizedBox(height: 16),
               LayoutBuilder(builder: (context, constraints) {
                 final compacto = constraints.maxWidth < _kCompactoBreakpoint;
