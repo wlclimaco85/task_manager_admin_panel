@@ -4,8 +4,6 @@ import 'acoes_screen.dart';
 import 'importacao_cadastros_screen.dart';
 import 'importacao_contas_screen.dart';
 import 'jobs_screen.dart';
-import 'importacao_fiscal_screen.dart';
-import '../../../widgets/automacao_fiscal_screen.dart';
 
 /// SIS-04 Config. Sistema. Tab container único que agrupa as 4 seções já
 /// implementadas nas waves anteriores (Ações simples, Jobs, Importação de
@@ -14,6 +12,15 @@ import '../../../widgets/automacao_fiscal_screen.dart';
 /// anti-padrão de arquivo monolítico do `configuracoes_sistema_screen.dart`
 /// original (ver PLAN.md da Fase 2, Task 13.1). Cada seção continua em seu
 /// próprio arquivo; este container só orquestra a navegação por abas.
+///
+/// "Importação Fiscal" e "Automação Fiscal" (SPED/SINTEGRA + config de
+/// pastas) foram REMOVIDAS daqui em 2026-09-10 a pedido do usuário: essa
+/// tela é admin-only (sem controle de permissão por empresa), mas o
+/// escritório precisa liberar esse recurso pontualmente para empresas
+/// clientes configurarem seus próprios boletos/SPED/SINTEGRA. Viraram uma
+/// tela própria no app cliente (`task_manager_flutter` e réplica), com
+/// `telaNome` dedicado (`ImportacaoFiscalAutomacao`) na matriz de
+/// Permissões — ver `lib/widgets/importacao_fiscal_automacao_screen.dart`.
 class ConfiguracoesSistemaScreen extends StatefulWidget {
   const ConfiguracoesSistemaScreen({super.key});
 
@@ -35,14 +42,6 @@ class _ConfiguracoesSistemaScreenState
     Tab(
       text: 'Importação Cadastros',
       key: Key('config_sistema_tab_importacao_cadastros'),
-    ),
-    Tab(
-      text: 'Importação Fiscal',
-      key: Key('config_sistema_tab_importacao_fiscal'),
-    ),
-    Tab(
-      text: 'Automação Fiscal',
-      key: Key('config_sistema_tab_automacao_fiscal'),
     ),
   ];
 
@@ -74,8 +73,6 @@ class _ConfiguracoesSistemaScreenState
           const JobsScreen(),
           ImportacaoContasScreen(),
           ImportacaoCadastrosScreen(),
-          const ImportacaoFiscalScreen(),
-          const AutomacaoFiscalScreen(showAppBar: false),
         ],
       ),
     );
