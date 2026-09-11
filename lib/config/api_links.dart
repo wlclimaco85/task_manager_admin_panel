@@ -63,6 +63,9 @@ class ApiLinks {
   static String telaAjudaPorTela(String tela) => '$_baseUrl/api/tela-ajuda/tela/$tela';
   // SIS-01 Aplicativo
   static String get allAplicativos => '$_baseUrl/api/aplicativo';
+  static String get allEmpresas => '$_baseUrl/api/empresa';
+  static String get allParceiros => '$_baseUrl/api/parceiro';
+  static String get allSetores => '$_baseUrl/api/setor';
   static String get createAplicativo => '$_baseUrl/api/aplicativo';
   static String updateAplicativo(String id) => '$_baseUrl/api/aplicativo/$id';
   static String deleteAplicativo(String id) => '$_baseUrl/api/aplicativo/$id';

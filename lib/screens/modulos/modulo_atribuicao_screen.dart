@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
 import '../../services/network_caller.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/dropdown_helpers.dart';
 import '../../utils/grid_colors.dart';
 import '../../widgets/generic_grid_windows_screen.dart';
 import '../../widgets/searchable_dropdown.dart';
@@ -528,12 +529,11 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                                 Expanded(
                                   flex: isCompact ? 0 : 3,
                                   child: SearchableDropdownField(
+                                    key: ValueKey('modulo_busca_alvo_$_tipo'),
                                     label: _tipo == 'parceiro'
-                                        ? 'Buscar Parceiro (Nome ou CNPJ)'
-                                        : 'Buscar Empresa',
-                                    hintText: _carregandoOpcoes
-                                        ? 'Carregando lista...'
-                                        : 'Clique para selecionar ou pesquisar...',
+                                        ? 'Buscar Parceiro (Nome, Razão Social ou CNPJ)'
+                                        : 'Buscar Empresa (Nome, Razão Social ou CNPJ)',
+                                    hintText: 'Clique para pesquisar ou selecionar...',
                                     items: _opcoesLista,
                                     valueField: 'id',
                                     displayField: 'nome',
@@ -541,6 +541,22 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                                     prefixIcon: _tipo == 'parceiro'
                                         ? Icons.person_search
                                         : Icons.domain_verification,
+                                    loadPage: _tipo == 'parceiro'
+                                        ? ({String? busca, required int pagina}) =>
+                                            DropdownHelpers.parceirosBusca(
+                                              busca: busca,
+                                              pagina: pagina,
+                                              tamanho: 20,
+                                            )
+                                        : ({String? busca, required int pagina}) =>
+                                            DropdownHelpers.empresasBusca(
+                                              busca: busca,
+                                              pagina: pagina,
+                                              tamanho: 20,
+                                            ),
+                                    labelResolver: _tipo == 'parceiro'
+                                        ? DropdownHelpers.parceiroLabelPorId
+                                        : DropdownHelpers.empresaLabelPorId,
                                     onChanged: (novoId) {
                                       if (novoId != null) {
                                         final parsed = int.tryParse(novoId);
