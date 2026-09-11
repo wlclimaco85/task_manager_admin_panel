@@ -113,6 +113,13 @@ class ApiLinks {
   static String loginsByEmpresa(String empId) =>
       '$_baseUrl/api/logins?empId=$empId';
   static String get createLoginCadastro => '$_baseUrl/api/logins';
+
+  // Controle de Sessao (bug de producao 2026-09-11): App do Dono >
+  // Sistema > Sessoes -- listar/matar sessoes ativas.
+  static String get sessoesAtivas => '$_baseUrl/api/sessoes';
+  static String matarSessao(int loginId) => '$_baseUrl/api/sessoes/$loginId/matar';
+  static String get matarTodasAsSessoes => '$_baseUrl/api/sessoes/matar-todas';
+  static String get matarSessoesOciosas => '$_baseUrl/api/sessoes/matar-ociosas';
   static String updateLoginCadastro(String id) => '$_baseUrl/api/logins/$id';
   static String funcionariosByEmpresa(String empId) =>
       '$_baseUrl/api/funcionario?empId=$empId';

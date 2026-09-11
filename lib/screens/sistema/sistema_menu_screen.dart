@@ -8,6 +8,7 @@ import 'configuracoes_sistema/configuracoes_sistema_screen.dart';
 import 'endpoint_tester_screen.dart';
 import 'query_builder_screen.dart';
 import 'role_permissao_screen.dart';
+import 'sessoes_screen.dart';
 import 'tela_editor_screen.dart';
 
 /// Menu "Sistema" (Fase 2). Lista os 8 itens migrados de `menu_config.dart`
@@ -75,6 +76,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Exceções, erros e warnings do Backend Java e Apps Flutter (7 dias).',
       icone: Icons.monitor_heart_outlined,
     ),
+    _SistemaMenuItem(
+      id: 'sessoes',
+      titulo: 'Sessões',
+      subtitulo: 'Matar sessão de um usuário; meia-noite e ociosidade (>1h) são automáticas.',
+      icone: Icons.no_accounts_outlined,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -87,6 +94,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'teste_endpoints': _buildTesteEndpoints,
     'query_builder': _buildQueryBuilder,
     'sistema_logs': _buildSistemaLogs,
+    'sessoes': _buildSessoes,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -107,6 +115,7 @@ class SistemaMenuScreen extends StatelessWidget {
       const QueryBuilderScreen();
   static Widget _buildSistemaLogs(BuildContext context) =>
       const SistemaLogsScreen();
+  static Widget _buildSessoes(BuildContext context) => const SessoesScreen();
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {
     final builder = _builders[item.id];
