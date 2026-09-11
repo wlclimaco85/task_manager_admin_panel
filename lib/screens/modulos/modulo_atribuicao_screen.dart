@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../config/api_links.dart';
 import '../../services/network_caller.dart';
+import '../../utils/app_logger.dart';
 import '../../utils/grid_colors.dart';
 import '../../widgets/generic_grid_windows_screen.dart';
 import '../../widgets/searchable_dropdown.dart';
@@ -107,10 +108,28 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         });
       } else {
         setState(() => _carregandoOpcoes = false);
+        AppLogger.i.warn(
+            'ModuloAtribuicaoScreen: falha ao carregar opcoes de $_tipo (status ${res.statusCode})');
+        _mostrarErroCarregarOpcoes();
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) setState(() => _carregandoOpcoes = false);
+      AppLogger.i.warn(
+          'ModuloAtribuicaoScreen: erro ao carregar opcoes de $_tipo: $e');
+      _mostrarErroCarregarOpcoes();
     }
+  }
+
+  void _mostrarErroCarregarOpcoes() {
+    if (!mounted) return;
+    final tipoLabel = _tipo == 'parceiro' ? 'parceiros' : 'empresas';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: GridColors.error,
+        behavior: SnackBarBehavior.floating,
+        content: Text('Nao foi possivel carregar a lista de $tipoLabel. Tente novamente.'),
+      ),
+    );
   }
 
   Future<void> _carregar([int? idManual]) async {

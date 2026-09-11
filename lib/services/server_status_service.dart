@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../config/api_links.dart';
+import '../utils/app_logger.dart';
 import 'network_caller.dart';
 import 'sistema_log_service.dart';
 
@@ -69,11 +70,17 @@ class ServerStatusService {
       final response = await _caller
           .getRequest(ApiLinks.backendHealth)
           .timeout(_timeout);
-      if (response.statusCode >= 200 && response.statusCode < 600) {
+      // < 500: online mesmo com 4xx (ex.: auth bloqueada, mas servidor de pe).
+      // >= 500 (ex.: Actuator retorna 503 quando a app esta DOWN) conta como
+      // offline -- alinhado com _checkFrontendWeb logo abaixo.
+      if (response.statusCode < 500) {
         return ServerStatus.online;
       }
+      AppLogger.i.warn(
+          'ServerStatusService: backend respondeu status ${response.statusCode} (tratado como offline)');
       return ServerStatus.offline;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.i.warn('ServerStatusService: falha ao checar backend: $e');
       return ServerStatus.offline;
     }
   }
@@ -86,7 +93,8 @@ class ServerStatusService {
       return (response.statusCode < 500)
           ? ServerStatus.online
           : ServerStatus.offline;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.i.warn('ServerStatusService: falha ao checar frontend web: $e');
       return ServerStatus.offline;
     }
   }
@@ -95,7 +103,8 @@ class ServerStatusService {
     try {
       final metricas = await _logService.obterMetricas();
       return metricas?.totalErros24h ?? 0;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.i.warn('ServerStatusService: falha ao obter metricas de excecoes: $e');
       return 0;
     }
   }
