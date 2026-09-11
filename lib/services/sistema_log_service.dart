@@ -42,11 +42,11 @@ class SistemaLogService {
     }
 
     final data = resp.body!;
-    final dynamic content = data['content'] ?? data['data'];
+    final dynamic content = data['content'] ?? data['data'] ?? (data is List ? data : null);
     if (content is List) {
       return content
-          .whereType<Map<String, dynamic>>()
-          .map((m) => SistemaLogModel.fromJson(m))
+          .map((m) => m is Map ? SistemaLogModel.fromJson(Map<String, dynamic>.from(m)) : null)
+          .whereType<SistemaLogModel>()
           .toList();
     }
     return [];
