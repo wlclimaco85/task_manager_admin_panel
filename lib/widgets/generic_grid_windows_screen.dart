@@ -1808,8 +1808,18 @@ class GenericGridWindowsScreen<T> extends StatefulWidget {
     try {
       final parsed = (body is String) ? json.decode(body) : body;
       if (parsed is List) return List<Map<String, dynamic>>.from(parsed);
-      if (parsed is Map && parsed.containsKey('data') && parsed['data'] is List) return List<Map<String, dynamic>>.from(parsed['data']);
-      if (parsed is Map && parsed.containsKey('content') && parsed['content'] is List) return List<Map<String, dynamic>>.from(parsed['content']);
+      if (parsed is Map) {
+        if (parsed.containsKey('data')) {
+          final data = parsed['data'];
+          if (data is List) return List<Map<String, dynamic>>.from(data);
+          if (data is Map && data.containsKey('dados') && data['dados'] is List) {
+            return List<Map<String, dynamic>>.from(data['dados']);
+          }
+        }
+        if (parsed.containsKey('content') && parsed['content'] is List) {
+          return List<Map<String, dynamic>>.from(parsed['content']);
+        }
+      }
     } catch (_) {}
     return [];
   }
