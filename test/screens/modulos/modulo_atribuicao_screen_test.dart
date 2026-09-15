@@ -62,6 +62,11 @@ void main() {
 
       final caller = NetworkCaller(client: client);
 
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(MaterialApp(
         home: ModuloAtribuicaoScreen(networkCaller: caller),
       ));
@@ -118,6 +123,11 @@ void main() {
 
       final caller = NetworkCaller(client: client);
 
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(MaterialApp(
         home: ModuloAtribuicaoScreen(networkCaller: caller),
       ));
@@ -173,6 +183,11 @@ void main() {
 
       final caller = NetworkCaller(client: client);
 
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(MaterialApp(
         home: ModuloAtribuicaoScreen(networkCaller: caller),
       ));
@@ -196,6 +211,146 @@ void main() {
         Set<int>.from(capturedBody!['moduloIds'] as List),
         {1, 2},
       );
+    });
+
+    testWidgets(
+        'calcula subtotal comercial: 1 a 3 modulos somam e mais de 3 modulos fixa em 129,90 com 1 mes gratis',
+        (tester) async {
+      final client = MockClient((request) async {
+        final url = request.url.toString();
+        if (url.contains('/api/parceiro/$parceiroId')) {
+          return jsonResponse({
+            'data': {'id': parceiroId, 'nome': 'Fazenda Boa Vista'},
+          });
+        }
+        if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
+          return jsonResponse({
+            'data': [
+              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Mod Financeiro', 'valor': 49.90},
+              {'id': 2, 'nome': 'Estoque', 'descricao': 'Mod Estoque', 'valor': 49.90},
+              {'id': 3, 'nome': 'Fiscal', 'descricao': 'Mod Fiscal', 'valor': 49.90},
+              {'id': 4, 'nome': 'Vendas', 'descricao': 'Mod Vendas', 'valor': 49.90},
+            ],
+          });
+        }
+        if (url.contains('/api/parceiro-modulo')) {
+          return jsonResponse(<Map<String, dynamic>>[]);
+        }
+        if (url.contains('/api/parceiro')) {
+          return jsonResponse([
+            {'id': parceiroId, 'nome': 'Fazenda Boa Vista'},
+          ]);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final caller = NetworkCaller(client: client);
+
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        home: ModuloAtribuicaoScreen(networkCaller: caller),
+      ));
+      await tester.pumpAndSettle();
+
+      await carregarParceiro(tester);
+
+      // Badge de 1º Mês Grátis presente
+      expect(find.text('1º Mês Grátis de Avaliação!'), findsOneWidget);
+
+      // Inicialmente 0 modulos -> R$ 0,00/mês
+      expect(find.text('R\$ 0,00/mês'), findsOneWidget);
+
+      // Marca 1 modulo (49,90)
+      await tester.tap(find.byKey(const Key('modulo_atribuicao_checkbox_1')));
+      await tester.pumpAndSettle();
+      expect(find.text('R\$ 49,90/mês'), findsOneWidget);
+
+      // Marca 2º modulo (+49,90 = 99,80)
+      await tester.tap(find.byKey(const Key('modulo_atribuicao_checkbox_2')));
+      await tester.pumpAndSettle();
+      expect(find.text('R\$ 99,80/mês'), findsOneWidget);
+
+      // Marca 3º modulo (+49,90 = 149,70)
+      await tester.tap(find.byKey(const Key('modulo_atribuicao_checkbox_3')));
+      await tester.pumpAndSettle();
+      expect(find.text('R\$ 149,70/mês'), findsOneWidget);
+
+      // Marca 4º modulo (> 3 modulos): regra comercial aplica valor fixo de R$ 129,90/mês
+      await tester.tap(find.byKey(const Key('modulo_atribuicao_checkbox_4')));
+      await tester.pumpAndSettle();
+      expect(find.text('R\$ 129,90/mês'), findsOneWidget);
+      expect(
+        find.text('Pacote Ilimitado (> 3 módulos): valor especial fixo de R\$ 129,90/mês!'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('clicar em Conceder Licenca abre o LicencaWizardDialog com progresso',
+        (tester) async {
+      final client = MockClient((request) async {
+        final url = request.url.toString();
+        if (url.contains('/api/parceiro/$parceiroId')) {
+          return jsonResponse({
+            'data': {'id': parceiroId, 'nome': 'Fazenda Boa Vista'},
+          });
+        }
+        if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
+          return jsonResponse({
+            'data': [
+              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Mod Financeiro'},
+            ],
+          });
+        }
+        if (url.contains('/api/parceiro-modulo')) {
+          return jsonResponse([
+            {'moduloId': 1, 'valor': 10.0, 'diaVencimento': 5},
+          ]);
+        }
+        if (url.contains(ApiLinks.allRoles)) {
+          return jsonResponse([
+            {'id': 10, 'role': 'ROLE_FINANCEIRO'},
+          ]);
+        }
+        if (url.contains('/api/logins')) {
+          return jsonResponse([
+            {'id': 101, 'nome': 'Joao Silva', 'login': 'joao'},
+          ]);
+        }
+        if (url.contains('/api/parceiro')) {
+          return jsonResponse([
+            {'id': parceiroId, 'nome': 'Fazenda Boa Vista'},
+          ]);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final caller = NetworkCaller(client: client);
+
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        home: ModuloAtribuicaoScreen(networkCaller: caller),
+      ));
+      await tester.pumpAndSettle();
+
+      await carregarParceiro(tester);
+
+      // Clica no botão Conceder Licença
+      await tester.tap(find.byKey(const Key('modulo_atribuicao_conceder_licenca_btn')));
+      await tester.pumpAndSettle();
+
+      // Verifica se o diálogo do Wizard abriu
+      expect(find.text('Concessão de Licença & Acessos'), findsOneWidget);
+      expect(find.text('1. Role de Acesso'), findsOneWidget);
+      expect(find.text('2. Usuários'), findsOneWidget);
+      expect(find.text('3. Finalizar'), findsOneWidget);
     });
   });
 }

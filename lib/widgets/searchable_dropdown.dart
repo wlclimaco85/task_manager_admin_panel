@@ -605,6 +605,15 @@ class _InlineSearchPopoverState extends State<_InlineSearchPopover> {
                                       color: isSelected
                                           ? primary
                                           : const Color(0xFF212121))),
+                              subtitle: (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim().isNotEmpty
+                                  ? Text(
+                                      (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim(),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFF757575),
+                                      ),
+                                    )
+                                  : null,
                               onTap: () =>
                                   widget.onSelected(_DropResult(val, o)),
                             );
@@ -832,7 +841,9 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = GridColors.primary;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
 
     final contadorTexto = _loading
         ? 'Buscando...'
@@ -980,6 +991,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                                     o['nome']?.toString() ??
                                     val ??
                                     '';
+                            final doc = (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim();
                             final isSelected = val == widget.currentValue;
                             return ListTile(
                               dense: true,
@@ -1002,6 +1014,17 @@ class _SearchDialogState extends State<_SearchDialog> {
                                       : Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
+                              subtitle: doc.isNotEmpty
+                                  ? Text(
+                                      doc,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark
+                                            ? const Color(0xFF8B99B3)
+                                            : Colors.grey.shade600,
+                                      ),
+                                    )
+                                  : null,
                               onTap: () => Navigator.of(context)
                                   .pop(_DropResult(val, o)),
                             );
