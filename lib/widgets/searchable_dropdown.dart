@@ -277,7 +277,13 @@ class _SearchableDropdownFieldState extends State<SearchableDropdownField> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = GridColors.primary;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+    final surfaceVariant = theme.inputDecorationTheme.fillColor ??
+        (isDark ? const Color(0xFF17233D) : const Color(0xFFEBEFF7));
+    final outlineColor = theme.colorScheme.outline;
+    final onSurfaceColor = theme.colorScheme.onSurface;
     final labelText = widget.label + (widget.isRequired ? ' *' : '');
     final displayText = _displayLabel ?? '';
     final isEmpty = displayText.isEmpty;
@@ -300,20 +306,26 @@ class _SearchableDropdownFieldState extends State<SearchableDropdownField> {
           child: InputDecorator(
             decoration: InputDecoration(
               labelText: labelText,
-              labelStyle: const TextStyle(fontSize: 13),
+              labelStyle: TextStyle(
+                fontSize: 13,
+                color: isDark ? const Color(0xFF8B99B3) : null,
+              ),
+              floatingLabelBehavior: FloatingLabelBehavior.always,
               filled: true,
-              fillColor: isDisabled ? const Color(0xFFF5F5F5) : Colors.white,
+              fillColor: isDisabled
+                  ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF5F5F5))
+                  : surfaceVariant,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide(color: primary, width: 1.5),
+                borderSide: BorderSide(color: outlineColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide(color: primary, width: 1.5),
+                borderSide: BorderSide(color: outlineColor),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: GridColors.divider),
+                borderSide: BorderSide(color: outlineColor.withValues(alpha: 0.5)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
@@ -321,11 +333,11 @@ class _SearchableDropdownFieldState extends State<SearchableDropdownField> {
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
               ),
               isDense: true,
               contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               prefixIcon: widget.prefixIcon != null
                   ? Icon(widget.prefixIcon, size: 18, color: primary)
                   : null,
@@ -339,10 +351,10 @@ class _SearchableDropdownFieldState extends State<SearchableDropdownField> {
               style: TextStyle(
                 fontSize: 13,
                 color: isEmpty
-                    ? Colors.grey.shade500
+                    ? (isDark ? const Color(0xFF8B99B3) : Colors.grey.shade500)
                     : isDisabled
                         ? Colors.grey
-                        : const Color(0xFF212121),
+                        : onSurfaceColor,
                 overflow: TextOverflow.ellipsis,
               ),
               maxLines: 1,
@@ -987,7 +999,7 @@ class _SearchDialogState extends State<_SearchDialog> {
                                       : FontWeight.normal,
                                   color: isSelected
                                       ? primary
-                                      : const Color(0xFF212121),
+                                      : Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                               onTap: () => Navigator.of(context)

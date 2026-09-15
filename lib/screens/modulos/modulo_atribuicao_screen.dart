@@ -575,6 +575,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                                 SizedBox(
                                   width: isCompact ? double.infinity : 240,
                                   child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       Expanded(
                                         child: TextField(
@@ -584,32 +585,39 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                                           decoration: InputDecoration(
                                             isDense: true,
                                             labelText: _tipo == 'parceiro'
-                                                ? 'ID do Parceiro'
-                                                : 'ID da Empresa',
+                                                ? 'ID Parceiro'
+                                                : 'ID Empresa',
+                                            floatingLabelBehavior: FloatingLabelBehavior.always,
                                             hintText: 'Ex: 42',
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 13,
+                                            ),
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius: BorderRadius.circular(6),
                                             ),
                                           ),
                                           onSubmitted: (_) => _carregar(),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        key: const Key('modulo_atribuicao_carregar_btn'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: GridColors.primary,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 14,
+                                      SizedBox(
+                                        height: 44,
+                                        child: ElevatedButton(
+                                          key: const Key('modulo_atribuicao_carregar_btn'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: GridColors.primary,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
                                           ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
+                                          onPressed: _carregando ? null : () => _carregar(),
+                                          child: const Text('Carregar'),
                                         ),
-                                        onPressed: _carregando ? null : () => _carregar(),
-                                        child: const Text('Carregar'),
                                       ),
                                     ],
                                   ),

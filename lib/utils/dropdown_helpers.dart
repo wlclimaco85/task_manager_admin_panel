@@ -72,7 +72,7 @@ class DropdownHelpers {
   static Future<List<Map<String, dynamic>>> parceirosPorEmpresa(
       String? empresaId) {
     if (empresaId == null || empresaId.isEmpty) return parceiros();
-    return load('?empresaId=',
+    return load('${ApiLinks.allParceiros}?empresaId=$empresaId',
         displayField: 'nome');
   }
 
@@ -85,16 +85,22 @@ class DropdownHelpers {
     String? empresaId,
     String? tipoParceiro,
   }) async {
-    final url = '';
+    final url = '${ApiLinks.allParceiros}${buildParceirosBuscaQuery(
+      busca: busca,
+      pagina: pagina,
+      tamanho: tamanho,
+      empresaId: empresaId,
+      tipoParceiro: tipoParceiro,
+    )}';
     try {
       final resp = await NetworkCaller().getRequest(url);
       if (!resp.isSuccess || resp.body == null) {
         return PaginaDropdown([], 0,
-            erro: 'Erro ao buscar (status \).');
+            erro: 'Erro ao buscar (status ${resp.statusCode}).');
       }
       return parsePaginaDropdown(resp.body);
     } catch (e) {
-      return PaginaDropdown([], 0, erro: 'Erro ao buscar: ');
+      return PaginaDropdown([], 0, erro: 'Erro ao buscar: $e');
     }
   }
 
@@ -107,15 +113,15 @@ class DropdownHelpers {
     String? tipoParceiro,
   }) {
     final termo = busca?.trim();
-    final query = StringBuffer('?pagina=\&tamanho=');
+    final query = StringBuffer('?pagina=$pagina&tamanho=$tamanho');
     if (termo != null && termo.isNotEmpty) {
-      query.write('&busca=');
+      query.write('&busca=${Uri.encodeQueryComponent(termo)}');
     }
     if (empresaId != null && empresaId.isNotEmpty) {
-      query.write('&empresaId=');
+      query.write('&empresaId=${Uri.encodeQueryComponent(empresaId)}');
     }
     if (tipoParceiro != null && tipoParceiro.isNotEmpty) {
-      query.write('&tipoParceiro=');
+      query.write('&tipoParceiro=${Uri.encodeQueryComponent(tipoParceiro)}');
     }
     return query.toString();
   }
@@ -127,16 +133,16 @@ class DropdownHelpers {
     int tamanho = 20,
   }) async {
     final url =
-        '';
+        '${ApiLinks.allEmpresas}${buildEmpresasBuscaQuery(busca: busca, pagina: pagina, tamanho: tamanho)}';
     try {
       final resp = await NetworkCaller().getRequest(url);
       if (!resp.isSuccess || resp.body == null) {
         return PaginaDropdown([], 0,
-            erro: 'Erro ao buscar (status \).');
+            erro: 'Erro ao buscar (status ${resp.statusCode}).');
       }
       return parsePaginaDropdown(resp.body);
     } catch (e) {
-      return PaginaDropdown([], 0, erro: 'Erro ao buscar: ');
+      return PaginaDropdown([], 0, erro: 'Erro ao buscar: $e');
     }
   }
 
@@ -147,9 +153,9 @@ class DropdownHelpers {
     int tamanho = 20,
   }) {
     final termo = busca?.trim();
-    final query = StringBuffer('?pagina=\&tamanho=');
+    final query = StringBuffer('?pagina=$pagina&tamanho=$tamanho');
     if (termo != null && termo.isNotEmpty) {
-      query.write('&busca=');
+      query.write('&busca=${Uri.encodeQueryComponent(termo)}');
     }
     return query.toString();
   }
@@ -179,7 +185,7 @@ class DropdownHelpers {
   static Future<String?> parceiroLabelPorId(String id) async {
     try {
       final resp =
-          await NetworkCaller().getRequest('/');
+          await NetworkCaller().getRequest('${ApiLinks.allParceiros}/$id');
       if (!resp.isSuccess || resp.body == null) return null;
       return parseParceiroLabel(resp.body);
     } catch (_) {
@@ -203,7 +209,7 @@ class DropdownHelpers {
   static Future<String?> empresaLabelPorId(String id) async {
     try {
       final resp =
-          await NetworkCaller().getRequest('/');
+          await NetworkCaller().getRequest('${ApiLinks.allEmpresas}/$id');
       if (!resp.isSuccess || resp.body == null) return null;
       return parseEmpresaLabel(resp.body);
     } catch (_) {
