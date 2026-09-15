@@ -208,6 +208,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         empresaId: empresaId,
         empresaNome: empresaNome,
         modulosNomes: modulosNomes,
+        tipoAlvo: _tipo,
         networkCaller: _caller,
       ),
     );

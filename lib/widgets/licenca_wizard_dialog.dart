@@ -11,6 +11,7 @@ import 'generic_grid_windows_screen.dart';
 class LicencaWizardDialog extends StatefulWidget {
   final int empresaId;
   final String empresaNome;
+  final String tipoAlvo; // 'empresa' ou 'parceiro'
   final List<String> modulosNomes;
   final NetworkCaller? networkCaller;
 
@@ -19,6 +20,7 @@ class LicencaWizardDialog extends StatefulWidget {
     required this.empresaId,
     required this.empresaNome,
     required this.modulosNomes,
+    this.tipoAlvo = 'empresa',
     this.networkCaller,
   });
 
@@ -67,7 +69,9 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
       // 1. Carregar Roles
       final resRoles = await _caller.getRequest(ApiLinks.allRoles);
       // 2. Carregar Usuários da Empresa
-      final urlLogins = ApiLinks.loginsByEmpresa(widget.empresaId.toString());
+      final urlLogins = widget.tipoAlvo == 'parceiro'
+          ? ApiLinks.loginsByParceiro(widget.empresaId.toString())
+          : ApiLinks.loginsByEmpresa(widget.empresaId.toString());
       final resLogins = await _caller.getRequest(urlLogins);
 
       if (!mounted) return;

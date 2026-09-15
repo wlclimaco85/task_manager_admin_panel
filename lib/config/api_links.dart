@@ -115,6 +115,8 @@ class ApiLinks {
       '$_baseUrl/api/parceiro/update/$id';
   static String loginsByEmpresa(String empId) =>
       '$_baseUrl/api/logins?empId=$empId';
+  static String loginsByParceiro(String parcId) =>
+      '$_baseUrl/api/logins?parcId=$parcId';
   static String get createLoginCadastro => '$_baseUrl/api/logins';
 
   // Controle de Sessao (bug de producao 2026-09-11): App do Dono >
