@@ -199,6 +199,8 @@ class ApiLinks {
   static String get dbStatus => '$_baseUrl/api/admin/db-status';
   static String get fixDb => '$_baseUrl/api/admin/fix-db';
   static String get resetDatabase => '$_baseUrl/api/admin/reset-database';
+  static String get limparBasePreservarEmpresas =>
+      '$_baseUrl/api/admin/limpar-base-preservar-empresas';
   static String get allJobs => '$_baseUrl/api/admin/jobs';
   static String executarJob(String nome, {bool forcar = false}) =>
       '$_baseUrl/api/admin/jobs/$nome/executar?forcar=$forcar';

@@ -74,6 +74,7 @@ void main() {
     expect(find.byKey(const Key('acao_db_status')), findsOneWidget);
     expect(find.byKey(const Key('acao_fix_db')), findsOneWidget);
     expect(find.byKey(const Key('acao_reset_database')), findsOneWidget);
+    expect(find.byKey(const Key('acao_limpar_base_preservar')), findsOneWidget);
   });
 
   group('Resetar Banco de Dados (digite RESET)', () {
@@ -234,5 +235,43 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(rc.calls, _hasCallMatching('GET', '/api/admin/db-status'));
+  });
+
+  group('Limpar Base (digite LIMPAR)', () {
+    testWidgets(
+        'botao de confirmar fica desabilitado ate digitar LIMPAR exatamente, '
+        'e a chamada de rede dispara POST para /api/admin/limpar-base-preservar-empresas',
+        (tester) async {
+      final rc = _recordingCaller();
+      await tester.pumpWidget(_wrap(
+        ConfiguracoesSistemaAcoesScreen(networkCaller: rc.caller),
+      ));
+      await tester.pumpAndSettle();
+
+      await _tapVisible(
+          tester, find.byKey(const Key('acao_limpar_base_preservar_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byKey(const Key('confirm_typed_field')), findsOneWidget);
+      final confirmBtn = find.byKey(const Key('confirm_typed_button'));
+      expect(tester.widget<ElevatedButton>(confirmBtn).onPressed, isNull);
+
+      await tester.enterText(
+          find.byKey(const Key('confirm_typed_field')), 'ERRADO');
+      await tester.pump();
+      expect(tester.widget<ElevatedButton>(confirmBtn).onPressed, isNull);
+
+      await tester.enterText(
+          find.byKey(const Key('confirm_typed_field')), 'LIMPAR');
+      await tester.pump();
+      expect(tester.widget<ElevatedButton>(confirmBtn).onPressed, isNotNull);
+
+      await tester.tap(confirmBtn);
+      await tester.pumpAndSettle();
+
+      expect(rc.calls,
+          _hasCallMatching('POST', '/api/admin/limpar-base-preservar-empresas'));
+    });
   });
 }

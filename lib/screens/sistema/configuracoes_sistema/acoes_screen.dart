@@ -268,6 +268,25 @@ class ConfiguracoesSistemaAcoesScreenState
               return _post(ApiLinks.resetDatabase);
             },
           ),
+          _actionCard(
+            key: const Key('acao_limpar_base_preservar'),
+            title: 'Limpar Base (Preservar Empresas 1 e 20001)',
+            subtitle:
+                'Apaga todos os parceiros, notas, movimentações e cadastros de todas as empresas exceto 1 e 20001. POST /api/admin/limpar-base-preservar-empresas',
+            icon: Icons.cleaning_services_outlined,
+            color: Colors.deepOrange.shade800,
+            buttonKey: const Key('acao_limpar_base_preservar_button'),
+            onExecute: () async {
+              final confirmed = await _confirmTyped(
+                title: 'Limpar Base de Produção',
+                message:
+                    'ATENÇÃO: Esta operação é IRREVERSÍVEL! Todos os dados (parceiros, movimentações financeiras, notas fiscais, contas e logins) de todas as empresas serão PERMANENTEMENTE EXCLUÍDOS, PRESERVANDO APENAS as empresas 1 e 20001 e seus respectivos cadastros.',
+                requiredText: 'LIMPAR',
+              );
+              if (!confirmed) return null;
+              return _post(ApiLinks.limparBasePreservarEmpresas);
+            },
+          ),
           const SizedBox(height: AppSpacing.lg),
           _sectionTitle('Importação Fiscal', Icons.receipt_long_outlined),
           ImportacaoSintegraCard(baseUrl: ApiLinks.baseUrl),
