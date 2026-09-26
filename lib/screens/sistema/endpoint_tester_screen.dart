@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/network_caller.dart';
+import '../../services/system_test_run_service.dart';
+import '../../widgets/system_test_run_panel.dart';
 
 /// SIS-07 Teste de Endpoints — terminal HTTP livre.
 ///
@@ -30,17 +32,23 @@ extension on HttpVerb {
 }
 
 class EndpointTesterScreen extends StatefulWidget {
-  const EndpointTesterScreen({super.key, this.networkCaller});
+  const EndpointTesterScreen({
+    super.key,
+    this.networkCaller,
+    this.systemTestService,
+    this.systemTestToken,
+  });
 
   final NetworkCaller? networkCaller;
+  final SystemTestRunService? systemTestService;
+  final String? systemTestToken;
 
   @override
   State<EndpointTesterScreen> createState() => _EndpointTesterScreenState();
 }
 
 class _EndpointTesterScreenState extends State<EndpointTesterScreen> {
-  late final NetworkCaller _caller =
-      widget.networkCaller ?? NetworkCaller();
+  late final NetworkCaller _caller = widget.networkCaller ?? NetworkCaller();
 
   /// So fecha o client HTTP no dispose quando esta tela o criou (mesmo
   /// cuidado ja adotado em GenericGridScreen: nao fechar um client
@@ -56,6 +64,7 @@ class _EndpointTesterScreenState extends State<EndpointTesterScreen> {
   bool? _statusSuccess;
   String? _responseText;
   List<String> _sugestoes = [];
+  bool _integratedMode = false;
 
   @override
   void initState() {
@@ -178,121 +187,158 @@ class _EndpointTesterScreenState extends State<EndpointTesterScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Teste de Endpoints')),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                SizedBox(
-                  width: 160,
-                  child: DropdownButtonFormField<HttpVerb>(
-                    key: const Key('endpoint_tester_verb_dropdown'),
-                    initialValue: _verb,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Metodo'),
-                    items: HttpVerb.values
-                        .map((v) => DropdownMenuItem(
-                              value: v,
-                              child: Text(v.label),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() => _verb = v);
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: TextField(
-                    key: const Key('endpoint_tester_path_field'),
-                    controller: _pathController,
-                    decoration: const InputDecoration(
-                      labelText: 'Path',
-                      hintText: '/api/aplicativo',
-                    ),
-                  ),
-                ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+            child: SegmentedButton<bool>(
+              key: const Key('endpoint_tester_mode_selector'),
+              segments: const [
+                ButtonSegment(
+                    value: false,
+                    icon: Icon(Icons.terminal),
+                    label: Text('Terminal HTTP')),
+                ButtonSegment(
+                    value: true,
+                    icon: Icon(Icons.fact_check_outlined),
+                    label: Text('Fluxo integrado')),
               ],
+              selected: {_integratedMode},
+              onSelectionChanged: (selection) =>
+                  setState(() => _integratedMode = selection.first),
             ),
-            if (_sugestoes.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                key: const Key('endpoint_tester_sugestoes'),
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.xs,
-                children: _sugestoes
-                    .map((p) => ActionChip(
-                          label: Text(p),
-                          onPressed: () => _selecionarSugestao(p),
-                        ))
-                    .toList(),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              key: const Key('endpoint_tester_body_field'),
-              controller: _bodyController,
-              maxLines: 8,
-              enabled: _verb.aceitaCorpo,
-              decoration: InputDecoration(
-                labelText: 'Corpo (JSON)',
-                hintText: _verb.aceitaCorpo
-                    ? '{"campo": "valor"}'
-                    : 'Metodo ${_verb.label} nao envia corpo',
-                errorText:
-                    _verb.aceitaCorpo && !_corpoValido ? 'JSON invalido' : null,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            ElevatedButton.icon(
-              key: const Key('endpoint_tester_execute_button'),
-              onPressed: _podeExecutar ? _executar : null,
-              icon: _executing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.play_arrow),
-              label: const Text('Executar'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (_statusCode != null)
-              Text(
-                'Status: $_statusCode',
-                key: const Key('endpoint_tester_status_text'),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color:
-                      (_statusSuccess ?? false) ? colors.success : colors.error,
-                ),
-              ),
-            if (_responseText != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Container(
-                    key: const Key('endpoint_tester_response_text'),
-                    width: double.infinity,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Expanded(
+            child: _integratedMode
+                ? SystemTestRunPanel(
+                    service: widget.systemTestService,
+                    token: widget.systemTestToken,
+                  )
+                : Padding(
                     padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: colors.surfaceVariant,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusDefault),
-                    ),
-                    child: SelectableText(
-                      _responseText!,
-                      style: const TextStyle(fontFamily: 'monospace'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 160,
+                              child: DropdownButtonFormField<HttpVerb>(
+                                key: const Key('endpoint_tester_verb_dropdown'),
+                                initialValue: _verb,
+                                isExpanded: true,
+                                decoration:
+                                    const InputDecoration(labelText: 'Metodo'),
+                                items: HttpVerb.values
+                                    .map((v) => DropdownMenuItem(
+                                          value: v,
+                                          child: Text(v.label),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) {
+                                  if (v == null) return;
+                                  setState(() => _verb = v);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: TextField(
+                                key: const Key('endpoint_tester_path_field'),
+                                controller: _pathController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Path',
+                                  hintText: '/api/aplicativo',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_sugestoes.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            key: const Key('endpoint_tester_sugestoes'),
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.xs,
+                            children: _sugestoes
+                                .map((p) => ActionChip(
+                                      label: Text(p),
+                                      onPressed: () => _selecionarSugestao(p),
+                                    ))
+                                .toList(),
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.md),
+                        TextField(
+                          key: const Key('endpoint_tester_body_field'),
+                          controller: _bodyController,
+                          maxLines: 8,
+                          enabled: _verb.aceitaCorpo,
+                          decoration: InputDecoration(
+                            labelText: 'Corpo (JSON)',
+                            hintText: _verb.aceitaCorpo
+                                ? '{"campo": "valor"}'
+                                : 'Metodo ${_verb.label} nao envia corpo',
+                            errorText: _verb.aceitaCorpo && !_corpoValido
+                                ? 'JSON invalido'
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        ElevatedButton.icon(
+                          key: const Key('endpoint_tester_execute_button'),
+                          onPressed: _podeExecutar ? _executar : null,
+                          icon: _executing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: const Text('Executar'),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        if (_statusCode != null)
+                          Text(
+                            'Status: $_statusCode',
+                            key: const Key('endpoint_tester_status_text'),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: (_statusSuccess ?? false)
+                                  ? colors.success
+                                  : colors.error,
+                            ),
+                          ),
+                        if (_responseText != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Container(
+                                key: const Key('endpoint_tester_response_text'),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                decoration: BoxDecoration(
+                                  color: colors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusDefault),
+                                ),
+                                child: SelectableText(
+                                  _responseText!,
+                                  style:
+                                      const TextStyle(fontFamily: 'monospace'),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

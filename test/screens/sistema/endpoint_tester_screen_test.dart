@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/screens/sistema/endpoint_tester_screen.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
+import 'package:task_manager_admin_panel/services/system_test_run_service.dart';
 
 Widget _wrap(Widget child) =>
     MaterialApp(theme: AppTheme.darkTheme, home: child);
@@ -27,7 +28,7 @@ void main() {
     final caller = NetworkCaller(client: client);
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen()),
+      _wrap(EndpointTesterScreen(networkCaller: caller)),
     );
     await tester.pumpAndSettle();
 
@@ -48,19 +49,19 @@ void main() {
     expect(capturedRequest, isNotNull);
     expect(capturedRequest!.method, 'GET');
     expect(capturedRequest!.url.path, contains('/api/aplicativo'));
-    expect(find.byKey(const Key('endpoint_tester_status_text')), findsOneWidget);
+    expect(
+        find.byKey(const Key('endpoint_tester_status_text')), findsOneWidget);
     expect(find.textContaining('Status: 200'), findsOneWidget);
   });
 
-  testWidgets(
-      'corpo JSON invalido em POST bloqueia o botao Executar',
+  testWidgets('corpo JSON invalido em POST bloqueia o botao Executar',
       (tester) async {
     final caller = NetworkCaller(
       client: MockClient((request) async => http.Response('{}', 200)),
     );
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen()),
+      _wrap(EndpointTesterScreen(networkCaller: caller)),
     );
     await tester.pumpAndSettle();
 
@@ -97,7 +98,7 @@ void main() {
     final caller = NetworkCaller(client: client);
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen()),
+      _wrap(EndpointTesterScreen(networkCaller: caller)),
     );
     await tester.pumpAndSettle();
 
@@ -137,7 +138,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrap(EndpointTesterScreen()),
+      _wrap(EndpointTesterScreen(networkCaller: caller)),
     );
     await tester.pumpAndSettle();
 
@@ -152,4 +153,58 @@ void main() {
     );
     expect(executeButton.onPressed, isNull);
   });
+
+  testWidgets('fluxo integrado executa todos os grupos somente em homologacao',
+      (tester) async {
+    Map<String, dynamic>? startBody;
+    final caller = NetworkCaller(
+      client: MockClient((_) async => http.Response('{"data":[]}', 200)),
+    );
+    final systemTestService = SystemTestRunService(
+      client: MockClient((request) async {
+        if (request.method == 'POST' && request.url.path.endsWith('/runs')) {
+          startBody = jsonDecode(request.body) as Map<String, dynamic>;
+          return http.Response(jsonEncode(_systemRun('RUNNING')), 202);
+        }
+        if (request.url.path.endsWith('/events')) {
+          return http.Response('[]', 200);
+        }
+        return http.Response(jsonEncode(_systemRun('COMPLETED')), 200);
+      }),
+    );
+
+    await tester.pumpWidget(_wrap(EndpointTesterScreen(
+      networkCaller: caller,
+      systemTestService: systemTestService,
+      systemTestToken: 'token-test',
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fluxo integrado'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('system_test_group_selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tudo: fases 1 e 2').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('system_test_start_button')));
+    await tester.pumpAndSettle();
+
+    expect(startBody, {
+      'environment': 'HOMOLOGACAO',
+      'groups': ['TODOS']
+    });
+  });
 }
+
+Map<String, dynamic> _systemRun(String status) => {
+      'runId': 'run-admin',
+      'marker': 'E2E-ADMIN',
+      'environment': 'HOMOLOGACAO',
+      'status': status,
+      'progressPercent': status == 'COMPLETED' ? 100 : 1,
+      'totalOperations': 10,
+      'completedOperations': status == 'COMPLETED' ? 10 : 1,
+      'successCount': status == 'COMPLETED' ? 10 : 1,
+      'failureCount': 0,
+      'cleanedCount': status == 'COMPLETED' ? 2 : 0,
+      'residueCount': 0,
+    };
