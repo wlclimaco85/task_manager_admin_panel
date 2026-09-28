@@ -18,7 +18,7 @@ class SystemTestRunService {
               headers: _headers(token),
               body:
                   jsonEncode({'environment': 'HOMOLOGACAO', 'groups': groups})),
-          const {202});
+          const {202, 409});
   Future<SystemTestRunModel> status(String token, String id) async => _run(
       await _client.get(Uri.parse('$_base/$id'), headers: _headers(token)),
       const {200});
