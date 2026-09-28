@@ -84,5 +84,9 @@ void main() {
     expect(find.text('Parceiro ID'), findsOneWidget);
     expect(find.text('Usuário'), findsOneWidget);
     expect(find.text('Plataforma: Todas'), findsOneWidget);
+
+    await tester.tap(find.text('Origem: Todas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Teste de endpoints'), findsOneWidget);
   });
 }

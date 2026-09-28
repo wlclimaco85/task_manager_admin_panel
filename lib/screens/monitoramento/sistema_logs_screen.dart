@@ -444,6 +444,7 @@ class _SistemaLogsScreenState extends State<SistemaLogsScreen> {
                         DropdownMenuItem(value: 'TODOS', child: Text('Origem: Todas')),
                         DropdownMenuItem(value: 'BACKEND', child: Text('Backend Java')),
                         DropdownMenuItem(value: 'APP_FLUTTER', child: Text('App Flutter')),
+                        DropdownMenuItem(value: 'SYSTEM_TEST', child: Text('Teste de endpoints')),
                       ],
                       onChanged: (v) {
                         if (v != null) {
