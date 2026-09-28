@@ -121,13 +121,28 @@ class _SystemTestRunPanelState extends State<SystemTestRunPanel> {
     }
   }
 
-  Future<void> _copy(String value) async {
+  Future<void> _copy(String value, {String? feedback}) async {
     await Clipboard.setData(ClipboardData(text: value));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Erro copiado para a área de transferência.')),
+      SnackBar(
+          content:
+              Text(feedback ?? 'Erro copiado para a área de transferência.')),
     );
+  }
+
+  Future<void> _copyAllErrors(String fallback) async {
+    final errors =
+        _events.where((event) => event.level.toUpperCase() == 'ERROR').toList();
+    final text = errors.isEmpty
+        ? fallback
+        : errors
+            .map(
+                (event) => '#${event.sequence} ${event.step}\n${event.message}')
+            .join('\n\n');
+    await _copy(text,
+        feedback:
+            '${errors.isEmpty ? 1 : errors.length} erros copiados para a área de transferência.');
   }
 
   @override
@@ -371,8 +386,8 @@ class _SystemTestRunPanelState extends State<SystemTestRunPanel> {
           ),
           IconButton(
             key: const Key('system_test_error_copy'),
-            tooltip: 'Copiar erro',
-            onPressed: () => _copy(message),
+            tooltip: 'Copiar todos os erros',
+            onPressed: () => _copyAllErrors(message),
             icon: const Icon(Icons.copy, color: _primary),
           ),
         ],

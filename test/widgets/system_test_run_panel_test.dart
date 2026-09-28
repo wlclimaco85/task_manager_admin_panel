@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -57,7 +58,18 @@ void main() {
 
   testWidgets('mostra erro completo copiavel depois de continuar o fluxo',
       (tester) async {
-    const error = 'POST /api/role retornou 400: Role duplicada';
+    const errors = [
+      'POST /api/financeiro/extrato-importacao/confirmar retornou 400:',
+      'Role nao persistiu o campo description.',
+      'Solicitacao criada nao apareceu na fila pendente.',
+      'Alvara nao persistiu o campo descricao.',
+    ];
+    final clipboardCalls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      clipboardCalls.add(call);
+      return null;
+    });
     final service = SystemTestRunService(client: MockClient((request) async {
       if (request.method == 'POST') {
         return http.Response(jsonEncode(_run('RUNNING')), 202);
@@ -65,12 +77,13 @@ void main() {
       if (request.url.path.endsWith('/events')) {
         return http.Response(
             jsonEncode([
-              {
-                'eventSequence': 13,
-                'stepName': 'Role - ERRO',
-                'level': 'ERROR',
-                'message': error,
-              },
+              for (var index = 0; index < errors.length; index++)
+                {
+                  'eventSequence': 13 + index,
+                  'stepName': 'Etapa ${index + 1} - ERRO',
+                  'level': 'ERROR',
+                  'message': errors[index],
+                },
               {
                 'eventSequence': 14,
                 'stepName': 'Setor - POST',
@@ -85,9 +98,9 @@ void main() {
             ..._run('FAILED'),
             'progressPercent': 100,
             'completedOperations': 10,
-            'failureCount': 1,
+            'failureCount': 4,
             'skippedCount': 5,
-            'lastError': error,
+            'lastError': errors.last,
           }),
           200);
     }));
@@ -99,10 +112,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('system_test_error_summary')), findsOneWidget);
-    expect(find.text(error), findsWidgets);
-    expect(find.text('Setor - POST'), findsOneWidget);
+    expect(find.text(errors.last), findsWidgets);
     expect(find.text('Ignorados 5'), findsOneWidget);
     expect(find.byKey(const Key('system_test_error_copy')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('system_test_error_copy')));
+    await tester.pump();
+
+    final copied = clipboardCalls
+        .firstWhere((call) => call.method == 'Clipboard.setData')
+        .arguments['text'] as String;
+    for (final error in errors) {
+      expect(copied, contains(error));
+    }
+    expect(find.text('4 erros copiados para a área de transferência.'),
+        findsOneWidget);
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
   });
 }
 
