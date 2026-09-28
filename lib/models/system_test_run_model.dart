@@ -2,7 +2,11 @@ class SystemTestRunModel {
   final String runId, marker, environment, status;
   final String? currentStep, lastError;
   final int progressPercent, totalOperations, completedOperations;
-  final int successCount, failureCount, cleanedCount, residueCount;
+  final int successCount,
+      failureCount,
+      skippedCount,
+      cleanedCount,
+      residueCount;
 
   const SystemTestRunModel(
       {required this.runId,
@@ -15,6 +19,7 @@ class SystemTestRunModel {
       required this.completedOperations,
       required this.successCount,
       required this.failureCount,
+      this.skippedCount = 0,
       required this.cleanedCount,
       required this.residueCount,
       this.lastError});
@@ -32,6 +37,7 @@ class SystemTestRunModel {
         completedOperations: number('completedOperations'),
         successCount: number('successCount'),
         failureCount: number('failureCount'),
+        skippedCount: number('skippedCount'),
         cleanedCount: number('cleanedCount'),
         residueCount: number('residueCount'),
         lastError: json['lastError']?.toString());

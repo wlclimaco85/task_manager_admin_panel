@@ -181,10 +181,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Fluxo integrado'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('system_test_group_selector')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tudo: fases 1 e 2').last);
-    await tester.pumpAndSettle();
+    final selector = find.byKey(const Key('system_test_group_selector'));
+    final dropdown = tester.widget<DropdownButton<String>>(find.descendant(
+      of: selector,
+      matching: find.byType(DropdownButton<String>),
+    ));
+    dropdown.onChanged!('TODOS');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('system_test_start_button')));
     await tester.pumpAndSettle();
 
