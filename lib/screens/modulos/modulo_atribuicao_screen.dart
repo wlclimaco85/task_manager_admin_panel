@@ -121,6 +121,10 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
           _gradeResumo = rows.map((r) => Map<String, dynamic>.from(r)).toList();
           _carregandoGrade = false;
         });
+      } else if (res.statusCode == 404) {
+        // Fallback gracioso: se o endpoint de resumo consolidado nao responder (404),
+        // consulta os parceiros diretamente para permitir visualizacao e selecao sem bloquear o usuario.
+        await _carregarGradeResumoFallback();
       } else {
         setState(() {
           _erroGrade = 'Falha ao carregar listagem de licencas (${res.statusCode})';
@@ -129,11 +133,44 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _erroGrade = 'Erro ao conectar: $e';
-          _carregandoGrade = false;
-        });
+        await _carregarGradeResumoFallback();
       }
+    }
+  }
+
+  Future<void> _carregarGradeResumoFallback() async {
+    try {
+      final res = await _caller.getRequest(ApiLinks.dropdownParceiros);
+      if (!mounted) return;
+      if (res.isSuccess) {
+        final rows = GenericGridWindowsScreen.extractRows(res.body);
+        final lista = rows.map((r) {
+          final id = _extractId(r);
+          final nome = _labelDoRegistro(r);
+          final doc = (r['cnpj'] ?? r['cpf'] ?? '').toString();
+          return <String, dynamic>{
+            'tipo': 'parceiro',
+            'id': id,
+            'nome': nome,
+            'documento': doc,
+            'quantidadeModulos': 0,
+            'modulos': 'Clique para gerenciar',
+          };
+        }).toList();
+        setState(() {
+          _gradeResumo = lista;
+          _carregandoGrade = false;
+          _erroGrade = null;
+        });
+        return;
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _erroGrade = 'Listagem de licencas indisponivel no momento. Clique em "Novo" para vincular modulos.';
+        _carregandoGrade = false;
+      });
     }
   }
 
@@ -1631,14 +1668,29 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _carregarGradeResumo,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Tentar novamente'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: GridColors.primary,
-                  foregroundColor: GridColors.textPrimary,
-                ),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _carregarGradeResumo,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Tentar novamente'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: GridColors.textPrimary,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _abrirFormularioNovo,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Atribuir Módulos (Novo)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GridColors.primary,
+                      foregroundColor: GridColors.textPrimary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
