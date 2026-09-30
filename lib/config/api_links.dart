@@ -49,18 +49,20 @@ class ApiLinks {
   // 13 planos seguintes, mesmo que consumidos so nas waves 2-4.
   // ===========================================================================
 
-
   // File operations
   static String uploadFile = '$_baseUrl/api/upload';
   static String downloadFile(String id) => '$_baseUrl/api/download/$id';
 
   // Sistema Logs e Monitoramento
   static String get sistemaLogs => '$_baseUrl/api/sistema-logs';
-  static String get sistemaLogsMetricas => '$_baseUrl/api/sistema-logs/metricas';
-  static String expurgarSistemaLogs(int dias) => '$_baseUrl/api/sistema-logs/expurgar?dias=$dias';
+  static String get sistemaLogsMetricas =>
+      '$_baseUrl/api/sistema-logs/metricas';
+  static String expurgarSistemaLogs(int dias) =>
+      '$_baseUrl/api/sistema-logs/expurgar?dias=$dias';
 
   // Tela Ajuda
-  static String telaAjudaPorTela(String tela) => '$_baseUrl/api/tela-ajuda/tela/$tela';
+  static String telaAjudaPorTela(String tela) =>
+      '$_baseUrl/api/tela-ajuda/tela/$tela';
   // SIS-01 Aplicativo
   static String get allAplicativos => '$_baseUrl/api/aplicativo';
   static String get allEmpresas => '$_baseUrl/api/empresa';
@@ -122,15 +124,16 @@ class ApiLinks {
   // Controle de Sessao (bug de producao 2026-09-11): App do Dono >
   // Sistema > Sessoes -- listar/matar sessoes ativas.
   static String get sessoesAtivas => '$_baseUrl/api/sessoes';
-  static String matarSessao(int loginId) => '$_baseUrl/api/sessoes/$loginId/matar';
+  static String matarSessao(int loginId) =>
+      '$_baseUrl/api/sessoes/$loginId/matar';
   static String get matarTodasAsSessoes => '$_baseUrl/api/sessoes/matar-todas';
-  static String get matarSessoesOciosas => '$_baseUrl/api/sessoes/matar-ociosas';
+  static String get matarSessoesOciosas =>
+      '$_baseUrl/api/sessoes/matar-ociosas';
   static String updateLoginCadastro(String id) => '$_baseUrl/api/logins/$id';
   static String funcionariosByEmpresa(String empId) =>
       '$_baseUrl/api/funcionario?empId=$empId';
   static String get createFuncionario => '$_baseUrl/api/funcionario';
-  static String updateFuncionario(String id) =>
-      '$_baseUrl/api/funcionario/$id';
+  static String updateFuncionario(String id) => '$_baseUrl/api/funcionario/$id';
   static String get allPlanos => '$_baseUrl/api/planos';
   static String get allPlanosAcademia => '$_baseUrl/api/planos_academia';
   static String get createPlano => '$_baseUrl/api/planos';
@@ -172,10 +175,8 @@ class ApiLinks {
 
   static String get allHorarioFunc => '$_baseUrl/api/horarioFunc';
   static String get createHorarioFunc => '$_baseUrl/api/horarioFunc';
-  static String updateHorarioFunc(String id) =>
-      '$_baseUrl/api/horarioFunc/$id';
-  static String deleteHorarioFunc(String id) =>
-      '$_baseUrl/api/horarioFunc/$id';
+  static String updateHorarioFunc(String id) => '$_baseUrl/api/horarioFunc/$id';
+  static String deleteHorarioFunc(String id) => '$_baseUrl/api/horarioFunc/$id';
 
   static String get allTipoProduto => '$_baseUrl/api/tipoProdutos';
   static String get createTipoProduto => '$_baseUrl/api/tipoProdutos';
@@ -185,10 +186,10 @@ class ApiLinks {
       '$_baseUrl/api/tipoProdutos/$id';
 
   // SIS-04 Config. Sistema (acoes simples, jobs, importacao, banco)
-  static String gerarTelas({bool forceUpdate = false, bool fullReset = false}) =>
+  static String gerarTelas(
+          {bool forceUpdate = false, bool fullReset = false}) =>
       '$_baseUrl/api/telas/generate?forceUpdate=$forceUpdate&fullReset=$fullReset';
-  static String get regenerarTelas =>
-      '$_baseUrl/api/admin/regenerar-telas';
+  static String get regenerarTelas => '$_baseUrl/api/admin/regenerar-telas';
   static String get seedMock => '$_baseUrl/api/admin/seed';
   static String deleteSeedMock(String empresaId) =>
       '$_baseUrl/api/admin/seed?empresaId=$empresaId';
@@ -225,8 +226,7 @@ class ApiLinks {
   static String get allRoles => '$_baseUrl/api/role';
   static String updateRolePermissao(String roleId, String telaNomeEncoded) =>
       '$_baseUrl/api/role-permissao/$roleId/$telaNomeEncoded';
-  static String get batchRolePermissao =>
-      '$_baseUrl/api/role-permissao/batch';
+  static String get batchRolePermissao => '$_baseUrl/api/role-permissao/batch';
 
   // SIS-07 Teste de Endpoints
   static String get adminEndpointsReflection => '$_baseUrl/api/admin/endpoints';
@@ -253,10 +253,8 @@ class ApiLinks {
   static String updateLicenca(String id) => '$_baseUrl/api/licencas/$id';
 
   // Fase 3 - CONT-01 (dominio novo ContatoComercial, NAO e /api/contatos)
-  static String get allContatosComerciais =>
-      '$_baseUrl/api/contato-comercial';
-  static String get createContatoComercial =>
-      '$_baseUrl/api/contato-comercial';
+  static String get allContatosComerciais => '$_baseUrl/api/contato-comercial';
+  static String get createContatoComercial => '$_baseUrl/api/contato-comercial';
   static String updateContatoComercial(String id) =>
       '$_baseUrl/api/contato-comercial/$id';
   static String deleteContatoComercial(String id) =>
@@ -277,13 +275,30 @@ class ApiLinks {
       '$_baseUrl/api/modulo-servico/$id';
   static String parceiroModulos(String parceiroId) =>
       '$_baseUrl/api/parceiro-modulo?parceiroId=$parceiroId';
-  static String get vincularParceiroModulos =>
-      '$_baseUrl/api/parceiro-modulo';
+  static String get vincularParceiroModulos => '$_baseUrl/api/parceiro-modulo';
   static String empresaModulos(String empresaId) =>
       '$_baseUrl/api/empresa-modulo?empresaId=$empresaId';
   static String get vincularEmpresaModulos => '$_baseUrl/api/empresa-modulo';
   static String get modulosAtribuidosResumo =>
       '$_baseUrl/api/modulo-atribuicao/resumo';
+  static String moduloAtribuicaoAlvo(String tipo, Object id) =>
+      '$_baseUrl/api/modulo-atribuicao/$tipo/$id';
+  static String moduloAtribuicaoBloquear(String tipo, Object id) =>
+      '${moduloAtribuicaoAlvo(tipo, id)}/bloquear';
+  static String moduloAtribuicaoFaturar(Object parceiroId) =>
+      '$_baseUrl/api/modulo-atribuicao/parceiro/$parceiroId/faturar';
+  static String moduloAtribuicaoEnviarNota(Object parceiroId) =>
+      '$_baseUrl/api/modulo-atribuicao/parceiro/$parceiroId/enviar-nota';
+  static String moduloAtribuicaoAvisarVencimento(Object parceiroId) =>
+      '$_baseUrl/api/modulo-atribuicao/parceiro/$parceiroId/avisar-vencimento';
+  static String moduloAtribuicaoContaPagar(Object parceiroId) =>
+      '$_baseUrl/api/modulo-atribuicao/parceiro/$parceiroId/conta-pagar';
+
+  static String get allNfse => '$_baseUrl/api/modulo-atribuicao/nfse';
+  static String nfseById(Object id) => '$_baseUrl/api/nfse/$id';
+  static String nfseConfirmar(Object id) => '${nfseById(id)}/confirmar';
+  static String nfseEmitir(Object id) => '${nfseById(id)}/emitir-nacional';
+  static String nfseDanfse(Object id) => '${nfseById(id)}/danfse';
 
   // Fase 3 - DASH-01 (agregacoes MASTER-only, contagem por mes)
   static String parceirosPorMes({int meses = 12}) =>

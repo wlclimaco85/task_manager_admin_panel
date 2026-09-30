@@ -1,10 +1,16 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 import '../../config/api_links.dart';
 import '../../services/network_caller.dart';
 import '../../utils/app_logger.dart';
 import '../../utils/dropdown_helpers.dart';
 import '../../utils/grid_colors.dart';
+import '../../utils/tenant_context.dart';
 import '../../widgets/generic_grid_windows_screen.dart';
 import '../../widgets/licenca_wizard_dialog.dart';
 import '../../widgets/searchable_dropdown.dart';
@@ -28,8 +34,7 @@ class ModuloAtribuicaoScreen extends StatefulWidget {
   final String? initialNome;
 
   @override
-  State<ModuloAtribuicaoScreen> createState() =>
-      ModuloAtribuicaoScreenState();
+  State<ModuloAtribuicaoScreen> createState() => ModuloAtribuicaoScreenState();
 }
 
 class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
@@ -45,6 +50,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
   List<Map<String, dynamic>> _gradeResumo = [];
   bool _carregandoGrade = false;
   String? _erroGrade;
+  final Set<String> _selecionadosGrade = <String>{};
+  bool _executandoAcaoGrade = false;
 
   /// 'parceiro' ou 'empresa'.
   String _tipo = 'parceiro';
@@ -98,9 +105,10 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
   String _labelDoRegistro(Map<String, dynamic>? row) {
     if (row == null) return '';
-    final nome = (row['nome'] ?? row['razaoSocial'] ?? row['nomeFantasia'] ?? '')
-        .toString()
-        .trim();
+    final nome =
+        (row['nome'] ?? row['razaoSocial'] ?? row['nomeFantasia'] ?? '')
+            .toString()
+            .trim();
     if (nome.isNotEmpty) return nome;
     return 'Registro #${row['id'] ?? ''}';
   }
@@ -127,7 +135,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         await _carregarGradeResumoFallback();
       } else {
         setState(() {
-          _erroGrade = 'Falha ao carregar listagem de licencas (${res.statusCode})';
+          _erroGrade =
+              'Falha ao carregar listagem de licencas (${res.statusCode})';
           _carregandoGrade = false;
         });
       }
@@ -168,7 +177,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
     if (mounted) {
       setState(() {
-        _erroGrade = 'Listagem de licencas indisponivel no momento. Clique em "Novo" para vincular modulos.';
+        _erroGrade =
+            'Listagem de licencas indisponivel no momento. Clique em "Novo" para vincular modulos.';
         _carregandoGrade = false;
       });
     }
@@ -268,7 +278,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
       SnackBar(
         backgroundColor: GridColors.error,
         behavior: SnackBarBehavior.floating,
-        content: Text('Nao foi possivel carregar a lista de $tipoLabel. Tente novamente.'),
+        content: Text(
+            'Nao foi possivel carregar a lista de $tipoLabel. Tente novamente.'),
       ),
     );
   }
@@ -318,7 +329,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     if (_idCarregado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Selecione ${_tipo == 'parceiro' ? "o parceiro" : "a empresa"} antes de conceder a licença.'),
+          content: Text(
+              'Selecione ${_tipo == 'parceiro' ? "o parceiro" : "a empresa"} antes de conceder a licença.'),
           backgroundColor: GridColors.warning,
         ),
       );
@@ -419,10 +431,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
     final catalogo = GenericGridWindowsScreen.extractRows(resCatalogo.body);
     final vinculados = GenericGridWindowsScreen.extractRows(resVinculados.body);
-    final idsVinculados = vinculados
-        .map(_extractId)
-        .whereType<int>()
-        .toSet();
+    final idsVinculados = vinculados.map(_extractId).whereType<int>().toSet();
 
     setState(() {
       _carregando = false;
@@ -480,7 +489,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
             if (_nomeEncontrado != null) ...[
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: GridColors.primarySoft,
                   borderRadius: BorderRadius.circular(8),
@@ -579,25 +589,41 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
   IconData _getIconParaModulo(String nome) {
     final lower = nome.toLowerCase();
-    if (lower.contains('financeiro') || lower.contains('caixa') || lower.contains('banc')) {
+    if (lower.contains('financeiro') ||
+        lower.contains('caixa') ||
+        lower.contains('banc')) {
       return Icons.account_balance_wallet_outlined;
     }
-    if (lower.contains('fiscal') || lower.contains('nota') || lower.contains('nfe') || lower.contains('sped')) {
+    if (lower.contains('fiscal') ||
+        lower.contains('nota') ||
+        lower.contains('nfe') ||
+        lower.contains('sped')) {
       return Icons.receipt_long_outlined;
     }
-    if (lower.contains('estoque') || lower.contains('produto') || lower.contains('giro')) {
+    if (lower.contains('estoque') ||
+        lower.contains('produto') ||
+        lower.contains('giro')) {
       return Icons.inventory_2_outlined;
     }
-    if (lower.contains('chamado') || lower.contains('suporte') || lower.contains('os') || lower.contains('atend')) {
+    if (lower.contains('chamado') ||
+        lower.contains('suporte') ||
+        lower.contains('os') ||
+        lower.contains('atend')) {
       return Icons.support_agent_outlined;
     }
-    if (lower.contains('chat') || lower.contains('conversa') || lower.contains('mensag')) {
+    if (lower.contains('chat') ||
+        lower.contains('conversa') ||
+        lower.contains('mensag')) {
       return Icons.forum_outlined;
     }
-    if (lower.contains('pessoal') || lower.contains('func') || lower.contains('rh')) {
+    if (lower.contains('pessoal') ||
+        lower.contains('func') ||
+        lower.contains('rh')) {
       return Icons.badge_outlined;
     }
-    if (lower.contains('dre') || lower.contains('relat') || lower.contains('indicador')) {
+    if (lower.contains('dre') ||
+        lower.contains('relat') ||
+        lower.contains('indicador')) {
       return Icons.insights_outlined;
     }
     if (lower.contains('projeto') || lower.contains('tarefa')) {
@@ -654,7 +680,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
               padding: const EdgeInsets.only(right: 16),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(20),
@@ -680,855 +707,1382 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
   Widget _buildFormularioBody(List<Map<String, dynamic>> modulosFiltrados) {
     return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1080),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Card de selecao do Alvo (Parceiro / Empresa)
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: GridColors.divider),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.tune, color: GridColors.primary, size: 22),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                'Destinatario do Modulo',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: GridColors.textSecondary,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1080),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Card de selecao do Alvo (Parceiro / Empresa)
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: GridColors.divider),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.tune,
+                              color: GridColors.primary, size: 22),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Destinatario do Modulo',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: GridColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Spacer(),
+                          SegmentedButton<String>(
+                            key: const Key('modulo_atribuicao_tipo_seletor'),
+                            style: ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              shape: WidgetStateProperty.all(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const Spacer(),
-                            SegmentedButton<String>(
-                              key: const Key('modulo_atribuicao_tipo_seletor'),
-                              style: ButtonStyle(
-                                visualDensity: VisualDensity.compact,
-                                shape: WidgetStateProperty.all(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
+                            segments: const [
+                              ButtonSegment(
+                                value: 'parceiro',
+                                label: Text('Parceiro'),
+                                icon: Icon(Icons.person_outline, size: 16),
                               ),
-                              segments: const [
-                                ButtonSegment(
-                                  value: 'parceiro',
-                                  label: Text('Parceiro'),
-                                  icon: Icon(Icons.person_outline, size: 16),
-                                ),
-                                ButtonSegment(
-                                  value: 'empresa',
-                                  label: Text('Empresa'),
-                                  icon: Icon(Icons.business_outlined, size: 16),
-                                ),
-                              ],
-                              selected: {_tipo},
-                              onSelectionChanged: (selecao) {
-                                setState(() {
-                                  _tipo = selecao.first;
-                                  _idCarregado = null;
-                                  _nomeEncontrado = null;
-                                  _catalogo = [];
-                                  _moduloIdsMarcados.clear();
-                                  _erro = null;
-                                  _idCtrl.clear();
-                                });
-                                _carregarOpcoesDropdown();
-                              },
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 24),
-                        // Barra de busca: Dropdown pesquisavel + campo ID direto
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isCompact = constraints.maxWidth < 650;
-                            if (isCompact) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  SearchableDropdownField(
-                                    key: ValueKey('modulo_busca_alvo_$_tipo'),
-                                    label: _tipo == 'parceiro'
-                                        ? 'Buscar Parceiro (Nome, Razão Social ou CNPJ)'
-                                        : 'Buscar Empresa (Nome, Razão Social ou CNPJ)',
-                                    hintText: 'Clique para pesquisar ou selecionar...',
-                                    items: _opcoesLista,
-                                    valueField: 'id',
-                                    displayField: 'nome',
-                                    value: _idCarregado?.toString(),
-                                    prefixIcon: _tipo == 'parceiro'
-                                        ? Icons.person_search
-                                        : Icons.domain_verification,
-                                    loadPage: _tipo == 'parceiro'
-                                        ? ({String? busca, required int pagina}) =>
-                                            DropdownHelpers.parceirosBusca(
-                                              busca: busca,
-                                              pagina: pagina,
-                                              tamanho: 20,
-                                            )
-                                        : ({String? busca, required int pagina}) =>
-                                            DropdownHelpers.empresasBusca(
-                                              busca: busca,
-                                              pagina: pagina,
-                                              tamanho: 20,
-                                            ),
-                                    labelResolver: _tipo == 'parceiro'
-                                        ? DropdownHelpers.parceiroLabelPorId
-                                        : DropdownHelpers.empresaLabelPorId,
-                                    onChanged: (novoId) {
-                                      if (novoId != null) {
-                                        final parsed = int.tryParse(novoId);
-                                        if (parsed != null) {
-                                          _carregar(parsed);
-                                        }
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Expanded(
-                                        child: TextField(
-                                          key: const Key('modulo_atribuicao_id_field'),
-                                          controller: _idCtrl,
-                                          keyboardType: TextInputType.number,
-                                          decoration: InputDecoration(
-                                            isDense: true,
-                                            labelText: _tipo == 'parceiro'
-                                                ? 'ID Parceiro'
-                                                : 'ID Empresa',
-                                            floatingLabelBehavior: FloatingLabelBehavior.always,
-                                            hintText: 'Ex: 42',
-                                            contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 13,
-                                            ),
-                                            border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                          ),
-                                          onSubmitted: (_) => _carregar(),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      SizedBox(
-                                        height: 44,
-                                        child: ElevatedButton(
-                                          key: const Key('modulo_atribuicao_carregar_btn'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: GridColors.primary,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                          ),
-                                          onPressed: _carregando ? null : () => _carregar(),
-                                          child: const Text('Carregar'),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              );
-                            }
-
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              ButtonSegment(
+                                value: 'empresa',
+                                label: Text('Empresa'),
+                                icon: Icon(Icons.business_outlined, size: 16),
+                              ),
+                            ],
+                            selected: {_tipo},
+                            onSelectionChanged: (selecao) {
+                              setState(() {
+                                _tipo = selecao.first;
+                                _idCarregado = null;
+                                _nomeEncontrado = null;
+                                _catalogo = [];
+                                _moduloIdsMarcados.clear();
+                                _erro = null;
+                                _idCtrl.clear();
+                              });
+                              _carregarOpcoesDropdown();
+                            },
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      // Barra de busca: Dropdown pesquisavel + campo ID direto
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isCompact = constraints.maxWidth < 650;
+                          if (isCompact) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: SearchableDropdownField(
-                                    key: ValueKey('modulo_busca_alvo_$_tipo'),
-                                    label: _tipo == 'parceiro'
-                                        ? 'Buscar Parceiro (Nome, Razão Social ou CNPJ)'
-                                        : 'Buscar Empresa (Nome, Razão Social ou CNPJ)',
-                                    hintText: 'Clique para pesquisar ou selecionar...',
-                                    items: _opcoesLista,
-                                    valueField: 'id',
-                                    displayField: 'nome',
-                                    value: _idCarregado?.toString(),
-                                    prefixIcon: _tipo == 'parceiro'
-                                        ? Icons.person_search
-                                        : Icons.domain_verification,
-                                    loadPage: _tipo == 'parceiro'
-                                        ? ({String? busca, required int pagina}) =>
-                                            DropdownHelpers.parceirosBusca(
-                                              busca: busca,
-                                              pagina: pagina,
-                                              tamanho: 20,
-                                            )
-                                        : ({String? busca, required int pagina}) =>
-                                            DropdownHelpers.empresasBusca(
-                                              busca: busca,
-                                              pagina: pagina,
-                                              tamanho: 20,
-                                            ),
-                                    labelResolver: _tipo == 'parceiro'
-                                        ? DropdownHelpers.parceiroLabelPorId
-                                        : DropdownHelpers.empresaLabelPorId,
-                                    onChanged: (novoId) {
-                                      if (novoId != null) {
-                                        final parsed = int.tryParse(novoId);
-                                        if (parsed != null) {
-                                          _carregar(parsed);
-                                        }
+                                SearchableDropdownField(
+                                  key: ValueKey('modulo_busca_alvo_$_tipo'),
+                                  label: _tipo == 'parceiro'
+                                      ? 'Buscar Parceiro (Nome, Razão Social ou CNPJ)'
+                                      : 'Buscar Empresa (Nome, Razão Social ou CNPJ)',
+                                  hintText:
+                                      'Clique para pesquisar ou selecionar...',
+                                  items: _opcoesLista,
+                                  valueField: 'id',
+                                  displayField: 'nome',
+                                  value: _idCarregado?.toString(),
+                                  prefixIcon: _tipo == 'parceiro'
+                                      ? Icons.person_search
+                                      : Icons.domain_verification,
+                                  loadPage: _tipo == 'parceiro'
+                                      ? (
+                                              {String? busca,
+                                              required int pagina}) =>
+                                          DropdownHelpers.parceirosBusca(
+                                            busca: busca,
+                                            pagina: pagina,
+                                            tamanho: 20,
+                                          )
+                                      : (
+                                              {String? busca,
+                                              required int pagina}) =>
+                                          DropdownHelpers.empresasBusca(
+                                            busca: busca,
+                                            pagina: pagina,
+                                            tamanho: 20,
+                                          ),
+                                  labelResolver: _tipo == 'parceiro'
+                                      ? DropdownHelpers.parceiroLabelPorId
+                                      : DropdownHelpers.empresaLabelPorId,
+                                  onChanged: (novoId) {
+                                    if (novoId != null) {
+                                      final parsed = int.tryParse(novoId);
+                                      if (parsed != null) {
+                                        _carregar(parsed);
                                       }
-                                    },
-                                  ),
+                                    }
+                                  },
                                 ),
-                                const SizedBox(width: 16),
-                                SizedBox(
-                                  width: 240,
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Expanded(
-                                        child: TextField(
-                                          key: const Key('modulo_atribuicao_id_field'),
-                                          controller: _idCtrl,
-                                          keyboardType: TextInputType.number,
-                                          decoration: InputDecoration(
-                                            isDense: true,
-                                            labelText: _tipo == 'parceiro'
-                                                ? 'ID Parceiro'
-                                                : 'ID Empresa',
-                                            floatingLabelBehavior: FloatingLabelBehavior.always,
-                                            hintText: 'Ex: 42',
-                                            contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 13,
-                                            ),
-                                            border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        key: const Key(
+                                            'modulo_atribuicao_id_field'),
+                                        controller: _idCtrl,
+                                        keyboardType: TextInputType.number,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          labelText: _tipo == 'parceiro'
+                                              ? 'ID Parceiro'
+                                              : 'ID Empresa',
+                                          floatingLabelBehavior:
+                                              FloatingLabelBehavior.always,
+                                          hintText: 'Ex: 42',
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 13,
                                           ),
-                                          onSubmitted: (_) => _carregar(),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      SizedBox(
-                                        height: 44,
-                                        child: ElevatedButton(
-                                          key: const Key('modulo_atribuicao_carregar_btn'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: GridColors.primary,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                           ),
-                                          onPressed: _carregando ? null : () => _carregar(),
-                                          child: const Text('Carregar'),
                                         ),
+                                        onSubmitted: (_) => _carregar(),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      height: 44,
+                                      child: ElevatedButton(
+                                        key: const Key(
+                                            'modulo_atribuicao_carregar_btn'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: GridColors.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                        ),
+                                        onPressed: _carregando
+                                            ? null
+                                            : () => _carregar(),
+                                        child: const Text('Carregar'),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             );
-                          },
+                          }
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: SearchableDropdownField(
+                                  key: ValueKey('modulo_busca_alvo_$_tipo'),
+                                  label: _tipo == 'parceiro'
+                                      ? 'Buscar Parceiro (Nome, Razão Social ou CNPJ)'
+                                      : 'Buscar Empresa (Nome, Razão Social ou CNPJ)',
+                                  hintText:
+                                      'Clique para pesquisar ou selecionar...',
+                                  items: _opcoesLista,
+                                  valueField: 'id',
+                                  displayField: 'nome',
+                                  value: _idCarregado?.toString(),
+                                  prefixIcon: _tipo == 'parceiro'
+                                      ? Icons.person_search
+                                      : Icons.domain_verification,
+                                  loadPage: _tipo == 'parceiro'
+                                      ? (
+                                              {String? busca,
+                                              required int pagina}) =>
+                                          DropdownHelpers.parceirosBusca(
+                                            busca: busca,
+                                            pagina: pagina,
+                                            tamanho: 20,
+                                          )
+                                      : (
+                                              {String? busca,
+                                              required int pagina}) =>
+                                          DropdownHelpers.empresasBusca(
+                                            busca: busca,
+                                            pagina: pagina,
+                                            tamanho: 20,
+                                          ),
+                                  labelResolver: _tipo == 'parceiro'
+                                      ? DropdownHelpers.parceiroLabelPorId
+                                      : DropdownHelpers.empresaLabelPorId,
+                                  onChanged: (novoId) {
+                                    if (novoId != null) {
+                                      final parsed = int.tryParse(novoId);
+                                      if (parsed != null) {
+                                        _carregar(parsed);
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              SizedBox(
+                                width: 240,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        key: const Key(
+                                            'modulo_atribuicao_id_field'),
+                                        controller: _idCtrl,
+                                        keyboardType: TextInputType.number,
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          labelText: _tipo == 'parceiro'
+                                              ? 'ID Parceiro'
+                                              : 'ID Empresa',
+                                          floatingLabelBehavior:
+                                              FloatingLabelBehavior.always,
+                                          hintText: 'Ex: 42',
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 13,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                        ),
+                                        onSubmitted: (_) => _carregar(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      height: 44,
+                                      child: ElevatedButton(
+                                        key: const Key(
+                                            'modulo_atribuicao_carregar_btn'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: GridColors.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                        ),
+                                        onPressed: _carregando
+                                            ? null
+                                            : () => _carregar(),
+                                        child: const Text('Carregar'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      // Mensagem de Erro
+                      if (_erro != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: GridColors.errorLight,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: GridColors.error),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline,
+                                  color: GridColors.error, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _erro!,
+                                  key: const Key('modulo_atribuicao_erro'),
+                                  style: const TextStyle(
+                                    color: GridColors.errorDark,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        // Mensagem de Erro
-                        if (_erro != null) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: GridColors.errorLight,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: GridColors.error),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline, color: GridColors.error, size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _erro!,
-                                    key: const Key('modulo_atribuicao_erro'),
+                      ],
+                      // Registro Encontrado
+                      if (_nomeEncontrado != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: GridColors.successLight,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: GridColors.success.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle,
+                                  color: GridColors.success, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Encontrado: $_nomeEncontrado',
+                                  key: const Key(
+                                      'modulo_atribuicao_nome_encontrado'),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: GridColors.successDark,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'ID: $_idCarregado',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: GridColors.neutral,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Lista e Gestao de Modulos com Painel Lateral de Subtotal
+              if (_carregando)
+                const Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Carregando catalogo e modulos vinculados...',
+                          style: TextStyle(color: GridColors.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isDesktop = constraints.maxWidth >= 780;
+                      final subtotal = _calcularSubtotal();
+                      final qtdMarcados = _moduloIdsMarcados.length;
+                      final ehPacotePromocional = qtdMarcados > 3;
+
+                      final painelLateral = Card(
+                        key: const Key('modulo_atribuicao_painel_subtotal'),
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: GridColors.divider),
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.shopping_bag_outlined,
+                                      color: GridColors.primary, size: 20),
+                                  const SizedBox(width: 8),
+                                  const Expanded(
+                                    child: Text(
+                                      'Resumo do Pacote',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 20),
+
+                              // Badge 1º Mês Grátis
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: GridColors.successLight,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: GridColors.success.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.card_giftcard,
+                                        color: GridColors.successDark,
+                                        size: 18),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '1º Mês Grátis de Avaliação!',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: GridColors.successDark,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Detalhes de itens e regra de preço
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Módulos selecionados:',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: GridColors.textMuted,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    '$qtdMarcados módulo(s)',
                                     style: const TextStyle(
-                                      color: GridColors.errorDark,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              if (ehPacotePromocional)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        GridColors.primarySoft.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Pacote Ilimitado (> 3 módulos): valor especial fixo de R\$ 129,90/mês!',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: GridColors.primaryDark,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+
+                              const Divider(height: 16),
+
+                              // Subtotal
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Subtotal:',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    'R\$ ${subtotal.toStringAsFixed(2).replaceAll('.', ',')}/mês',
+                                    key: const Key(
+                                        'modulo_atribuicao_subtotal_valor'),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: GridColors.primaryDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Botão para abrir o Wizard de Concessão de Licença
+                              ElevatedButton.icon(
+                                key: const Key(
+                                    'modulo_atribuicao_conceder_licenca_btn'),
+                                icon: const Icon(Icons.verified_user_outlined,
+                                    size: 18),
+                                label: const Text(
+                                  'Conceder Licença',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: GridColors.success,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: _idCarregado == null
+                                    ? null
+                                    : _abrirWizardLicenca,
+                              ),
+                            ],
                           ),
-                        ],
-                        // Registro Encontrado
-                        if (_nomeEncontrado != null) ...[
+                        ),
+                      );
+
+                      final listaModulosWidget = Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Barra de Acoes Rapidas da Lista de Modulos
+                          Row(
+                            children: [
+                              // Campo de Filtro rapido de modulos
+                              Expanded(
+                                child: TextField(
+                                  controller: _filtroModuloCtrl,
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    hintText: 'Filtrar modulos nesta tela...',
+                                    prefixIcon:
+                                        const Icon(Icons.search, size: 20),
+                                    suffixIcon:
+                                        _filtroModuloCtrl.text.isNotEmpty
+                                            ? IconButton(
+                                                icon: const Icon(Icons.clear,
+                                                    size: 18),
+                                                onPressed: () => setState(() =>
+                                                    _filtroModuloCtrl.clear()),
+                                              )
+                                            : null,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              OutlinedButton.icon(
+                                key: const Key(
+                                    'modulo_atribuicao_selecionar_todos_btn'),
+                                icon: const Icon(Icons.select_all, size: 18),
+                                label: const Text('Marcar Todos'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: GridColors.primary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: _selecionarTodos,
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
+                                key: const Key('modulo_atribuicao_limpar_btn'),
+                                icon: const Icon(Icons.deselect, size: 18),
+                                label: const Text('Limpar'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: GridColors.textMuted,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: _desmarcarTodos,
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 12),
+
+                          // Lista de Modulos em Cards
+                          Expanded(
+                            child: _catalogo.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                        'Nenhum modulo cadastrado no catalogo.'),
+                                  )
+                                : ListView.builder(
+                                    key: const Key('modulo_atribuicao_lista'),
+                                    itemCount: modulosFiltrados.length,
+                                    itemBuilder: (context, index) {
+                                      final modulo = modulosFiltrados[index];
+                                      final id = _extractId(modulo);
+                                      final marcado = id != null &&
+                                          _moduloIdsMarcados.contains(id);
+                                      final nome =
+                                          modulo['nome']?.toString() ?? '';
+                                      final desc =
+                                          modulo['descricao']?.toString() ?? '';
+                                      final icon = _getIconParaModulo(nome);
+                                      final valorMod = _getValorModulo(modulo);
+
+                                      return Card(
+                                        key: ValueKey('modulo_card_$id'),
+                                        elevation: marcado ? 2 : 0,
+                                        margin:
+                                            const EdgeInsets.only(bottom: 8),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          side: BorderSide(
+                                            color: marcado
+                                                ? GridColors.primary
+                                                : GridColors.divider,
+                                            width: marcado ? 1.5 : 1.0,
+                                          ),
+                                        ),
+                                        color: marcado
+                                            ? GridColors.primarySoft
+                                                .withOpacity(0.4)
+                                            : Colors.white,
+                                        child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          onTap: id == null
+                                              ? null
+                                              : () {
+                                                  setState(() {
+                                                    if (marcado) {
+                                                      _moduloIdsMarcados
+                                                          .remove(id);
+                                                    } else {
+                                                      _moduloIdsMarcados
+                                                          .add(id);
+                                                    }
+                                                  });
+                                                },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: marcado
+                                                        ? GridColors.primary
+                                                        : Colors.grey.shade100,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: Icon(
+                                                    icon,
+                                                    color: marcado
+                                                        ? Colors.white
+                                                        : Colors.grey.shade600,
+                                                    size: 24,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Wrap(
+                                                        spacing: 8,
+                                                        runSpacing: 4,
+                                                        crossAxisAlignment:
+                                                            WrapCrossAlignment
+                                                                .center,
+                                                        children: [
+                                                          Text(
+                                                            nome,
+                                                            style: TextStyle(
+                                                              fontSize: 15,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: marcado
+                                                                  ? GridColors
+                                                                      .primaryDark
+                                                                  : GridColors
+                                                                      .textSecondary,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            'R\$ ${valorMod.toStringAsFixed(2).replaceAll('.', ',')}',
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: GridColors
+                                                                  .neutral,
+                                                            ),
+                                                          ),
+                                                          if (marcado)
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 2,
+                                                              ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: GridColors
+                                                                    .successLight,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            12),
+                                                              ),
+                                                              child: const Text(
+                                                                'CONTRATADO',
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize: 10,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: GridColors
+                                                                      .successDark,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                      if (desc.isNotEmpty) ...[
+                                                        const SizedBox(
+                                                            height: 4),
+                                                        Text(
+                                                          desc,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 12,
+                                                            color: GridColors
+                                                                .textMuted,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ],
+                                                  ),
+                                                ),
+                                                Checkbox(
+                                                  key: Key(
+                                                      'modulo_atribuicao_checkbox_$id'),
+                                                  value: marcado,
+                                                  activeColor:
+                                                      GridColors.primary,
+                                                  onChanged: id == null
+                                                      ? null
+                                                      : (checked) {
+                                                          setState(() {
+                                                            if (checked ==
+                                                                true) {
+                                                              _moduloIdsMarcados
+                                                                  .add(id);
+                                                            } else {
+                                                              _moduloIdsMarcados
+                                                                  .remove(id);
+                                                            }
+                                                          });
+                                                        },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+
+                          // Barra inferior de Salvar
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 16),
                             decoration: BoxDecoration(
-                              color: GridColors.successLight,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: GridColors.success.withOpacity(0.3)),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 4,
+                                  offset: Offset(0, -2),
+                                ),
+                              ],
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.check_circle, color: GridColors.success, size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Encontrado: $_nomeEncontrado',
-                                    key: const Key('modulo_atribuicao_nome_encontrado'),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: GridColors.successDark,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  'ID: $_idCarregado',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: GridColors.neutral,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Lista e Gestao de Modulos com Painel Lateral de Subtotal
-                if (_carregando)
-                  const Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text(
-                            'Carregando catalogo e modulos vinculados...',
-                            style: TextStyle(color: GridColors.textMuted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isDesktop = constraints.maxWidth >= 780;
-                        final subtotal = _calcularSubtotal();
-                        final qtdMarcados = _moduloIdsMarcados.length;
-                        final ehPacotePromocional = qtdMarcados > 3;
-
-                        final painelLateral = Card(
-                          key: const Key('modulo_atribuicao_painel_subtotal'),
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: GridColors.divider),
-                          ),
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Row(
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.shopping_bag_outlined,
-                                        color: GridColors.primary, size: 20),
-                                    const SizedBox(width: 8),
-                                    const Expanded(
-                                      child: Text(
-                                        'Resumo do Pacote',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const Divider(height: 20),
-
-                                // Badge 1º Mês Grátis
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: GridColors.successLight,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: GridColors.success.withOpacity(0.3),
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(Icons.card_giftcard,
-                                          color: GridColors.successDark, size: 18),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          '1º Mês Grátis de Avaliação!',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            color: GridColors.successDark,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-
-                                // Detalhes de itens e regra de preço
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Expanded(
-                                      child: Text(
-                                        'Módulos selecionados:',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: GridColors.textMuted,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                    Text(
+                                      '${_moduloIdsMarcados.length} modulos selecionados',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: GridColors.textSecondary,
                                       ),
                                     ),
                                     Text(
-                                      '$qtdMarcados módulo(s)',
+                                      _idCarregado == null
+                                          ? 'Selecione Parceiro/Empresa acima para salvar'
+                                          : 'Clique em salvar para vincular ao destinatário',
                                       style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-
-                                if (ehPacotePromocional)
-                                  Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: GridColors.primarySoft.withOpacity(0.5),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Text(
-                                      'Pacote Ilimitado (> 3 módulos): valor especial fixo de R\$ 129,90/mês!',
-                                      style: TextStyle(
                                         fontSize: 11,
-                                        color: GridColors.primaryDark,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-
-                                const Divider(height: 16),
-
-                                // Subtotal
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    const Expanded(
-                                      child: Text(
-                                        'Subtotal:',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Text(
-                                      'R\$ ${subtotal.toStringAsFixed(2).replaceAll('.', ',')}/mês',
-                                      key: const Key('modulo_atribuicao_subtotal_valor'),
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: GridColors.primaryDark,
+                                        color: GridColors.textMuted,
                                       ),
                                     ),
                                   ],
                                 ),
-
-                                const SizedBox(height: 16),
-
-                                // Botão para abrir o Wizard de Concessão de Licença
+                                const Spacer(),
                                 ElevatedButton.icon(
-                                  key: const Key('modulo_atribuicao_conceder_licenca_btn'),
-                                  icon: const Icon(Icons.verified_user_outlined, size: 18),
-                                  label: const Text(
-                                    'Conceder Licença',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  key:
+                                      const Key('modulo_atribuicao_salvar_btn'),
+                                  icon: _salvando
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(Icons.save_outlined),
+                                  label: Text(
+                                    _salvando ? 'Salvando...' : 'Salvar',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: GridColors.success,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    backgroundColor: GridColors.primary,
+                                    foregroundColor: GridColors.textPrimary,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  onPressed: _idCarregado == null ? null : _abrirWizardLicenca,
+                                  onPressed: (_salvando || _idCarregado == null)
+                                      ? null
+                                      : _salvar,
                                 ),
                               ],
                             ),
                           ),
-                        );
+                        ],
+                      );
 
-                        final listaModulosWidget = Column(
+                      if (constraints.maxWidth >= 650) {
+                        return Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Barra de Acoes Rapidas da Lista de Modulos
-                            Row(
-                              children: [
-                                // Campo de Filtro rapido de modulos
-                                Expanded(
-                                  child: TextField(
-                                    controller: _filtroModuloCtrl,
-                                    decoration: InputDecoration(
-                                      isDense: true,
-                                      hintText: 'Filtrar modulos nesta tela...',
-                                      prefixIcon: const Icon(Icons.search, size: 20),
-                                      suffixIcon: _filtroModuloCtrl.text.isNotEmpty
-                                          ? IconButton(
-                                              icon: const Icon(Icons.clear, size: 18),
-                                              onPressed: () => setState(() => _filtroModuloCtrl.clear()),
-                                            )
-                                          : null,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    onChanged: (_) => setState(() {}),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                OutlinedButton.icon(
-                                  key: const Key('modulo_atribuicao_selecionar_todos_btn'),
-                                  icon: const Icon(Icons.select_all, size: 18),
-                                  label: const Text('Marcar Todos'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: GridColors.primary,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  onPressed: _selecionarTodos,
-                                ),
-                                const SizedBox(width: 8),
-                                OutlinedButton.icon(
-                                  key: const Key('modulo_atribuicao_limpar_btn'),
-                                  icon: const Icon(Icons.deselect, size: 18),
-                                  label: const Text('Limpar'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: GridColors.textMuted,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  onPressed: _desmarcarTodos,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Lista de Modulos em Cards
-                            Expanded(
-                              child: _catalogo.isEmpty
-                                  ? const Center(
-                                      child: Text('Nenhum modulo cadastrado no catalogo.'),
-                                    )
-                                  : ListView.builder(
-                                      key: const Key('modulo_atribuicao_lista'),
-                                      itemCount: modulosFiltrados.length,
-                                      itemBuilder: (context, index) {
-                                        final modulo = modulosFiltrados[index];
-                                        final id = _extractId(modulo);
-                                        final marcado =
-                                            id != null && _moduloIdsMarcados.contains(id);
-                                        final nome = modulo['nome']?.toString() ?? '';
-                                        final desc = modulo['descricao']?.toString() ?? '';
-                                        final icon = _getIconParaModulo(nome);
-                                        final valorMod = _getValorModulo(modulo);
-
-                                        return Card(
-                                          key: ValueKey('modulo_card_$id'),
-                                          elevation: marcado ? 2 : 0,
-                                          margin: const EdgeInsets.only(bottom: 8),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(10),
-                                            side: BorderSide(
-                                              color: marcado
-                                                  ? GridColors.primary
-                                                  : GridColors.divider,
-                                              width: marcado ? 1.5 : 1.0,
-                                            ),
-                                          ),
-                                          color: marcado
-                                              ? GridColors.primarySoft.withOpacity(0.4)
-                                              : Colors.white,
-                                          child: InkWell(
-                                            borderRadius: BorderRadius.circular(10),
-                                            onTap: id == null
-                                                ? null
-                                                : () {
-                                                    setState(() {
-                                                      if (marcado) {
-                                                        _moduloIdsMarcados.remove(id);
-                                                      } else {
-                                                        _moduloIdsMarcados.add(id);
-                                                      }
-                                                    });
-                                                  },
-                                            child: Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 12,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.all(10),
-                                                    decoration: BoxDecoration(
-                                                      color: marcado
-                                                          ? GridColors.primary
-                                                          : Colors.grey.shade100,
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                    child: Icon(
-                                                      icon,
-                                                      color: marcado
-                                                          ? Colors.white
-                                                          : Colors.grey.shade600,
-                                                      size: 24,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Wrap(
-                                                          spacing: 8,
-                                                          runSpacing: 4,
-                                                          crossAxisAlignment: WrapCrossAlignment.center,
-                                                          children: [
-                                                            Text(
-                                                              nome,
-                                                              style: TextStyle(
-                                                                fontSize: 15,
-                                                                fontWeight: FontWeight.bold,
-                                                                color: marcado
-                                                                    ? GridColors.primaryDark
-                                                                    : GridColors.textSecondary,
-                                                              ),
-                                                            ),
-                                                            Text(
-                                                              'R\$ ${valorMod.toStringAsFixed(2).replaceAll('.', ',')}',
-                                                              style: const TextStyle(
-                                                                fontSize: 12,
-                                                                fontWeight: FontWeight.w600,
-                                                                color: GridColors.neutral,
-                                                              ),
-                                                            ),
-                                                            if (marcado)
-                                                              Container(
-                                                                padding: const EdgeInsets.symmetric(
-                                                                  horizontal: 8,
-                                                                  vertical: 2,
-                                                                ),
-                                                                decoration: BoxDecoration(
-                                                                  color: GridColors.successLight,
-                                                                  borderRadius: BorderRadius.circular(12),
-                                                                ),
-                                                                child: const Text(
-                                                                  'CONTRATADO',
-                                                                  style: TextStyle(
-                                                                    fontSize: 10,
-                                                                    fontWeight: FontWeight.bold,
-                                                                    color: GridColors.successDark,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                          ],
-                                                        ),
-                                                        if (desc.isNotEmpty) ...[
-                                                          const SizedBox(height: 4),
-                                                          Text(
-                                                            desc,
-                                                            style: const TextStyle(
-                                                              fontSize: 12,
-                                                              color: GridColors.textMuted,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Checkbox(
-                                                    key: Key('modulo_atribuicao_checkbox_$id'),
-                                                    value: marcado,
-                                                    activeColor: GridColors.primary,
-                                                    onChanged: id == null
-                                                        ? null
-                                                        : (checked) {
-                                                            setState(() {
-                                                              if (checked == true) {
-                                                                _moduloIdsMarcados.add(id);
-                                                              } else {
-                                                                _moduloIdsMarcados.remove(id);
-                                                              }
-                                                            });
-                                                          },
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-
-                            // Barra inferior de Salvar
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 4,
-                                    offset: Offset(0, -2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '${_moduloIdsMarcados.length} modulos selecionados',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: GridColors.textSecondary,
-                                        ),
-                                      ),
-                                      Text(
-                                        _idCarregado == null
-                                            ? 'Selecione Parceiro/Empresa acima para salvar'
-                                            : 'Clique em salvar para vincular ao destinatário',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: GridColors.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  ElevatedButton.icon(
-                                    key: const Key('modulo_atribuicao_salvar_btn'),
-                                    icon: _salvando
-                                        ? const SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Icon(Icons.save_outlined),
-                                    label: Text(
-                                      _salvando ? 'Salvando...' : 'Salvar',
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: GridColors.primary,
-                                      foregroundColor: GridColors.textPrimary,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 14,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    onPressed: (_salvando || _idCarregado == null) ? null : _salvar,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-
-                        if (constraints.maxWidth >= 650) {
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(child: listaModulosWidget),
-                              const SizedBox(width: 16),
-                              SizedBox(
-                                width: 300,
-                                child: painelLateral,
-                              ),
-                            ],
-                          );
-                        }
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            painelLateral,
-                            const SizedBox(height: 12),
                             Expanded(child: listaModulosWidget),
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              width: 300,
+                              child: painelLateral,
+                            ),
                           ],
                         );
-                      },
-                    ),
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          painelLateral,
+                          const SizedBox(height: 12),
+                          Expanded(child: listaModulosWidget),
+                        ],
+                      );
+                    },
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  String _chaveGrade(Map<String, dynamic> item) =>
+      '${(item['tipo'] ?? 'parceiro').toString().toLowerCase()}:${item['id']}';
+
+  List<Map<String, dynamic>> get _itensSelecionadosGrade => _gradeResumo
+      .where((item) => _selecionadosGrade.contains(_chaveGrade(item)))
+      .toList();
+
+  String _erroDaResposta(dynamic body, int statusCode) {
+    if (body is Map) {
+      return (body['message'] ??
+              body['mensagem'] ??
+              body['erro'] ??
+              body['error'] ??
+              'Erro HTTP $statusCode')
+          .toString();
+    }
+    return body?.toString().trim().isNotEmpty == true
+        ? body.toString()
+        : 'Erro HTTP $statusCode';
+  }
+
+  Future<String> _postAcao(String url,
+      [Map<String, dynamic> body = const <String, dynamic>{}]) async {
+    final response = await _caller.postRequest(url, body);
+    if (!response.isSuccess) {
+      throw Exception(_erroDaResposta(response.body, response.statusCode));
+    }
+    final responseBody = response.body;
+    if (responseBody != null) {
+      return (responseBody['mensagem'] ?? 'Concluido').toString();
+    }
+    return 'Concluido';
+  }
+
+  Future<String> _deleteAcao(String url) async {
+    final response = await _caller.deleteRequest(url);
+    if (!response.isSuccess) {
+      throw Exception(_erroDaResposta(response.body, response.statusCode));
+    }
+    final responseBody = response.body;
+    if (responseBody != null) {
+      return (responseBody['mensagem'] ?? 'Licencas removidas').toString();
+    }
+    return 'Licencas removidas';
+  }
+
+  Future<bool> _confirmarAcao(String titulo, String mensagem) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(titulo),
+            content: Text(mensagem),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Confirmar'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _executarLote(
+    String titulo,
+    List<Map<String, dynamic>> itens,
+    Future<String> Function(Map<String, dynamic>) acao, {
+    bool confirmar = true,
+  }) async {
+    if (itens.isEmpty || _executandoAcaoGrade) return;
+    if (confirmar &&
+        !await _confirmarAcao(
+          titulo,
+          'Executar em ${itens.length} registro(s)? O processamento continua mesmo se algum registro falhar.',
+        )) {
+      return;
+    }
+
+    setState(() => _executandoAcaoGrade = true);
+    final resultados = <String>[];
+    for (final item in itens) {
+      final nome = (item['nome'] ?? 'Registro ${item['id']}').toString();
+      try {
+        resultados.add('SUCESSO - $nome: ${await acao(item)}');
+      } catch (e) {
+        resultados.add(
+            'ERRO - $nome: ${e.toString().replaceFirst('Exception: ', '')}');
+      }
+    }
+    if (!mounted) return;
+    setState(() => _executandoAcaoGrade = false);
+    await _carregarGradeResumo();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('$titulo - resultado'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680, maxHeight: 460),
+          child: SingleChildScrollView(
+            child: SelectionArea(child: Text(resultados.join('\n\n'))),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String> _acaoSomenteParceiro(
+    Map<String, dynamic> item,
+    String Function(Object id) endpoint,
+  ) async {
+    if ((item['tipo'] ?? '').toString().toLowerCase() != 'parceiro') {
+      throw Exception(
+          'Esta acao financeira esta disponivel somente para parceiro.');
+    }
+    return _postAcao(endpoint(item['id']));
+  }
+
+  void _mostrarDetalhes(Map<String, dynamic> item) {
+    final bloqueado = item['bloqueado'] == true;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text((item['nome'] ?? 'Detalhes').toString()),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Tipo: ${item['tipo'] ?? '-'}'),
+              Text('Documento: ${item['documento'] ?? '-'}'),
+              Text('E-mail: ${item['email'] ?? '-'}'),
+              Text('Modulos: ${item['modulos'] ?? '-'}'),
+              Text('Valor mensal: R\$ ${item['valorMensal'] ?? '0,00'}'),
+              Text('Dia do vencimento: ${item['diaVencimento'] ?? '-'}'),
+              Text('Status: ${bloqueado ? 'Bloqueado' : 'Ativo'}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _abrirFormularioEditar(item);
+            },
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Editar modulos'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _abrirContaPagar(Map<String, dynamic> item) async {
+    if ((item['tipo'] ?? '').toString().toLowerCase() != 'parceiro') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Conta a pagar exige um parceiro.')),
       );
+      return;
+    }
+    final descricaoCtrl = TextEditingController(
+      text: 'Mensalidade de licenca - ${item['nome'] ?? ''}',
+    );
+    final valorCtrl = TextEditingController(
+      text: (item['valorMensal'] ?? '').toString(),
+    );
+    final vencimentoCtrl = TextEditingController(
+      text: DateFormat('yyyy-MM-dd')
+          .format(DateTime.now().add(const Duration(days: 7))),
+    );
+    PlatformFile? arquivo;
+    String? erro;
+
+    final enviar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Lancar no contas a pagar'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    key: const Key('modulo_conta_pagar_descricao'),
+                    controller: descricaoCtrl,
+                    decoration: const InputDecoration(labelText: 'Descricao *'),
+                  ),
+                  TextField(
+                    key: const Key('modulo_conta_pagar_valor'),
+                    controller: valorCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Valor *'),
+                  ),
+                  TextField(
+                    key: const Key('modulo_conta_pagar_vencimento'),
+                    controller: vencimentoCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Vencimento *',
+                      hintText: 'AAAA-MM-DD',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      key: const Key('modulo_conta_pagar_boleto'),
+                      onPressed: () async {
+                        final resultado = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: const [
+                            'pdf',
+                            'png',
+                            'jpg',
+                            'jpeg'
+                          ],
+                          withData: true,
+                        );
+                        if (resultado != null) {
+                          setDialogState(
+                              () => arquivo = resultado.files.single);
+                        }
+                      },
+                      icon: const Icon(Icons.attach_file),
+                      label: Text(arquivo?.name ?? 'Selecionar boleto *'),
+                    ),
+                  ),
+                  if (erro != null) ...[
+                    const SizedBox(height: 8),
+                    Text(erro!, style: const TextStyle(color: Colors.red)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              key: const Key('modulo_conta_pagar_confirmar'),
+              onPressed: () {
+                final valor =
+                    double.tryParse(valorCtrl.text.replaceAll(',', '.'));
+                if (descricaoCtrl.text.trim().isEmpty ||
+                    valor == null ||
+                    valor <= 0 ||
+                    DateTime.tryParse(vencimentoCtrl.text) == null ||
+                    arquivo?.bytes == null) {
+                  setDialogState(() =>
+                      erro = 'Preencha descricao, valor, vencimento e boleto.');
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Lancar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (enviar == true && arquivo?.bytes != null) {
+      await _executarLote(
+        'Lancar no contas a pagar',
+        [item],
+        (_) async {
+          final uri = Uri.parse(TenantContext.applyToUrl(
+              ApiLinks.moduloAtribuicaoContaPagar(item['id'])));
+          final request = http.MultipartRequest('POST', uri)
+            ..headers.addAll(TenantContext.headers)
+            ..fields['descricao'] = descricaoCtrl.text.trim()
+            ..fields['valor'] = valorCtrl.text.replaceAll(',', '.')
+            ..fields['dataVencimento'] = vencimentoCtrl.text
+            ..files.add(http.MultipartFile.fromBytes(
+              'file',
+              arquivo!.bytes!,
+              filename: arquivo!.name,
+            ));
+          final streamed = await request.send();
+          final bodyText = await streamed.stream.bytesToString();
+          dynamic body;
+          try {
+            body = bodyText.isEmpty ? null : jsonDecode(bodyText);
+          } catch (_) {
+            body = bodyText;
+          }
+          if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
+            throw Exception(_erroDaResposta(body, streamed.statusCode));
+          }
+          return body is Map
+              ? (body['mensagem'] ?? 'Conta a pagar criada').toString()
+              : 'Conta a pagar criada';
+        },
+        confirmar: false,
+      );
+    }
+    descricaoCtrl.dispose();
+    valorCtrl.dispose();
+    vencimentoCtrl.dispose();
+  }
+
+  Widget _buildAcoesGrade() {
+    final selecionados = _itensSelecionadosGrade;
+    final habilitado = selecionados.isNotEmpty && !_executandoAcaoGrade;
+    final parceiroUnico = selecionados.length == 1 &&
+        (selecionados.first['tipo'] ?? '').toString().toLowerCase() ==
+            'parceiro';
+
+    return Material(
+      color: const Color(0xFFF7F9FB),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              '${selecionados.length} selecionado(s)',
+              key: const Key('modulo_atribuicao_selecionados_label'),
+              style: const TextStyle(
+                color: Color(0xFF263238),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            OutlinedButton.icon(
+              key: const Key('modulo_atribuicao_apagar_selecionados'),
+              onPressed: habilitado
+                  ? () => _executarLote(
+                        'Apagar licencas',
+                        selecionados,
+                        (item) => _deleteAcao(ApiLinks.moduloAtribuicaoAlvo(
+                            item['tipo'].toString(), item['id'])),
+                      )
+                  : null,
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: const Text('Apagar'),
+            ),
+            FilledButton.tonalIcon(
+              key: const Key('modulo_atribuicao_faturar_selecionados'),
+              onPressed: habilitado
+                  ? () => _executarLote(
+                        'Faturar',
+                        selecionados,
+                        (item) => _acaoSomenteParceiro(
+                            item, ApiLinks.moduloAtribuicaoFaturar),
+                      )
+                  : null,
+              icon: const Icon(Icons.receipt_long_outlined, size: 18),
+              label: const Text('Faturar'),
+            ),
+            OutlinedButton.icon(
+              key: const Key('modulo_atribuicao_bloquear_selecionados'),
+              onPressed: habilitado
+                  ? () => _executarLote(
+                        'Bloquear acessos',
+                        selecionados,
+                        (item) => _postAcao(
+                          ApiLinks.moduloAtribuicaoBloquear(
+                              item['tipo'].toString(), item['id']),
+                          const {'bloqueado': true},
+                        ),
+                      )
+                  : null,
+              icon: const Icon(Icons.block_outlined, size: 18),
+              label: const Text('Bloquear'),
+            ),
+            OutlinedButton.icon(
+              key: const Key('modulo_atribuicao_enviar_nota_selecionados'),
+              onPressed: habilitado
+                  ? () => _executarLote(
+                        'Enviar nota por e-mail',
+                        selecionados,
+                        (item) => _acaoSomenteParceiro(
+                            item, ApiLinks.moduloAtribuicaoEnviarNota),
+                      )
+                  : null,
+              icon: const Icon(Icons.forward_to_inbox_outlined, size: 18),
+              label: const Text('Enviar nota'),
+            ),
+            OutlinedButton.icon(
+              key:
+                  const Key('modulo_atribuicao_avisar_vencimento_selecionados'),
+              onPressed: habilitado
+                  ? () => _executarLote(
+                        'Avisar vencimento',
+                        selecionados,
+                        (item) => _acaoSomenteParceiro(
+                            item, ApiLinks.moduloAtribuicaoAvisarVencimento),
+                      )
+                  : null,
+              icon: const Icon(Icons.notifications_active_outlined, size: 18),
+              label: const Text('Avisar vencimento'),
+            ),
+            OutlinedButton.icon(
+              key: const Key('modulo_atribuicao_conta_pagar_selecionado'),
+              onPressed: parceiroUnico && !_executandoAcaoGrade
+                  ? () => _abrirContaPagar(selecionados.first)
+                  : null,
+              icon: const Icon(Icons.attach_file, size: 18),
+              label: const Text('Conta a pagar + boleto'),
+            ),
+            if (_executandoAcaoGrade)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildGradeView() {
@@ -1555,6 +2109,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
             children: [
               // Barra superior com busca, recarregar e botao Novo
               Card(
+                color: Colors.white,
                 elevation: 1,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1562,66 +2117,88 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          key: const Key('modulo_atribuicao_grade_busca_field'),
-                          controller: _buscaGradeCtrl,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.search, color: GridColors.primary),
-                            hintText: 'Filtrar por nome, documento ou modulo...',
-                            suffixIcon: _buscaGradeCtrl.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () {
-                                      _buscaGradeCtrl.clear();
-                                      setState(() {});
-                                    },
-                                  )
-                                : null,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: GridColors.divider),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Wrap(
+                      spacing: 12,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      alignment: WrapAlignment.end,
+                      children: [
+                        SizedBox(
+                          width: constraints.maxWidth < 720
+                              ? constraints.maxWidth
+                              : constraints.maxWidth - 285,
+                          child: TextField(
+                            key: const Key(
+                                'modulo_atribuicao_grade_busca_field'),
+                            controller: _buscaGradeCtrl,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search,
+                                  color: GridColors.primary),
+                              hintText:
+                                  'Filtrar por nome, documento ou modulo...',
+                              suffixIcon: _buscaGradeCtrl.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      onPressed: () {
+                                        _buscaGradeCtrl.clear();
+                                        setState(() {});
+                                      },
+                                    )
+                                  : null,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              filled: true,
+                              fillColor: Colors.white,
+                              hintStyle:
+                                  const TextStyle(color: Color(0xFF607D8B)),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide:
+                                    const BorderSide(color: GridColors.divider),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide:
+                                    const BorderSide(color: GridColors.divider),
+                              ),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: GridColors.divider),
-                            ),
+                            onChanged: (_) => setState(() {}),
                           ),
-                          onChanged: (_) => setState(() {}),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        key: const Key('modulo_atribuicao_grade_recarregar_btn'),
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text('Recarregar'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: GridColors.textPrimary,
-                          side: const BorderSide(color: GridColors.divider),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        OutlinedButton.icon(
+                          key: const Key(
+                              'modulo_atribuicao_grade_recarregar_btn'),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Recarregar'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF263238),
+                            side: const BorderSide(color: GridColors.divider),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed:
+                              _carregandoGrade ? null : _carregarGradeResumo,
                         ),
-                        onPressed: _carregandoGrade ? null : _carregarGradeResumo,
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        key: const Key('modulo_atribuicao_novo_btn'),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Novo'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: GridColors.primary,
-                          foregroundColor: GridColors.textPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          elevation: 1,
+                        ElevatedButton.icon(
+                          key: const Key('modulo_atribuicao_novo_btn'),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Novo'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: GridColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            elevation: 1,
+                          ),
+                          onPressed: _abrirFormularioNovo,
                         ),
-                        onPressed: _abrirFormularioNovo,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1630,6 +2207,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
               // Grade de Licenças / Clientes
               Expanded(
                 child: Card(
+                  color: Colors.white,
                   elevation: 1,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1637,7 +2215,15 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: _buildGradeConteudo(itensFiltrados),
+                    child: Column(
+                      children: [
+                        _buildAcoesGrade(),
+                        const Divider(height: 1),
+                        Expanded(
+                          child: _buildGradeConteudoOperacional(itensFiltrados),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1645,6 +2231,252 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGradeConteudoOperacional(List<Map<String, dynamic>> itens) {
+    if (_carregandoGrade) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_erroGrade != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 44, color: Colors.red),
+              const SizedBox(height: 12),
+              Text(
+                _erroGrade!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFB71C1C)),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _carregarGradeResumo,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (itens.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.layers_clear_outlined,
+                size: 52, color: Color(0xFF607D8B)),
+            const SizedBox(height: 12),
+            const Text(
+              'Nenhum cliente ou empresa com modulos vinculados.',
+              style: TextStyle(color: Color(0xFF263238), fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('modulo_atribuicao_grade_vazia_novo_btn'),
+              onPressed: _abrirFormularioNovo,
+              icon: const Icon(Icons.add),
+              label: const Text('Atribuir modulos'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final chavesVisiveis = itens.map(_chaveGrade).toSet();
+    final todosSelecionados = chavesVisiveis.isNotEmpty &&
+        chavesVisiveis.every(_selecionadosGrade.contains);
+    return Column(
+      children: [
+        CheckboxListTile(
+          key: const Key('modulo_atribuicao_selecionar_todos'),
+          value: todosSelecionados,
+          controlAffinity: ListTileControlAffinity.leading,
+          dense: true,
+          title: const Text(
+            'Selecionar todos os registros visiveis',
+            style: TextStyle(
+              color: Color(0xFF263238),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          onChanged: _executandoAcaoGrade
+              ? null
+              : (marcar) => setState(() {
+                    if (marcar == true) {
+                      _selecionadosGrade.addAll(chavesVisiveis);
+                    } else {
+                      _selecionadosGrade.removeAll(chavesVisiveis);
+                    }
+                  }),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(12),
+            itemCount: itens.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) =>
+                _buildLinhaGradeOperacional(itens[index]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLinhaGradeOperacional(Map<String, dynamic> item) {
+    final tipo = (item['tipo'] ?? 'parceiro').toString().toLowerCase();
+    final isParceiro = tipo == 'parceiro';
+    final nome = (item['nome'] ?? 'Sem nome').toString();
+    final documento = (item['documento'] ?? '').toString();
+    final modulos = (item['modulos'] ?? '').toString();
+    final quantidade = item['quantidadeModulos'] ?? 0;
+    final id = item['id'];
+    final chave = _chaveGrade(item);
+    final selecionado = _selecionadosGrade.contains(chave);
+    final bloqueado = item['bloqueado'] == true;
+
+    final selecao = Checkbox(
+      key: Key('modulo_atribuicao_selecionar_$tipo$id'),
+      value: selecionado,
+      onChanged: _executandoAcaoGrade
+          ? null
+          : (value) => setState(() {
+                value == true
+                    ? _selecionadosGrade.add(chave)
+                    : _selecionadosGrade.remove(chave);
+              }),
+    );
+    final identificacao = Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            nome,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF17212B),
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            [
+              if (documento.isNotEmpty) documento,
+              isParceiro ? 'Parceiro' : 'Empresa',
+              '$quantidade modulo(s)',
+              if (bloqueado) 'BLOQUEADO',
+            ].join(' | '),
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: bloqueado ? Colors.red.shade800 : const Color(0xFF455A64),
+              fontSize: 12,
+              fontWeight: bloqueado ? FontWeight.w700 : FontWeight.normal,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            modulos.isEmpty ? 'Nenhum modulo descrito' : modulos,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFF455A64), fontSize: 12),
+          ),
+        ],
+      ),
+    );
+    final acoes = Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        OutlinedButton.icon(
+          key: Key('modulo_atribuicao_detalhes_$id'),
+          onPressed: () => _mostrarDetalhes(item),
+          icon: const Icon(Icons.visibility_outlined, size: 17),
+          label: const Text('Detalhes'),
+        ),
+        FilledButton.tonalIcon(
+          key: Key('modulo_atribuicao_faturar_$id'),
+          onPressed: isParceiro && !_executandoAcaoGrade
+              ? () => _executarLote(
+                    'Faturar',
+                    [item],
+                    (row) => _acaoSomenteParceiro(
+                        row, ApiLinks.moduloAtribuicaoFaturar),
+                  )
+              : null,
+          icon: const Icon(Icons.receipt_long_outlined, size: 17),
+          label: const Text('Faturar'),
+        ),
+        IconButton.outlined(
+          key: Key('modulo_atribuicao_editar_$id'),
+          tooltip: 'Editar modulos',
+          onPressed: () => _abrirFormularioEditar(item),
+          icon: const Icon(Icons.edit_outlined),
+        ),
+        OutlinedButton.icon(
+          key: Key('modulo_atribuicao_excluir_$id'),
+          style: OutlinedButton.styleFrom(foregroundColor: Colors.red.shade700),
+          onPressed: _executandoAcaoGrade
+              ? null
+              : () => _executarLote(
+                    'Apagar licencas',
+                    [item],
+                    (row) => _deleteAcao(ApiLinks.moduloAtribuicaoAlvo(
+                        row['tipo'].toString(), row['id'])),
+                  ),
+          icon: const Icon(Icons.delete_outline, size: 17),
+          label: const Text('Apagar'),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compacto = constraints.maxWidth < 760;
+        return ColoredBox(
+          key: Key('modulo_atribuicao_linha_$tipo$id'),
+          color: selecionado ? const Color(0xFFE8F1FB) : Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: compacto
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [selecao, identificacao]),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 48),
+                        child: acoes,
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      selecao,
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAF0F4),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(isParceiro
+                            ? Icons.person_outline
+                            : Icons.business_outlined),
+                      ),
+                      const SizedBox(width: 12),
+                      identificacao,
+                      const SizedBox(width: 12),
+                      acoes,
+                    ],
+                  ),
+          ),
+        );
+      },
     );
   }
 
@@ -1660,7 +2492,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: GridColors.error),
+              const Icon(Icons.error_outline,
+                  size: 48, color: GridColors.error),
               const SizedBox(height: 12),
               Text(
                 _erroGrade!,
@@ -1732,7 +2565,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     return ListView.separated(
       padding: const EdgeInsets.all(12),
       itemCount: itens.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, color: GridColors.divider),
+      separatorBuilder: (_, __) =>
+          const Divider(height: 1, color: GridColors.divider),
       itemBuilder: (context, index) {
         final item = itens[index];
         final tipo = (item['tipo'] ?? 'parceiro').toString().toLowerCase();
@@ -1760,7 +2594,9 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                 ),
                 child: Icon(
                   isParceiro ? Icons.person_outline : Icons.business_outlined,
-                  color: isParceiro ? Colors.blueGrey.shade800 : GridColors.primary,
+                  color: isParceiro
+                      ? Colors.blueGrey.shade800
+                      : GridColors.primary,
                   size: 24,
                 ),
               ),
@@ -1788,7 +2624,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                           const SizedBox(width: 8),
                           Text(
                             '($doc)',
-                            style: const TextStyle(fontSize: 12, color: GridColors.textSecondary),
+                            style: const TextStyle(
+                                fontSize: 12, color: GridColors.textSecondary),
                           ),
                         ],
                       ],
@@ -1798,7 +2635,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                       children: [
                         // Badge Tipo
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: isParceiro
                                 ? Colors.blue.withOpacity(0.1)
@@ -1815,7 +2653,9 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: isParceiro ? Colors.blue.shade900 : Colors.teal.shade900,
+                              color: isParceiro
+                                  ? Colors.blue.shade900
+                                  : Colors.teal.shade900,
                             ),
                           ),
                         ),
@@ -1823,7 +2663,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
                         // Badge Quantidade
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: GridColors.primarySoft,
                             borderRadius: BorderRadius.circular(6),
@@ -1843,7 +2684,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                         Expanded(
                           child: Text(
                             modulos,
-                            style: const TextStyle(fontSize: 12, color: GridColors.textSecondary),
+                            style: const TextStyle(
+                                fontSize: 12, color: GridColors.textSecondary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -1863,8 +2705,10 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: GridColors.primary,
                   foregroundColor: GridColors.textPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
                 ),
                 onPressed: () => _abrirFormularioEditar(item),

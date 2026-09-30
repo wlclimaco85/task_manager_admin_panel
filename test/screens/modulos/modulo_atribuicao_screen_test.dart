@@ -80,8 +80,10 @@ void main() {
       await carregarParceiro(tester);
 
       expect(find.text('Encontrado: Fazenda Boa Vista'), findsOneWidget);
-      expect(find.byKey(const Key('modulo_atribuicao_checkbox_1')), findsOneWidget);
-      expect(find.byKey(const Key('modulo_atribuicao_checkbox_2')), findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_checkbox_1')),
+          findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_checkbox_2')),
+          findsOneWidget);
 
       final checkboxFinanceiro = tester.widget<Checkbox>(
         find.byKey(const Key('modulo_atribuicao_checkbox_1')),
@@ -144,7 +146,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Dialog de confirmacao aberto — cancelar em vez de confirmar.
-      expect(find.byKey(const Key('modulo_atribuicao_confirmar_btn')), findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_confirmar_btn')),
+          findsOneWidget);
       await tester.tap(find.byKey(const Key('modulo_atribuicao_cancelar_btn')));
       await tester.pumpAndSettle();
 
@@ -207,7 +210,8 @@ void main() {
       await tester.tap(find.byKey(const Key('modulo_atribuicao_salvar_btn')));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('modulo_atribuicao_confirmar_btn')));
+      await tester
+          .tap(find.byKey(const Key('modulo_atribuicao_confirmar_btn')));
       await tester.pumpAndSettle();
 
       expect(capturedBody, isNotNull);
@@ -231,10 +235,30 @@ void main() {
         if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
           return jsonResponse({
             'data': [
-              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Mod Financeiro', 'valor': 49.90},
-              {'id': 2, 'nome': 'Estoque', 'descricao': 'Mod Estoque', 'valor': 49.90},
-              {'id': 3, 'nome': 'Fiscal', 'descricao': 'Mod Fiscal', 'valor': 49.90},
-              {'id': 4, 'nome': 'Vendas', 'descricao': 'Mod Vendas', 'valor': 49.90},
+              {
+                'id': 1,
+                'nome': 'Financeiro',
+                'descricao': 'Mod Financeiro',
+                'valor': 49.90
+              },
+              {
+                'id': 2,
+                'nome': 'Estoque',
+                'descricao': 'Mod Estoque',
+                'valor': 49.90
+              },
+              {
+                'id': 3,
+                'nome': 'Fiscal',
+                'descricao': 'Mod Fiscal',
+                'valor': 49.90
+              },
+              {
+                'id': 4,
+                'nome': 'Vendas',
+                'descricao': 'Mod Vendas',
+                'valor': 49.90
+              },
             ],
           });
         }
@@ -289,12 +313,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('R\$ 129,90/mês'), findsOneWidget);
       expect(
-        find.text('Pacote Ilimitado (> 3 módulos): valor especial fixo de R\$ 129,90/mês!'),
+        find.text(
+            'Pacote Ilimitado (> 3 módulos): valor especial fixo de R\$ 129,90/mês!'),
         findsOneWidget,
       );
     });
 
-    testWidgets('clicar em Conceder Licenca abre o LicencaWizardDialog com progresso',
+    testWidgets(
+        'clicar em Conceder Licenca abre o LicencaWizardDialog com progresso',
         (tester) async {
       final client = MockClient((request) async {
         final url = request.url.toString();
@@ -348,7 +374,8 @@ void main() {
       await carregarParceiro(tester);
 
       // Clica no botão Conceder Licença
-      await tester.tap(find.byKey(const Key('modulo_atribuicao_conceder_licenca_btn')));
+      await tester
+          .tap(find.byKey(const Key('modulo_atribuicao_conceder_licenca_btn')));
       await tester.pumpAndSettle();
 
       // Verifica se o diálogo do Wizard abriu
@@ -358,7 +385,8 @@ void main() {
       expect(find.text('3. Finalizar'), findsOneWidget);
     });
 
-    testWidgets('grade inicial exibe lista de clientes com modulos e permite filtrar',
+    testWidgets(
+        'grade inicial exibe lista de clientes com modulos e permite filtrar',
         (tester) async {
       final client = MockClient((request) async {
         final url = request.url.toString();
@@ -404,13 +432,16 @@ void main() {
 
       // Grade inicial aberta
       expect(find.text('Clientes com Licencas & Modulos'), findsOneWidget);
-      expect(find.byKey(const Key('modulo_atribuicao_novo_btn')), findsOneWidget);
+      expect(
+          find.byKey(const Key('modulo_atribuicao_novo_btn')), findsOneWidget);
       expect(find.text('Supermercado Central'), findsOneWidget);
       expect(find.text('Academia Fitness Plus'), findsOneWidget);
-      expect(find.text('Parceiro'), findsOneWidget);
-      expect(find.text('Empresa'), findsOneWidget);
-      expect(find.byKey(const Key('modulo_atribuicao_editar_10')), findsOneWidget);
-      expect(find.byKey(const Key('modulo_atribuicao_editar_20')), findsOneWidget);
+      expect(find.textContaining('Parceiro'), findsWidgets);
+      expect(find.textContaining('Empresa'), findsWidgets);
+      expect(
+          find.byKey(const Key('modulo_atribuicao_editar_10')), findsOneWidget);
+      expect(
+          find.byKey(const Key('modulo_atribuicao_editar_20')), findsOneWidget);
 
       // Filtrar por texto
       await tester.enterText(
@@ -481,7 +512,8 @@ void main() {
       // Agora esta no formulario
       expect(find.text('Atribuicao de Modulos'), findsOneWidget);
       expect(find.text('Encontrado: Supermercado Central'), findsOneWidget);
-      expect(find.byKey(const Key('modulo_atribuicao_voltar_btn')), findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_voltar_btn')),
+          findsOneWidget);
 
       // Clica no botao voltar e retorna a grade
       await tester.tap(find.byKey(const Key('modulo_atribuicao_voltar_btn')));
@@ -490,7 +522,8 @@ void main() {
       expect(find.text('Clientes com Licencas & Modulos'), findsOneWidget);
     });
 
-    testWidgets('abrir com initialId abre direto o formulario com o destinatario carregado (fluxo login)',
+    testWidgets(
+        'abrir com initialId abre direto o formulario com o destinatario carregado (fluxo login)',
         (tester) async {
       final client = MockClient((request) async {
         final url = request.url.toString();
@@ -536,6 +569,95 @@ void main() {
       // Abre diretamente no formulario com o parceiro carregado
       expect(find.text('Atribuicao de Modulos'), findsOneWidget);
       expect(find.text('Encontrado: Cliente Trial Login'), findsOneWidget);
+    });
+
+    testWidgets(
+        'selecionar todos exibe acoes legiveis e lote continua depois de falha',
+        (tester) async {
+      final chamadasBloqueio = <String>[];
+      final client = MockClient((request) async {
+        final url = request.url.toString();
+        if (url.contains('/api/modulo-atribuicao/resumo')) {
+          return jsonResponse([
+            {
+              'id': 10,
+              'tipo': 'parceiro',
+              'nome': 'Cliente A',
+              'documento': '111',
+              'quantidadeModulos': 1,
+              'modulos': 'Financeiro',
+              'valorMensal': 49.9,
+              'bloqueado': false,
+            },
+            {
+              'id': 11,
+              'tipo': 'parceiro',
+              'nome': 'Cliente B',
+              'documento': '222',
+              'quantidadeModulos': 1,
+              'modulos': 'NFS-e',
+              'valorMensal': 49.9,
+              'bloqueado': false,
+            },
+          ]);
+        }
+        if (request.method == 'POST' && url.contains('/bloquear')) {
+          chamadasBloqueio.add(url);
+          if (url.contains('/10/bloquear')) {
+            return jsonResponse({'message': 'Falha simulada'}, status: 500);
+          }
+          return jsonResponse({'mensagem': 'Acesso bloqueado'});
+        }
+        if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
+          return jsonResponse({'data': []});
+        }
+        if (url.contains(ApiLinks.dropdownParceiros.split('?').first)) {
+          return jsonResponse([]);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      tester.view.physicalSize = const Size(1440, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData.dark(useMaterial3: true),
+        home: ModuloAtribuicaoScreen(
+            networkCaller: NetworkCaller(client: client)),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('modulo_atribuicao_detalhes_10')),
+          findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_faturar_10')),
+          findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_excluir_10')),
+          findsOneWidget);
+
+      final linha = tester.widget<ColoredBox>(
+        find.byKey(const Key('modulo_atribuicao_linha_parceiro10')),
+      );
+      expect(linha.color, Colors.white);
+
+      await tester
+          .tap(find.byKey(const Key('modulo_atribuicao_selecionar_todos')));
+      await tester.pumpAndSettle();
+      expect(find.text('2 selecionado(s)'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('modulo_atribuicao_bloquear_selecionados')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(chamadasBloqueio, hasLength(2));
+      expect(find.textContaining('ERRO - Cliente A: Falha simulada'),
+          findsOneWidget);
+      expect(find.textContaining('SUCESSO - Cliente B: Acesso bloqueado'),
+          findsOneWidget);
     });
   });
 }

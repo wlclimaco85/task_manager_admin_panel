@@ -10,6 +10,7 @@ import 'licenca/licenca_screen.dart';
 import 'login_screen.dart';
 import 'modulos/modulo_atribuicao_screen.dart';
 import 'modulos/modulo_servico_screen.dart';
+import 'fiscal/nfse_admin_screen.dart';
 import 'monitoramento/sistema_logs_screen.dart';
 import 'sistema/sistema_menu_screen.dart';
 
@@ -52,7 +53,8 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ola, $nome', style: Theme.of(context).textTheme.headlineSmall),
+            Text('Ola, $nome',
+                style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Fase 3: Licenca, Contatos, Ordem de Servico, Modulos Contratados e Dashboard de Crescimento.',
@@ -71,6 +73,20 @@ class HomeScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => const LicencaScreen(),
                   ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Card(
+              child: ListTile(
+                key: const Key('home_nfse_admin_tile'),
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: const Text('NFS-e'),
+                subtitle: const Text(
+                    'Faturar clientes, confirmar, emitir e baixar DANFSE.'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NfseAdminScreen()),
                 ),
               ),
             ),
@@ -123,7 +139,8 @@ class HomeScreen extends StatelessWidget {
                     key: const Key('home_modulo_catalogo_tile'),
                     leading: const Icon(Icons.view_module_outlined),
                     title: const Text('Catálogo'),
-                    subtitle: const Text('CRUD dos módulos de serviço disponíveis.'),
+                    subtitle:
+                        const Text('CRUD dos módulos de serviço disponíveis.'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -168,7 +185,8 @@ class HomeScreen extends StatelessWidget {
             Card(
               child: ListTile(
                 key: const Key('home_sistema_logs_tile'),
-                leading: const Icon(Icons.monitor_heart_outlined, color: Colors.indigo),
+                leading: const Icon(Icons.monitor_heart_outlined,
+                    color: Colors.indigo),
                 title: const Text('Logs & Monitoramento'),
                 subtitle: const Text(
                     'Monitorar exceções e warnings do backend Java e apps Flutter (histórico de 7 dias).'),
@@ -204,4 +222,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-
