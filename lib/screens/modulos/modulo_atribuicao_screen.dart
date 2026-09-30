@@ -14,9 +14,18 @@ import '../../widgets/searchable_dropdown.dart';
 /// autocomplete, visualizacao em cards com iconografia, status visual,
 /// selecao rapida e feedback rico).
 class ModuloAtribuicaoScreen extends StatefulWidget {
-  const ModuloAtribuicaoScreen({super.key, this.networkCaller});
+  const ModuloAtribuicaoScreen({
+    super.key,
+    this.networkCaller,
+    this.initialTipo,
+    this.initialId,
+    this.initialNome,
+  });
 
   final NetworkCaller? networkCaller;
+  final String? initialTipo;
+  final int? initialId;
+  final String? initialNome;
 
   @override
   State<ModuloAtribuicaoScreen> createState() =>
@@ -29,6 +38,13 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
   final TextEditingController _idCtrl = TextEditingController();
   final TextEditingController _filtroModuloCtrl = TextEditingController();
+  final TextEditingController _buscaGradeCtrl = TextEditingController();
+
+  /// Controle de exibicao: false = Grade Inicial, true = Formulario de Atribuicao
+  bool _exibindoFormulario = false;
+  List<Map<String, dynamic>> _gradeResumo = [];
+  bool _carregandoGrade = false;
+  String? _erroGrade;
 
   /// 'parceiro' ou 'empresa'.
   String _tipo = 'parceiro';
@@ -49,14 +65,24 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
   @override
   void initState() {
     super.initState();
-    _carregarOpcoesDropdown();
     _carregarCatalogoInicial();
+    _carregarOpcoesDropdown();
+    if (widget.initialId != null) {
+      _exibindoFormulario = true;
+      if (widget.initialTipo != null && widget.initialTipo!.isNotEmpty) {
+        _tipo = widget.initialTipo!.toLowerCase();
+      }
+      _carregar(widget.initialId);
+    } else {
+      _carregarGradeResumo();
+    }
   }
 
   @override
   void dispose() {
     _idCtrl.dispose();
     _filtroModuloCtrl.dispose();
+    _buscaGradeCtrl.dispose();
     if (_ownsCaller) _caller.close();
     super.dispose();
   }
@@ -77,6 +103,79 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         .trim();
     if (nome.isNotEmpty) return nome;
     return 'Registro #${row['id'] ?? ''}';
+  }
+
+  Future<void> _carregarGradeResumo() async {
+    if (!mounted) return;
+    setState(() {
+      _carregandoGrade = true;
+      _erroGrade = null;
+    });
+
+    try {
+      final res = await _caller.getRequest(ApiLinks.modulosAtribuidosResumo);
+      if (!mounted) return;
+      if (res.isSuccess) {
+        final rows = GenericGridWindowsScreen.extractRows(res.body);
+        setState(() {
+          _gradeResumo = rows.map((r) => Map<String, dynamic>.from(r)).toList();
+          _carregandoGrade = false;
+        });
+      } else {
+        setState(() {
+          _erroGrade = 'Falha ao carregar listagem de licencas (${res.statusCode})';
+          _carregandoGrade = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _erroGrade = 'Erro ao conectar: $e';
+          _carregandoGrade = false;
+        });
+      }
+    }
+  }
+
+  void _abrirFormularioNovo() {
+    setState(() {
+      _exibindoFormulario = true;
+      _idCarregado = null;
+      _nomeEncontrado = null;
+      _moduloIdsMarcados.clear();
+      _erro = null;
+      _idCtrl.clear();
+      _filtroModuloCtrl.clear();
+    });
+    _carregarOpcoesDropdown();
+  }
+
+  void _abrirFormularioEditar(Map<String, dynamic> item) {
+    final tipo = (item['tipo'] ?? 'parceiro').toString().toLowerCase();
+    final id = _extractId(item);
+    if (id == null) return;
+
+    setState(() {
+      _exibindoFormulario = true;
+      _tipo = tipo;
+      _erro = null;
+      _idCtrl.text = id.toString();
+    });
+    _carregarOpcoesDropdown();
+    _carregar(id);
+  }
+
+  void _voltarParaGrade() {
+    setState(() {
+      _exibindoFormulario = false;
+      _idCarregado = null;
+      _nomeEncontrado = null;
+      _moduloIdsMarcados.clear();
+      _erro = null;
+      _idCtrl.clear();
+      _filtroModuloCtrl.clear();
+    });
+    _carregarGradeResumo();
   }
 
   Future<void> _carregarOpcoesDropdown() async {
@@ -427,6 +526,9 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
           ),
         ),
       );
+      if (widget.initialId == null) {
+        _voltarParaGrade();
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -495,12 +597,22 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     return Scaffold(
       backgroundColor: GridColors.background,
       appBar: AppBar(
-        title: const Text('Atribuicao de Modulos'),
+        title: Text(_exibindoFormulario
+            ? 'Atribuicao de Modulos'
+            : 'Clientes com Licencas & Modulos'),
+        leading: _exibindoFormulario && widget.initialId == null
+            ? IconButton(
+                key: const Key('modulo_atribuicao_voltar_btn'),
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Voltar para listagem',
+                onPressed: _voltarParaGrade,
+              )
+            : null,
         elevation: 0,
         backgroundColor: GridColors.primary,
         foregroundColor: GridColors.textPrimary,
         actions: [
-          if (_temSelecao)
+          if (_exibindoFormulario && _temSelecao)
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(
@@ -523,7 +635,14 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
             ),
         ],
       ),
-      body: Center(
+      body: _exibindoFormulario
+          ? _buildFormularioBody(modulosFiltrados)
+          : _buildGradeView(),
+    );
+  }
+
+  Widget _buildFormularioBody(List<Map<String, dynamic>> modulosFiltrados) {
+    return Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1080),
           child: Padding(
@@ -1372,7 +1491,336 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
             ),
           ),
         ),
+      );
+  }
+
+  Widget _buildGradeView() {
+    final filtro = _buscaGradeCtrl.text.trim().toLowerCase();
+    final itensFiltrados = _gradeResumo.where((item) {
+      if (filtro.isEmpty) return true;
+      final nome = (item['nome'] ?? '').toString().toLowerCase();
+      final modulos = (item['modulos'] ?? '').toString().toLowerCase();
+      final doc = (item['documento'] ?? '').toString().toLowerCase();
+      final tipo = (item['tipo'] ?? '').toString().toLowerCase();
+      return nome.contains(filtro) ||
+          modulos.contains(filtro) ||
+          doc.contains(filtro) ||
+          tipo.contains(filtro);
+    }).toList();
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1080),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Barra superior com busca, recarregar e botao Novo
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: GridColors.divider),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const Key('modulo_atribuicao_grade_busca_field'),
+                          controller: _buscaGradeCtrl,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search, color: GridColors.primary),
+                            hintText: 'Filtrar por nome, documento ou modulo...',
+                            suffixIcon: _buscaGradeCtrl.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () {
+                                      _buscaGradeCtrl.clear();
+                                      setState(() {});
+                                    },
+                                  )
+                                : null,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: GridColors.divider),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: GridColors.divider),
+                            ),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        key: const Key('modulo_atribuicao_grade_recarregar_btn'),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Recarregar'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: GridColors.textPrimary,
+                          side: const BorderSide(color: GridColors.divider),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: _carregandoGrade ? null : _carregarGradeResumo,
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        key: const Key('modulo_atribuicao_novo_btn'),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Novo'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: GridColors.primary,
+                          foregroundColor: GridColors.textPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 1,
+                        ),
+                        onPressed: _abrirFormularioNovo,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Grade de Licenças / Clientes
+              Expanded(
+                child: Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: GridColors.divider),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _buildGradeConteudo(itensFiltrados),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildGradeConteudo(List<Map<String, dynamic>> itens) {
+    if (_carregandoGrade) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_erroGrade != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: GridColors.error),
+              const SizedBox(height: 12),
+              Text(
+                _erroGrade!,
+                style: const TextStyle(color: GridColors.error, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _carregarGradeResumo,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: GridColors.primary,
+                  foregroundColor: GridColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (itens.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.layers_clear_outlined,
+                  size: 56, color: GridColors.textSecondary.withOpacity(0.4)),
+              const SizedBox(height: 12),
+              const Text(
+                'Nenhum cliente ou empresa com modulos vinculados encontrado.',
+                style: TextStyle(fontSize: 16, color: GridColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                key: const Key('modulo_atribuicao_grade_vazia_novo_btn'),
+                onPressed: _abrirFormularioNovo,
+                icon: const Icon(Icons.add),
+                label: const Text('Atribuir Modulos a um Cliente'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: GridColors.primary,
+                  foregroundColor: GridColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: itens.length,
+      separatorBuilder: (_, __) => const Divider(height: 1, color: GridColors.divider),
+      itemBuilder: (context, index) {
+        final item = itens[index];
+        final tipo = (item['tipo'] ?? 'parceiro').toString().toLowerCase();
+        final isParceiro = tipo == 'parceiro';
+        final nome = (item['nome'] ?? 'Sem nome').toString();
+        final doc = (item['documento'] ?? '').toString();
+        final qtd = item['quantidadeModulos'] ?? 0;
+        final modulos = (item['modulos'] ?? '').toString();
+        final id = item['id'];
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Avatar do Tipo
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isParceiro
+                      ? Colors.blueGrey.withOpacity(0.12)
+                      : GridColors.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isParceiro ? Icons.person_outline : Icons.business_outlined,
+                  color: isParceiro ? Colors.blueGrey.shade800 : GridColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Dados do Beneficiário
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            nome,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: GridColors.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (doc.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '($doc)',
+                            style: const TextStyle(fontSize: 12, color: GridColors.textSecondary),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        // Badge Tipo
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isParceiro
+                                ? Colors.blue.withOpacity(0.1)
+                                : Colors.teal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isParceiro
+                                  ? Colors.blue.withOpacity(0.3)
+                                  : Colors.teal.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            isParceiro ? 'Parceiro' : 'Empresa',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isParceiro ? Colors.blue.shade900 : Colors.teal.shade900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Badge Quantidade
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: GridColors.primarySoft,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$qtd ${qtd == 1 ? "modulo" : "modulos"}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: GridColors.primaryDark,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // Lista resumida de módulos
+                        Expanded(
+                          child: Text(
+                            modulos,
+                            style: const TextStyle(fontSize: 12, color: GridColors.textSecondary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 16),
+
+              // Botão Editar
+              ElevatedButton.icon(
+                key: Key('modulo_atribuicao_editar_$id'),
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Editar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: GridColors.primary,
+                  foregroundColor: GridColors.textPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                onPressed: () => _abrirFormularioEditar(item),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

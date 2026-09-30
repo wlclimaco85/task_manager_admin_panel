@@ -20,6 +20,11 @@ void main() {
   }
 
   Future<void> carregarParceiro(WidgetTester tester) async {
+    final novoBtn = find.byKey(const Key('modulo_atribuicao_novo_btn'));
+    if (novoBtn.evaluate().isNotEmpty) {
+      await tester.tap(novoBtn);
+      await tester.pumpAndSettle();
+    }
     await tester.enterText(
       find.byKey(const Key('modulo_atribuicao_id_field')),
       parceiroId.toString(),
@@ -351,6 +356,186 @@ void main() {
       expect(find.text('1. Role de Acesso'), findsOneWidget);
       expect(find.text('2. Usuários'), findsOneWidget);
       expect(find.text('3. Finalizar'), findsOneWidget);
+    });
+
+    testWidgets('grade inicial exibe lista de clientes com modulos e permite filtrar',
+        (tester) async {
+      final client = MockClient((request) async {
+        final url = request.url.toString();
+        if (url.contains('/api/modulo-atribuicao/resumo')) {
+          return jsonResponse([
+            {
+              'id': 10,
+              'tipo': 'parceiro',
+              'nome': 'Supermercado Central',
+              'documento': '12.345.678/0001-90',
+              'quantidadeModulos': 2,
+              'modulos': 'Financeiro, Estoque',
+            },
+            {
+              'id': 20,
+              'tipo': 'empresa',
+              'nome': 'Academia Fitness Plus',
+              'documento': '98.765.432/0001-11',
+              'quantidadeModulos': 1,
+              'modulos': 'NFS-e',
+            },
+          ]);
+        }
+        if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
+          return jsonResponse({'data': []});
+        }
+        if (url.contains(ApiLinks.dropdownParceiros.split('?').first)) {
+          return jsonResponse([]);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final caller = NetworkCaller(client: client);
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        home: ModuloAtribuicaoScreen(networkCaller: caller),
+      ));
+      await tester.pumpAndSettle();
+
+      // Grade inicial aberta
+      expect(find.text('Clientes com Licencas & Modulos'), findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_novo_btn')), findsOneWidget);
+      expect(find.text('Supermercado Central'), findsOneWidget);
+      expect(find.text('Academia Fitness Plus'), findsOneWidget);
+      expect(find.text('Parceiro'), findsOneWidget);
+      expect(find.text('Empresa'), findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_editar_10')), findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_editar_20')), findsOneWidget);
+
+      // Filtrar por texto
+      await tester.enterText(
+        find.byKey(const Key('modulo_atribuicao_grade_busca_field')),
+        'Fitness',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Academia Fitness Plus'), findsOneWidget);
+      expect(find.text('Supermercado Central'), findsNothing);
+    });
+
+    testWidgets('clicar em Editar na grade carrega dados e abre o formulario',
+        (tester) async {
+      final client = MockClient((request) async {
+        final url = request.url.toString();
+        if (url.contains('/api/modulo-atribuicao/resumo')) {
+          return jsonResponse([
+            {
+              'id': 10,
+              'tipo': 'parceiro',
+              'nome': 'Supermercado Central',
+              'quantidadeModulos': 1,
+              'modulos': 'Financeiro',
+            },
+          ]);
+        }
+        if (url.contains('/api/parceiro/10')) {
+          return jsonResponse({
+            'data': {'id': 10, 'nome': 'Supermercado Central'},
+          });
+        }
+        if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
+          return jsonResponse({
+            'data': [
+              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Mod Financeiro'},
+            ],
+          });
+        }
+        if (url.contains('/api/parceiro-modulo')) {
+          return jsonResponse([
+            {'moduloId': 1, 'valor': 49.90, 'diaVencimento': 10},
+          ]);
+        }
+        if (url.contains('/api/parceiro')) {
+          return jsonResponse([
+            {'id': 10, 'nome': 'Supermercado Central'},
+          ]);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final caller = NetworkCaller(client: client);
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        home: ModuloAtribuicaoScreen(networkCaller: caller),
+      ));
+      await tester.pumpAndSettle();
+
+      // Clica em Editar na linha
+      await tester.tap(find.byKey(const Key('modulo_atribuicao_editar_10')));
+      await tester.pumpAndSettle();
+
+      // Agora esta no formulario
+      expect(find.text('Atribuicao de Modulos'), findsOneWidget);
+      expect(find.text('Encontrado: Supermercado Central'), findsOneWidget);
+      expect(find.byKey(const Key('modulo_atribuicao_voltar_btn')), findsOneWidget);
+
+      // Clica no botao voltar e retorna a grade
+      await tester.tap(find.byKey(const Key('modulo_atribuicao_voltar_btn')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Clientes com Licencas & Modulos'), findsOneWidget);
+    });
+
+    testWidgets('abrir com initialId abre direto o formulario com o destinatario carregado (fluxo login)',
+        (tester) async {
+      final client = MockClient((request) async {
+        final url = request.url.toString();
+        if (url.contains('/api/parceiro/55')) {
+          return jsonResponse({
+            'data': {'id': 55, 'nome': 'Cliente Trial Login'},
+          });
+        }
+        if (url.contains(ApiLinks.allModulosServico.split('?').first)) {
+          return jsonResponse({
+            'data': [
+              {'id': 1, 'nome': 'Financeiro', 'descricao': 'Mod Financeiro'},
+            ],
+          });
+        }
+        if (url.contains('/api/parceiro-modulo')) {
+          return jsonResponse(<Map<String, dynamic>>[]);
+        }
+        if (url.contains('/api/parceiro')) {
+          return jsonResponse([
+            {'id': 55, 'nome': 'Cliente Trial Login'},
+          ]);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final caller = NetworkCaller(client: client);
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        home: ModuloAtribuicaoScreen(
+          networkCaller: caller,
+          initialTipo: 'parceiro',
+          initialId: 55,
+          initialNome: 'Cliente Trial Login',
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // Abre diretamente no formulario com o parceiro carregado
+      expect(find.text('Atribuicao de Modulos'), findsOneWidget);
+      expect(find.text('Encontrado: Cliente Trial Login'), findsOneWidget);
     });
   });
 }

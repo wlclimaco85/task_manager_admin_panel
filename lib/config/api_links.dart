@@ -282,6 +282,8 @@ class ApiLinks {
   static String empresaModulos(String empresaId) =>
       '$_baseUrl/api/empresa-modulo?empresaId=$empresaId';
   static String get vincularEmpresaModulos => '$_baseUrl/api/empresa-modulo';
+  static String get modulosAtribuidosResumo =>
+      '$_baseUrl/api/modulo-atribuicao/resumo';
 
   // Fase 3 - DASH-01 (agregacoes MASTER-only, contagem por mes)
   static String parceirosPorMes({int meses = 12}) =>
