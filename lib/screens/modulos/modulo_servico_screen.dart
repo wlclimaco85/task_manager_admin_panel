@@ -20,8 +20,8 @@ class ModuloServicoScreen extends StatelessWidget {
       title: 'Modulos (catalogo)',
       fetchEndpoint: ApiLinks.allModulosServico,
       createEndpoint: ApiLinks.createModuloServico,
-      updateEndpoint: ApiLinks.allModulosServico,
-      deleteEndpoint: ApiLinks.allModulosServico,
+      updateEndpoint: '${ApiLinks.createModuloServico}/:id',
+      deleteEndpoint: '${ApiLinks.createModuloServico}/:id',
       fieldConfigs: _fields,
     );
   }

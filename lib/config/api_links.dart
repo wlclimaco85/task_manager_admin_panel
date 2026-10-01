@@ -313,4 +313,10 @@ class ApiLinks {
   static String get dropdownParceiros => '$_baseUrl/api/parceiro?tamanho=500';
   static String get dropdownEmpresas => '$_baseUrl/api/empresa?tamanho=500';
   static String get dropdownSetores => '$_baseUrl/api/setor?tamanho=500';
+
+  // Trial e Termos SaaS
+  static String get trialSolicitacoes => '$_baseUrl/api/admin/trial/solicitacoes';
+  static String trialSolicitacaoStatus(int id) => '$_baseUrl/api/admin/trial/solicitacoes/$id/status';
+  static String get trialTermos => '$_baseUrl/api/admin/trial/termos';
+  static String trialTermo(int id) => '$_baseUrl/api/admin/trial/termos/$id';
 }

@@ -12,6 +12,8 @@ import 'modulos/modulo_atribuicao_screen.dart';
 import 'modulos/modulo_servico_screen.dart';
 import 'fiscal/nfse_admin_screen.dart';
 import 'monitoramento/sistema_logs_screen.dart';
+import 'modulos/trial_solicitacoes_screen.dart';
+import 'modulos/termo_contrato_saas_screen.dart';
 import 'sistema/sistema_menu_screen.dart';
 
 /// Shell pos-login do Painel do Dono. Fase 3: os 5 modulos reais (Licenca,
@@ -158,6 +160,32 @@ class HomeScreen extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const ModuloAtribuicaoScreen(),
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    key: const Key('home_trial_solicitacoes_tile'),
+                    leading: const Icon(Icons.person_add_alt_1_outlined),
+                    title: const Text('Solicitações de Trial'),
+                    subtitle: const Text(
+                        'Aprovar ou rejeitar solicitações do site público.'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const TrialSolicitacoesScreen(),
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    key: const Key('home_termo_contrato_tile'),
+                    leading: const Icon(Icons.gavel_outlined),
+                    title: const Text('Termos de Contrato'),
+                    subtitle: const Text(
+                        'Cadastro de Termos de Contrato SaaS (uso no App e Painel).'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const TermoContratoSaasScreen(),
                       ),
                     ),
                   ),

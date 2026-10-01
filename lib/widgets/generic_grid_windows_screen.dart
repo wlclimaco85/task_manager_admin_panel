@@ -2550,7 +2550,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
       child: Container(
         constraints: const BoxConstraints(maxWidth: 760),
         decoration: BoxDecoration(
-          color: GridColors.dialogBackground,
+          color: Theme.of(context).colorScheme.surface,
           shape: BoxShape.rectangle,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(color: GridColors.divider),
