@@ -22,9 +22,11 @@ COPY . .
 
 # Build with configurable backend URL
 ARG BACKEND_URL=https://appacademia-production-be7e.up.railway.app
-RUN echo "Building with BACKEND_URL=${BACKEND_URL}" && \
+ARG BACKEND_CONTEXT_PATH=""
+RUN echo "Building with BACKEND_URL=${BACKEND_URL} and BACKEND_CONTEXT_PATH=${BACKEND_CONTEXT_PATH}" && \
     flutter build web --release --no-tree-shake-icons \
-        --dart-define=BACKEND_URL=${BACKEND_URL} && \
+        --dart-define=BACKEND_URL=${BACKEND_URL} \
+        --dart-define=BACKEND_CONTEXT_PATH=${BACKEND_CONTEXT_PATH} && \
     echo "✅ Build OK"
 
 # Runtime stage - serve with nginx
