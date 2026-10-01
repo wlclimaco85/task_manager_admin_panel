@@ -141,11 +141,14 @@ class _QueryBuilderScreenState extends State<QueryBuilderScreen> {
       _executando = false;
       _totalRegistros = (resultado['totalLinhas'] as num?)?.toInt() ?? 0;
       _colunasResultado = colunas is List
-          ? colunas
-              .map((c) => c is Map
+          ? colunas.map((c) {
+              final base = c is Map
                   ? Map<String, dynamic>.from(c)
-                  : <String, dynamic>{'column_name': c.toString()})
-              .toList()
+                  : <String, dynamic>{'column_name': c.toString()};
+              base['nome'] ??= base['column_name']?.toString();
+              base['tipo'] ??= base['data_type']?.toString();
+              return base;
+            }).toList()
           : [];
       _linhasResultado = linhas is List
           ? linhas.map((l) => l is List ? l : <dynamic>[]).toList()
@@ -332,7 +335,7 @@ class _QueryBuilderScreenState extends State<QueryBuilderScreen> {
         child: DataTable(
           columns: [
             for (final col in _colunasResultado)
-              DataColumn(label: Text(col['column_name']?.toString() ?? '?')),
+              DataColumn(label: Text(col['nome']?.toString() ?? col['column_name']?.toString() ?? '?')),
           ],
           rows: [
             for (final linha in _linhasResultado)
