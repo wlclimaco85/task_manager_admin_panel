@@ -223,7 +223,7 @@ class ApiLinks {
 
   // SIS-06 Permissoes
   static String get allRolePermissoes => '$_baseUrl/api/role-permissao/all';
-  static String get allRoles => '$_baseUrl/api/role';
+  static String get allRoles => '$_baseUrl/api/role?tamanho=10000';
   static String updateRolePermissao(String roleId, String telaNomeEncoded) =>
       '$_baseUrl/api/role-permissao/$roleId/$telaNomeEncoded';
   static String get batchRolePermissao => '$_baseUrl/api/role-permissao/batch';
