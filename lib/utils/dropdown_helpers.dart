@@ -176,6 +176,18 @@ class DropdownHelpers {
         item['nome'] =
             item['razaoSocial'] ?? item['descricao'] ?? item['email'] ?? item['id']?.toString() ?? '';
       }
+      // Extrai empresa.nome e empresa.cnpj para exibição no popup de parceiros
+      final empresa = item['empresa'];
+      if (empresa is Map) {
+        if (item['empresaNome'] == null || item['empresaNome'].toString().isEmpty) {
+          item['empresaNome'] = empresa['nome']?.toString() ?? empresa['razaoSocial']?.toString() ?? '';
+        }
+        // Só sobrescreve cnpj se ainda não veio no nível raiz
+        if ((item['cnpj'] == null || item['cnpj'].toString().isEmpty) &&
+            empresa['cnpj'] != null && empresa['cnpj'].toString().isNotEmpty) {
+          item['cnpj'] = empresa['cnpj'].toString();
+        }
+      }
       return item;
     }).toList();
     return PaginaDropdown(items, total);

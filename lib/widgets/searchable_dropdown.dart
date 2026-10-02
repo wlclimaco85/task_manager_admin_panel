@@ -605,15 +605,19 @@ class _InlineSearchPopoverState extends State<_InlineSearchPopover> {
                                       color: isSelected
                                           ? primary
                                           : GridColors.textSecondary)),
-                              subtitle: (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim().isNotEmpty
-                                  ? Text(
-                                      (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim(),
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Color(0xFF757575),
-                                      ),
-                                    )
-                                  : null,
+                              subtitle: () {
+                                final doc = (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim();
+                                final emp = (o['empresaNome'] ?? '').toString().trim();
+                                if (doc.isEmpty && emp.isEmpty) return null;
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (doc.isNotEmpty) Text(doc, style: const TextStyle(fontSize: 10, color: Color(0xFF757575))),
+                                    if (emp.isNotEmpty) Text(emp, style: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E))),
+                                  ],
+                                );
+                              }(),
                               onTap: () =>
                                   widget.onSelected(_DropResult(val, o)),
                             );
@@ -1014,17 +1018,32 @@ class _SearchDialogState extends State<_SearchDialog> {
                                       : Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
-                              subtitle: doc.isNotEmpty
-                                  ? Text(
-                                      doc,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: isDark
-                                            ? const Color(0xFF8B99B3)
-                                            : Colors.grey.shade600,
+                              subtitle: () {
+                                final emp = (o['empresaNome'] ?? '').toString().trim();
+                                if (doc.isEmpty && emp.isEmpty) return null;
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (doc.isNotEmpty)
+                                      Text(
+                                        doc,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? const Color(0xFF8B99B3) : Colors.grey.shade600,
+                                        ),
                                       ),
-                                    )
-                                  : null,
+                                    if (emp.isNotEmpty)
+                                      Text(
+                                        emp,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? const Color(0xFF6B7280) : Colors.grey.shade500,
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }(),
                               onTap: () => Navigator.of(context)
                                   .pop(_DropResult(val, o)),
                             );
