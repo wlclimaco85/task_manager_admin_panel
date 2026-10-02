@@ -3173,7 +3173,7 @@ class _GenericGridScreenState<T> extends State<GenericGridScreen<T>> {
                     if (isLoading)
                       Positioned.fill(
                         child: Container(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: GridColors.background.withValues(alpha: 0.7),
                           child: const Center(
                             child: CircularProgressIndicator(
                               color: GridColors.primary,

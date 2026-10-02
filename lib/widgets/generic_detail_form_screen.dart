@@ -716,7 +716,7 @@ class _GenericDetailFormScreenState extends State<GenericDetailFormScreen>
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF6F8FB),
+          backgroundColor: GridColors.background,
           appBar: AppBar(
             title: Text(tela.titulo),
             backgroundColor: GridColors.primary,
@@ -1187,7 +1187,7 @@ class _GenericDetailFormScreenState extends State<GenericDetailFormScreen>
       InputDecoration(
         labelText: label + (req ? ' *' : ''),
         filled: true,
-        fillColor: const Color(0xFFFBFCFE),
+        fillColor: GridColors.inputBackground,
         labelStyle: const TextStyle(color: GridColors.textSecondary),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
         enabledBorder: OutlineInputBorder(
@@ -1268,7 +1268,7 @@ class _GenericDetailFormScreenState extends State<GenericDetailFormScreen>
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBFCFE),
+                  color: GridColors.inputBackground,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: GridColors.divider),
                 ),
@@ -1425,7 +1425,7 @@ class _GenericDetailFormScreenState extends State<GenericDetailFormScreen>
         padding: const EdgeInsets.only(bottom: 16),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFBFCFE),
+            color: GridColors.card,
             border: Border.all(color: GridColors.divider),
             borderRadius: BorderRadius.circular(6),
           ),

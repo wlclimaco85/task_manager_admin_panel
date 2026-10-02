@@ -504,7 +504,7 @@ class _InlineSearchPopoverState extends State<_InlineSearchPopover> {
     return Material(
       elevation: 6,
       borderRadius: BorderRadius.circular(8),
-      color: Colors.white,
+      color: GridColors.dialogBackground,
       child: Container(
         width: widget.width,
         constraints: BoxConstraints(maxHeight: widget.maxHeight),
@@ -604,7 +604,7 @@ class _InlineSearchPopoverState extends State<_InlineSearchPopover> {
                                           : FontWeight.normal,
                                       color: isSelected
                                           ? primary
-                                          : const Color(0xFF212121))),
+                                          : GridColors.textSecondary)),
                               subtitle: (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim().isNotEmpty
                                   ? Text(
                                       (o['cnpj'] ?? o['cpf'] ?? o['documento'] ?? '').toString().trim(),
