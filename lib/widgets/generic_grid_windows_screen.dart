@@ -655,25 +655,25 @@ class FieldFactory {
   }) {
     switch (config.fieldType) {
       case FieldType.number:
-        return _buildNumberField(config, controller);
+        return _buildNumberField(config, controller, context);
       case FieldType.email:
-        return _buildEmailField(config, controller);
+        return _buildEmailField(config, controller, context);
       case FieldType.date:
         return _buildDateField(config, controller, context);
       case FieldType.password:
-        return _buildPasswordField(config, controller);
+        return _buildPasswordField(config, controller, context);
       case FieldType.phone:
-        return _buildPhoneField(config, controller);
+        return _buildPhoneField(config, controller, context);
       case FieldType.cpf:
-        return _buildCpfField(config, controller);
+        return _buildCpfField(config, controller, context);
       case FieldType.cnpj:
-        return _buildCnpjField(config, controller);
+        return _buildCnpjField(config, controller, context);
       case FieldType.cpfCnpj:
-        return _buildCpfCnpjField(config, controller);
+        return _buildCpfCnpjField(config, controller, context);
       case FieldType.cep:
         return _buildCepField(config, controller, context);
       case FieldType.multiline:
-        return _buildMultilineField(config, controller);
+        return _buildMultilineField(config, controller, context);
       case FieldType.dropdown:
         final dependsOnCtrl =
             config.dependsOnField != null && allControllers != null
@@ -685,24 +685,25 @@ class FieldFactory {
         return _buildFileField(config, controller, fileCache, context,
             onFileChanged: onFileChanged);
       case FieldType.boolean:
-        return _buildBooleanField(config, controller);
+        return _buildBooleanField(config, controller, context);
       case FieldType.currency:
-        return _buildCurrencyField(config, controller);
+        return _buildCurrencyField(config, controller, context);
       case FieldType.percentage:
-        return _buildPercentageField(config, controller);
+        return _buildPercentageField(config, controller, context);
       case FieldType.url:
-        return _buildUrlField(config, controller);
+        return _buildUrlField(config, controller, context);
       case FieldType.multiselect:
         return _buildMultiselectField(
             config, controller, dropdownCache, context);
       default:
-        return _buildTextField(config, controller);
+        return _buildTextField(config, controller, context);
     }
   }
 
   static Widget _buildNumberField(
     FieldConfigWindows config,
     TextEditingController controller,
+    BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -739,6 +740,7 @@ class FieldFactory {
   static Widget _buildEmailField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -778,6 +780,7 @@ class FieldFactory {
   static Widget _buildPasswordField(
     FieldConfigWindows config,
     TextEditingController controller,
+    BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -798,6 +801,7 @@ class FieldFactory {
   static Widget _buildPhoneField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -819,6 +823,7 @@ class FieldFactory {
   static Widget _buildCpfField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -843,6 +848,7 @@ class FieldFactory {
   static Widget _buildCnpjField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -867,6 +873,7 @@ class FieldFactory {
   static Widget _buildCpfCnpjField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -977,6 +984,7 @@ class FieldFactory {
   static Widget _buildTextField(
     FieldConfigWindows config,
     TextEditingController controller,
+    BuildContext context,
   ) {
     // Detecta campos CPF/CNPJ pelo nome mesmo que o tipo seja text
     final fn = config.fieldName.toLowerCase();
@@ -996,6 +1004,7 @@ class FieldFactory {
   static Widget _buildMultilineField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -1008,6 +1017,7 @@ class FieldFactory {
   static Widget _buildBooleanField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return StatefulBuilder(
       builder: (context, setState) {
@@ -1147,7 +1157,7 @@ class FieldFactory {
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
               'Extensões permitidas: ${fileConfig.allowedExtensions.join(', ')}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).appColors.onSurface,
               ),
@@ -1292,6 +1302,7 @@ class FieldFactory {
   static Widget _buildCurrencyField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -1312,6 +1323,7 @@ class FieldFactory {
   static Widget _buildPercentageField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -1332,6 +1344,7 @@ class FieldFactory {
   static Widget _buildUrlField(
     FieldConfigWindows config,
     TextEditingController controller,
+   BuildContext context,
   ) {
     return TextFormField(
       controller: controller,
@@ -2526,6 +2539,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
     StateSetter setDialogState,
   ) {
     final preFilledFields0 = preFilledFields;
+    final appColors = Theme.of(context).extension<AppColors>() ?? AppColors.dark;
 
     // Configura callback do CEP para preencher campos de endereço
     FieldFactory._cepResultCallback = (data) {
@@ -2551,10 +2565,10 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
       child: Container(
         constraints: const BoxConstraints(maxWidth: 760),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: appColors.surface,
           shape: BoxShape.rectangle,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: GridColors.divider),
+          border: Border.all(color: appColors.outline),
           boxShadow: const [
             BoxShadow(
               color: GridColors.shadow,
@@ -2571,8 +2585,8 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: const BoxDecoration(
-                  color: GridColors.primary,
+                decoration: BoxDecoration(
+                  color: appColors.surfaceVariant,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(6),
                     topRight: Radius.circular(6),
@@ -2580,23 +2594,23 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.edit_note,
-                        color: GridColors.textPrimary, size: 20),
+                    Icon(Icons.edit_note,
+                        color: appColors.onSurface, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         item == null ? GridTexts.newItem : GridTexts.editItem,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: GridColors.textPrimary,
+                          color: appColors.onSurface,
                         ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close,
-                          color: GridColors.textPrimary, size: 18),
+                      icon: Icon(Icons.close,
+                          color: appColors.onSurface, size: 18),
                       padding: EdgeInsets.zero,
                       constraints:
                           const BoxConstraints.tightFor(width: 32, height: 32),
@@ -2727,9 +2741,9 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                 return [mainField];
               }),
               const SizedBox(height: 10),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 18),
-                child: Divider(height: 1, color: GridColors.divider),
+                child: Divider(height: 1, color: appColors.outline),
               ),
               const SizedBox(height: 14),
               Row(
@@ -2738,7 +2752,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      foregroundColor: GridColors.textSecondary,
+                      foregroundColor: appColors.onSurface.withValues(alpha: 0.7),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 10,
@@ -2752,8 +2766,8 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                         ? null
                         : () => _saveItem(item, controllers, context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: GridColors.secondary,
-                      foregroundColor: GridColors.card,
+                      backgroundColor: appColors.primary,
+                      foregroundColor: appColors.onPrimary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -6025,6 +6039,7 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>() ?? AppColors.dark;
     final filtered = _query.isEmpty
         ? widget.options
         : widget.options
@@ -6034,7 +6049,7 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
             .toList();
 
     return Dialog(
-      backgroundColor: GridColors.dialogBackground,
+      backgroundColor: appColors.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: SizedBox(
@@ -6052,19 +6067,19 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
                 style: const TextStyle(fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Buscar...',
-                  prefixIcon: const Icon(Icons.search,
-                      size: 18, color: GridColors.inputBorder),
+                  prefixIcon: Icon(Icons.search,
+                      size: 18, color: appColors.outline),
                   isDense: true,
                   filled: true,
-                  fillColor: GridColors.card,
+                  fillColor: appColors.surface,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: GridColors.divider)),
+                      borderSide: BorderSide(color: appColors.outline)),
                   enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: GridColors.divider)),
+                      borderSide: BorderSide(color: appColors.outline)),
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide:
@@ -6073,7 +6088,7 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
                 onChanged: (v) => setState(() => _query = v),
               ),
             ),
-            const Divider(height: 1, color: GridColors.divider),
+            Divider(height: 1, color: appColors.outline),
             // Lista de opções
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 280),
@@ -6092,7 +6107,7 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
                     onTap: () =>
                         Navigator.pop(context, {widget.vf: '', widget.df: ''}),
                   ),
-                  const Divider(height: 1, color: GridColors.divider),
+                  Divider(height: 1, color: appColors.outline),
                   ...filtered.map((opt) {
                     final lbl = opt[widget.df]?.toString() ??
                         opt[widget.vf]?.toString() ??
@@ -6118,7 +6133,7 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
                 ],
               ),
             ),
-            const Divider(height: 1, color: GridColors.divider),
+            Divider(height: 1, color: appColors.outline),
             // Botão cancelar
             Align(
               alignment: Alignment.centerRight,
