@@ -351,7 +351,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     final empresaId = _idCarregado!;
     final empresaNome = _nomeEncontrado ?? 'Beneficiário #$empresaId';
 
-    await showDialog<bool>(
+    final ok = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) => LicencaWizardDialog(
@@ -363,6 +363,14 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         networkCaller: _caller,
       ),
     );
+
+    if (ok == true && mounted) {
+      if (_exibindoFormulario && _idCarregado != null) {
+        await _carregar(_idCarregado);
+      } else {
+        await _carregarGradeResumo();
+      }
+    }
   }
 
   Future<void> _carregar([int? idManual]) async {
