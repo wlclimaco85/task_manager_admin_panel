@@ -5233,7 +5233,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                     if (isLoading)
                       Positioned.fill(
                         child: Container(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: GridColors.background.withValues(alpha: 0.7),
                           child: const Center(
                             child: CircularProgressIndicator(
                               color: GridColors.primary,
@@ -5497,7 +5497,9 @@ class _SearchableDropdownWindowsState
             labelText: label,
             labelStyle: const TextStyle(fontSize: 13),
             filled: true,
-            fillColor: isDisabled ? const Color(0xFFF5F5F5) : Colors.white,
+            fillColor: isDisabled
+                ? GridColors.disabledBackground
+                : GridColors.inputBackground,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: GridColors.primary, width: 2),
@@ -5523,7 +5525,7 @@ class _SearchableDropdownWindowsState
                   ? Colors.grey
                   : isDisabled
                       ? Colors.grey
-                      : const Color(0xFF212121),
+                      : GridColors.textSecondary,
               overflow: TextOverflow.ellipsis,
             ),
             maxLines: 1,
@@ -5807,7 +5809,7 @@ class RemoteDropdownSearchDialogState
                                         : FontWeight.normal,
                                     color: isSelected
                                         ? GridColors.primary
-                                        : const Color(0xFF212121),
+                                        : GridColors.textSecondary,
                                   )),
                               onTap: () => Navigator.of(context).pop(o),
                             );
@@ -5994,7 +5996,7 @@ class _DropdownSearchDialogState extends State<_DropdownSearchDialog> {
                                     : FontWeight.normal,
                                 color: isSelected
                                     ? GridColors.primary
-                                    : const Color(0xFF212121),
+                                    : GridColors.textSecondary,
                               )),
                           onTap: () => Navigator.of(context).pop(o),
                         );
