@@ -70,9 +70,11 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
     try {
       // 1. Carregar Roles
       final resRoles = await _caller.getRequest(ApiLinks.allRoles);
-      // 2. Carregar Usuários da Empresa
+      // 2. Carregar Usuários da Empresa / Parceiro
       final urlLogins = widget.tipoAlvo == 'parceiro'
-          ? ApiLinks.loginsByEmpresa((widget.empresaMatrizId ?? widget.empresaId).toString())
+          ? (widget.empresaMatrizId != null
+              ? '${ApiLinks.baseUrl}/api/logins?parcId=${widget.empresaId}&empId=${widget.empresaMatrizId}'
+              : ApiLinks.loginsByParceiro(widget.empresaId.toString()))
           : ApiLinks.loginsByEmpresa(widget.empresaId.toString());
       final resLogins = await _caller.getRequest(urlLogins);
 
@@ -93,6 +95,12 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
           ? GenericGridWindowsScreen.extractRows(resLogins.body)
           : <dynamic>[];
       final usuarios = loginsRaw.map((u) => Map<String, dynamic>.from(u)).toList();
+
+      final usuariosIds = <int>{};
+      for (final u in usuarios) {
+        final id = u['id'] is int ? u['id'] as int : int.tryParse(u['id']?.toString() ?? '');
+        if (id != null) usuariosIds.add(id);
+      }
 
       // Procurar se já existe role correspondente aos módulos da licença
       int? roleEncontradaId;
@@ -133,6 +141,8 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
         _roleSelecionadaNome = roleEncontradaNome;
         _roleCompativelEncontrada = compativel;
         _usuarios = usuarios;
+        _usuariosSelecionadosIds.clear();
+        _usuariosSelecionadosIds.addAll(usuariosIds);
       });
     } catch (e) {
       if (mounted) {

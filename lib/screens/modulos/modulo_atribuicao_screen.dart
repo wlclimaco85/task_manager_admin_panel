@@ -327,6 +327,26 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     return marcados.fold<double>(0.0, (acc, m) => acc + _getValorModulo(m));
   }
 
+  Future<bool> _salvarSilencioso() async {
+    if (_idCarregado == null) return false;
+    final id = _idCarregado!;
+
+    final url = _tipo == 'parceiro'
+        ? ApiLinks.vincularParceiroModulos
+        : ApiLinks.vincularEmpresaModulos;
+    final body = <String, dynamic>{
+      _tipo == 'parceiro' ? 'parceiroId' : 'empresaId': id,
+      'moduloIds': _moduloIdsMarcados.toList(),
+    };
+
+    try {
+      final response = await _caller.postRequest(url, body);
+      return response.isSuccess;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _abrirWizardLicenca() async {
     if (_idCarregado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -338,6 +358,9 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
       );
       return;
     }
+
+    // Persiste os módulos marcados para o parceiro/empresa no banco de dados
+    await _salvarSilencioso();
 
     final modulosNomes = _catalogo
         .where((m) {
@@ -365,6 +388,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     );
 
     if (ok == true && mounted) {
+      // Re-persiste e recarrega os dados completos da tela após concessão
+      await _salvarSilencioso();
       if (_exibindoFormulario && _idCarregado != null) {
         await _carregar(_idCarregado);
       } else {
