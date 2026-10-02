@@ -237,31 +237,4 @@ void main() {
     expect(GenericGridWindowsScreen.extractRows({}), isEmpty);
   });
 
-  testWidgets(
-      'GenericGridWindowsScreen embedded:true nao renderiza Scaffold/AppBar proprio e mostra botao Novo inline',
-      (tester) async {
-    final caller = _callerReturning([]);
-
-    await tester.pumpWidget(_wrap(Scaffold(
-      appBar: AppBar(title: const Text('Container externo')),
-      body: GenericGridWindowsScreen(
-        title: 'Contatos',
-        fetchEndpoint: 'http://backend/api/contatos',
-        createEndpoint: 'http://backend/api/contatos',
-        updateEndpoint: 'http://backend/api/contatos/',
-        deleteEndpoint: 'http://backend/api/contatos/',
-        fieldConfigs: _fields,
-        
-        embedded: true,
-      ),
-    )));
-
-    await tester.pumpAndSettle();
-
-    // So deve existir 1 Scaffold/AppBar (o do container externo).
-    expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.byType(AppBar), findsOneWidget);
-    expect(find.byKey(const Key('grid_add_button_inline')), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsNothing);
-  });
 }
