@@ -12,6 +12,7 @@ class LicencaWizardDialog extends StatefulWidget {
   final int empresaId;
   final String empresaNome;
   final String tipoAlvo; // 'empresa' ou 'parceiro'
+  final int? empresaMatrizId;
   final List<String> modulosNomes;
   final NetworkCaller? networkCaller;
 
@@ -21,6 +22,7 @@ class LicencaWizardDialog extends StatefulWidget {
     required this.empresaNome,
     required this.modulosNomes,
     this.tipoAlvo = 'empresa',
+    this.empresaMatrizId,
     this.networkCaller,
   });
 
@@ -70,7 +72,7 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
       final resRoles = await _caller.getRequest(ApiLinks.allRoles);
       // 2. Carregar Usuários da Empresa
       final urlLogins = widget.tipoAlvo == 'parceiro'
-          ? ApiLinks.loginsByParceiro(widget.empresaId.toString())
+          ? ApiLinks.loginsByEmpresa((widget.empresaMatrizId ?? widget.empresaId).toString())
           : ApiLinks.loginsByEmpresa(widget.empresaId.toString());
       final resLogins = await _caller.getRequest(urlLogins);
 

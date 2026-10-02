@@ -63,6 +63,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
 
   int? _idCarregado;
   String? _nomeEncontrado;
+  int? _empresaMatrizId;
   List<Map<String, dynamic>> _catalogo = [];
   final Set<int> _moduloIdsMarcados = <int>{};
 
@@ -358,6 +359,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         empresaNome: empresaNome,
         modulosNomes: modulosNomes,
         tipoAlvo: _tipo,
+        empresaMatrizId: _empresaMatrizId,
         networkCaller: _caller,
       ),
     );
@@ -434,10 +436,19 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     final vinculados = GenericGridWindowsScreen.extractRows(resVinculados.body);
     final idsVinculados = vinculados.map(_extractId).whereType<int>().toSet();
 
+    int? matrizId;
+    if (_tipo == 'parceiro' && registro.containsKey('empresa') && registro['empresa'] != null) {
+      final emp = registro['empresa'];
+      if (emp is Map && emp['id'] != null) {
+        matrizId = emp['id'] is int ? emp['id'] : int.tryParse(emp['id'].toString());
+      }
+    }
+
     setState(() {
       _carregando = false;
       _idCarregado = idParaCarregar;
       _nomeEncontrado = _labelDoRegistro(registro);
+      _empresaMatrizId = matrizId;
       _catalogo = catalogo;
       _moduloIdsMarcados
         ..clear()
