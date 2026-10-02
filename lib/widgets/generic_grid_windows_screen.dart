@@ -12,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/grid_colors.dart';
+import '../core/theme/app_theme.dart';
 import '../utils/grid_texts.dart';
 
 import 'package:task_manager_admin_panel/utils/app_logger.dart';
@@ -706,7 +707,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       inputFormatters: [
         NumberInputFormatter(
           decimalDigits: config.fieldSpecificConfig?['decimalDigits'] ?? 2,
@@ -742,7 +743,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.emailAddress,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       validator: (value) {
         if (config.isRequired && (value == null || value.isEmpty)) {
           return '${config.label} é obrigatório';
@@ -762,7 +763,7 @@ class FieldFactory {
   ) {
     return TextFormField(
       controller: controller,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       readOnly: true,
       onTap: () => _selectDate(context, controller),
       validator: (value) {
@@ -781,7 +782,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       obscureText: true,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       validator: (value) {
         if (config.isRequired && (value == null || value.isEmpty)) {
           return '${config.label} é obrigatório';
@@ -801,7 +802,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.phone,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       inputFormatters: [PhoneInputFormatter()],
       validator: (value) {
         if (config.isRequired && (value == null || value.isEmpty)) {
@@ -822,7 +823,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.number,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
         CpfInputFormatter(),
@@ -846,7 +847,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.number,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
         CnpjInputFormatter(),
@@ -870,7 +871,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.text,
-      decoration: _buildInputDecoration(config).copyWith(
+      decoration: _buildInputDecoration(config, context).copyWith(
         hintText: 'CPF ou CNPJ',
       ),
       validator: (value) {
@@ -894,7 +895,7 @@ class FieldFactory {
           child: TextFormField(
             controller: controller,
             keyboardType: TextInputType.number,
-            decoration: _buildInputDecoration(config).copyWith(
+            decoration: _buildInputDecoration(config, context).copyWith(
               hintText: '00000-000',
             ),
             inputFormatters: [
@@ -983,7 +984,7 @@ class FieldFactory {
 
     return TextFormField(
       controller: controller,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       maxLines: config.maxLines,
       keyboardType: isCpfCnpj ? TextInputType.number : null,
       inputFormatters:
@@ -998,7 +999,7 @@ class FieldFactory {
   ) {
     return TextFormField(
       controller: controller,
-      decoration: _buildInputDecoration(config),
+      decoration: _buildInputDecoration(config, context),
       maxLines: config.maxLines,
       validator: config.validator,
     );
@@ -1148,7 +1149,7 @@ class FieldFactory {
               'Extensões permitidas: ${fileConfig.allowedExtensions.join(', ')}',
               style: const TextStyle(
                 fontSize: 12,
-                color: GridColors.textSecondary,
+                color: Theme.of(context).appColors.onSurface,
               ),
             ),
           ),
@@ -1188,11 +1189,11 @@ class FieldFactory {
     }
   }
 
-  static InputDecoration _buildInputDecoration(FieldConfigWindows config) {
+  static InputDecoration _buildInputDecoration(FieldConfigWindows config, BuildContext context) {
     return InputDecoration(
       labelText: config.label + (config.isRequired ? ' *' : ''),
       labelStyle:
-          const TextStyle(color: GridColors.textSecondary, fontSize: 13),
+          TextStyle(color: Theme.of(context).appColors.onSurface, fontSize: 13),
       isDense: true,
       filled: true,
       fillColor: GridColors.inputBackground,
@@ -1295,7 +1296,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: _buildInputDecoration(config).copyWith(
+      decoration: _buildInputDecoration(config, context).copyWith(
         prefixIcon: const Icon(Icons.attach_money),
       ),
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d,\.]'))],
@@ -1315,7 +1316,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: _buildInputDecoration(config).copyWith(
+      decoration: _buildInputDecoration(config, context).copyWith(
         suffixIcon: const Icon(Icons.percent),
       ),
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d,\.]'))],
@@ -1335,7 +1336,7 @@ class FieldFactory {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.url,
-      decoration: _buildInputDecoration(config).copyWith(
+      decoration: _buildInputDecoration(config, context).copyWith(
         prefixIcon: const Icon(Icons.link_outlined),
       ),
       validator: (value) {
@@ -1514,7 +1515,7 @@ class _MultiSelectFieldState extends State<_MultiSelectField> {
   Widget build(BuildContext context) {
     if (_loadingOptions) {
       return InputDecorator(
-        decoration: FieldFactory._buildInputDecoration(widget.config).copyWith(
+        decoration: FieldFactory._buildInputDecoration(widget.config, context).copyWith(
           suffixIcon: const SizedBox(
               width: 16,
               height: 16,
@@ -1531,7 +1532,7 @@ class _MultiSelectFieldState extends State<_MultiSelectField> {
       onTap: _openDialog,
       borderRadius: BorderRadius.circular(8),
       child: InputDecorator(
-        decoration: FieldFactory._buildInputDecoration(widget.config).copyWith(
+        decoration: FieldFactory._buildInputDecoration(widget.config, context).copyWith(
           suffixIcon:
               const Icon(Icons.arrow_drop_down, color: GridColors.primary),
         ),
@@ -2763,12 +2764,12 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                       ),
                     ),
                     child: _isUpdating
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                              valueColor: AlwaysStoppedAnimation(Theme.of(context).appColors.onSurface),
                             ),
                           )
                         : const Text("SALVAR"),
@@ -4214,8 +4215,8 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: GridColors.textSecondary,
+          style: TextStyle(
+            color: Theme.of(context).appColors.onSurface,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -4250,7 +4251,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
           onPressed: () => _loadItems(_currentPage, rowsPerPage),
           icon: const Icon(Icons.refresh, size: 20),
           tooltip: 'Recarregar',
-          color: GridColors.textSecondary,
+          color: Theme.of(context).appColors.onSurface,
           padding: EdgeInsets.zero,
         ),
       );
@@ -4579,7 +4580,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                 : Text(
                     'Nenhum arquivo',
                     style: TextStyle(
-                      color: GridColors.textSecondary.withValues(alpha: 0.5),
+                      color: Theme.of(context).appColors.onSurface.withValues(alpha: 0.5),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -5045,16 +5046,17 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>() ?? AppColors.dark;
     final fixedColumnsCount = widget.fieldConfigs.where(
         (c) => _columnVisibility[c.fieldName] == true && c.isFixed).length;
 
     return Scaffold(
-      backgroundColor: GridColors.background,
+      backgroundColor: appColors.background,
       appBar: widget.showAppBar
           ? AppBar(
               title: Text(widget.title),
-              backgroundColor: GridColors.primary,
-              foregroundColor: GridColors.card,
+              backgroundColor: appColors.surface,
+              foregroundColor: appColors.onSurface,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.help_outline),
@@ -5067,8 +5069,8 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                     widget.buttonPermissions['export']!)
                   IconButton(
                     icon: _isExporting
-                        ? const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ? CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation(appColors.onSurface),
                           )
                         : const Icon(Icons.download),
                     onPressed: _isExporting ? null : _exportToCsv,
@@ -5090,8 +5092,8 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                     Container(
                       margin: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
-                        color: GridColors.card,
-                        border: Border.all(color: GridColors.divider),
+                        color: appColors.surface,
+                        border: Border.all(color: appColors.outline),
                       ),
                       child: PaginatedDataTable2(
                         columnSpacing: 10,
@@ -5109,20 +5111,21 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                         renderEmptyRowsInTheEnd: false,
                         initialFirstRowIndex: _currentPage * rowsPerPage,
                         headingRowColor:
-                            WidgetStateProperty.all(GridColors.gridHeader),
-                        headingTextStyle: const TextStyle(
-                          color: GridColors.textSecondary,
+                            WidgetStateProperty.all(appColors.surfaceVariant),
+                        headingTextStyle: TextStyle(
+                          color: appColors.onSurface,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
-                        dataTextStyle: const TextStyle(
-                          color: GridColors.textSecondary,
+                        dataTextStyle: TextStyle(
+                          color: appColors.onSurface,
                           fontSize: 12,
                         ),
                         checkboxHorizontalMargin: 6,
                         dividerThickness: 0.8,
                         columns: _buildColumns(),
                         source: _GenericDataSource<T>(
+                          appColors: appColors,
                           items: filtered,
                           selectedRows: selectedRows,
                           cellBuilder: _buildCells,
@@ -5237,6 +5240,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
 }
 
 class _GenericDataSource<T> extends DataTableSource {
+  final AppColors appColors;
   final List<T> items;
   final Set<String> selectedRows;
   final List<DataCell> Function(T item, int index) cellBuilder;
@@ -5248,6 +5252,7 @@ class _GenericDataSource<T> extends DataTableSource {
   final int rowsPerPage;
 
   _GenericDataSource({
+    required this.appColors,
     required this.items,
     required this.selectedRows,
     required this.cellBuilder,
@@ -5273,9 +5278,9 @@ class _GenericDataSource<T> extends DataTableSource {
       selected: isSelected,
       color: WidgetStateProperty.resolveWith<Color?>((states) {
         if (states.contains(WidgetState.selected))
-          return GridColors.selectedRow;
-        if (states.contains(WidgetState.hovered)) return GridColors.hover;
-        return localIndex.isEven ? GridColors.rowEven : GridColors.rowOdd;
+          return appColors.primary.withValues(alpha: 0.15);
+        if (states.contains(WidgetState.hovered)) return appColors.surfaceVariant.withValues(alpha: 0.5);
+        return localIndex.isEven ? appColors.surface : appColors.background;
       }),
       onSelectChanged: (selected) => onSelect(localIndex, selected ?? false),
       cells: cellBuilder(item, localIndex),
@@ -6079,11 +6084,11 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
                   ListTile(
                     dense: true,
                     visualDensity: VisualDensity.compact,
-                    leading: const Icon(Icons.clear_all,
-                        size: 18, color: GridColors.textSecondary),
-                    title: const Text('Todos',
+                    leading: Icon(Icons.clear_all,
+                        size: 18, color: Theme.of(context).appColors.onSurface),
+                    title: Text('Todos',
                         style: TextStyle(
-                            fontSize: 13, color: GridColors.textSecondary)),
+                            fontSize: 13, color: Theme.of(context).appColors.onSurface)),
                     onTap: () =>
                         Navigator.pop(context, {widget.vf: '', widget.df: ''}),
                   ),
@@ -6102,12 +6107,12 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
                     );
                   }),
                   if (filtered.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       child: Center(
                         child: Text('Nenhum resultado',
                             style: TextStyle(
-                                fontSize: 12, color: GridColors.textSecondary)),
+                                fontSize: 12, color: Theme.of(context).appColors.onSurface)),
                       ),
                     ),
                 ],
@@ -6121,9 +6126,9 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar',
+                  child: Text('Cancelar',
                       style: TextStyle(
-                          color: GridColors.textSecondary, fontSize: 13)),
+                          color: Theme.of(context).appColors.onSurface, fontSize: 13)),
                 ),
               ),
             ),

@@ -10,6 +10,7 @@ import '../../services/network_caller.dart';
 import '../../utils/app_logger.dart';
 import '../../utils/dropdown_helpers.dart';
 import '../../utils/grid_colors.dart';
+import '../../core/theme/app_theme.dart';
 import '../../utils/tenant_context.dart';
 import '../../widgets/generic_grid_windows_screen.dart';
 import '../../widgets/licenca_wizard_dialog.dart';
@@ -1973,6 +1974,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
   }
 
   Widget _buildAcoesGrade() {
+    final appColors = Theme.of(context).appColors;
     final selecionados = _itensSelecionadosGrade;
     final habilitado = selecionados.isNotEmpty && !_executandoAcaoGrade;
     final parceiroUnico = selecionados.length == 1 &&
@@ -1980,7 +1982,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
             'parceiro';
 
     return Material(
-      color: const Color(0xFFF7F9FB),
+      color: appColors.surfaceVariant,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Wrap(
@@ -1991,8 +1993,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
             Text(
               '${selecionados.length} selecionado(s)',
               key: const Key('modulo_atribuicao_selecionados_label'),
-              style: const TextStyle(
-                color: Color(0xFF263238),
+              style: TextStyle(
+                color: appColors.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -2086,6 +2088,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
   }
 
   Widget _buildGradeView() {
+    final appColors = Theme.of(context).appColors;
     final filtro = _buscaGradeCtrl.text.trim().toLowerCase();
     final itensFiltrados = _gradeResumo.where((item) {
       if (filtro.isEmpty) return true;
@@ -2149,9 +2152,9 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: appColors.surface,
                               hintStyle:
-                                  const TextStyle(color: Color(0xFF607D8B)),
+                                  TextStyle(color: appColors.onSurfaceMuted),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide:
@@ -2172,7 +2175,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                           icon: const Icon(Icons.refresh, size: 18),
                           label: const Text('Recarregar'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF263238),
+                            foregroundColor: appColors.onSurface,
                             side: const BorderSide(color: GridColors.divider),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 14),
@@ -2235,6 +2238,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
   }
 
   Widget _buildGradeConteudoOperacional(List<Map<String, dynamic>> itens) {
+    final appColors = Theme.of(context).appColors;
     if (_carregandoGrade) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -2250,7 +2254,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
               Text(
                 _erroGrade!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFFB71C1C)),
+                style: TextStyle(color: appColors.error),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -2268,12 +2272,12 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.layers_clear_outlined,
-                size: 52, color: Color(0xFF607D8B)),
+            Icon(Icons.layers_clear_outlined,
+                size: 52, color: appColors.onSurfaceMuted),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Nenhum cliente ou empresa com modulos vinculados.',
-              style: TextStyle(color: Color(0xFF263238), fontSize: 16),
+              style: TextStyle(color: appColors.onSurface, fontSize: 16),
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -2297,10 +2301,10 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
           value: todosSelecionados,
           controlAffinity: ListTileControlAffinity.leading,
           dense: true,
-          title: const Text(
+          title: Text(
             'Selecionar todos os registros visiveis',
             style: TextStyle(
-              color: Color(0xFF263238),
+              color: appColors.onSurface,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -2329,6 +2333,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
   }
 
   Widget _buildLinhaGradeOperacional(Map<String, dynamic> item) {
+    final appColors = Theme.of(context).appColors;
     final tipo = (item['tipo'] ?? 'parceiro').toString().toLowerCase();
     final isParceiro = tipo == 'parceiro';
     final nome = (item['nome'] ?? 'Sem nome').toString();
@@ -2358,8 +2363,8 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
           Text(
             nome,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF17212B),
+            style: TextStyle(
+              color: appColors.onSurface,
               fontWeight: FontWeight.w700,
               fontSize: 15,
             ),
@@ -2374,7 +2379,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
             ].join(' | '),
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: bloqueado ? Colors.red.shade800 : const Color(0xFF455A64),
+              color: bloqueado ? appColors.error : appColors.onSurfaceMuted,
               fontSize: 12,
               fontWeight: bloqueado ? FontWeight.w700 : FontWeight.normal,
             ),
@@ -2439,7 +2444,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
         final compacto = constraints.maxWidth < 760;
         return ColoredBox(
           key: Key('modulo_atribuicao_linha_$tipo$id'),
-          color: selecionado ? const Color(0xFFE8F1FB) : Colors.white,
+          color: selecionado ? appColors.primary.withValues(alpha: 0.15) : appColors.surface,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: compacto
@@ -2461,7 +2466,7 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEAF0F4),
+                          color: appColors.surfaceVariant,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Icon(isParceiro
