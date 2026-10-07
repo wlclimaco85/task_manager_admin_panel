@@ -21,6 +21,13 @@ class NetworkCaller {
   final http.Client _client;
   final UnauthorizedHandler? onUnauthorized;
 
+  /// Handler global (registrado em main.dart) usado quando o NetworkCaller nao
+  /// recebeu um [onUnauthorized] proprio. Sem ele, um token expirado/revogado
+  /// (401 do JwtAuthorizationFilter: expirado, logout, sessao encerrada na
+  /// meia-noite/ociosidade) deixava as telas mostrando "(401)" e "lista nao
+  /// carregada" sem mandar o usuario para o login.
+  static UnauthorizedHandler? globalOnUnauthorized;
+
   static const _publicRoutePatterns = [
     '/rest/auth/',
     '/api/public/',
@@ -30,7 +37,7 @@ class NetworkCaller {
     if (statusCode != 401) return;
     final path = Uri.tryParse(url)?.path ?? url;
     if (_publicRoutePatterns.any((p) => path.contains(p))) return;
-    onUnauthorized?.call();
+    (onUnauthorized ?? globalOnUnauthorized)?.call();
   }
 
   Future<NetworkResponse> getRequest(String url) async {

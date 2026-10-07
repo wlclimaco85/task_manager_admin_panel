@@ -4,9 +4,11 @@ import 'core/theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_utility.dart';
+import 'utils/sessao_expirada_handler.dart';
 import 'utils/tenant_context.dart';
 
 void main() {
+  registrarTratamentoSessaoExpirada();
   runApp(const AdminPanelApp());
 }
 
@@ -16,6 +18,8 @@ class AdminPanelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: adminNavigatorKey,
+      scaffoldMessengerKey: adminMessengerKey,
       title: 'Painel do Dono - App Academia',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
