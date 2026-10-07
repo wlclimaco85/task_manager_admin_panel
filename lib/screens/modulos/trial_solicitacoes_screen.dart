@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
 import '../../services/network_caller.dart';
+import '../../utils/app_logger.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/generic_error_widget.dart';
@@ -58,16 +59,30 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
   }
 
   Future<void> _updateStatus(int id, String newStatus) async {
-    final response = await _networkCaller.putRequest(
-      ApiLinks.trialSolicitacaoStatus(id),
-      {'status': newStatus},
-    );
+    try {
+      // Corpo simples ({"status": ...}): o backend le o corpo como mapa e o
+      // enriquecimento do TenantContext (empresa/aplicativo como objetos) fazia a
+      // aprovacao falhar com erro 500/400.
+      final response = await _networkCaller.putRequest(
+        ApiLinks.trialSolicitacaoStatus(id),
+        {'status': newStatus},
+        enriquecerCorpo: false,
+      );
 
-    if (response.isSuccess && mounted) {
-      SnackbarUtils.showSuccess(context, 'Status atualizado com sucesso!');
-      _fetchSolicitacoes();
-    } else if (mounted) {
-      SnackbarUtils.showError(context, 'Falha ao atualizar status.');
+      if (response.isSuccess && mounted) {
+        SnackbarUtils.showSuccess(context, 'Status atualizado com sucesso!');
+        _fetchSolicitacoes();
+      } else if (mounted) {
+        AppLogger.i.warn(
+            'Trial #$id -> $newStatus falhou: HTTP ${response.statusCode}');
+        SnackbarUtils.showError(
+            context, 'Falha ao atualizar status (HTTP ${response.statusCode}).');
+      }
+    } catch (e, st) {
+      AppLogger.i.error('Trial #$id -> $newStatus: $e', st);
+      if (mounted) {
+        SnackbarUtils.showError(context, 'Falha ao atualizar status: $e');
+      }
     }
   }
 

@@ -53,13 +53,17 @@ class NetworkCaller {
     return _toNetworkResponse(response);
   }
 
-  Future<NetworkResponse> putRequest(
-      String url, Map<String, dynamic> body) async {
+  /// [enriquecerCorpo] = false envia o corpo exatamente como informado (sem
+  /// injetar empresa/parceiro/aplicativo). Necessario para endpoints que leem
+  /// o corpo como mapa simples (ex.: aprovar/rejeitar trial: {"status": ...}) e
+  /// recusam objetos aninhados.
+  Future<NetworkResponse> putRequest(String url, Map<String, dynamic> body,
+      {bool enriquecerCorpo = true}) async {
     final enrichedUrl = TenantContext.applyToUrl(url);
     final response = await _client.put(
       Uri.parse(enrichedUrl),
       headers: TenantContext.jsonHeaders,
-      body: jsonEncode(TenantContext.applyToBody(body)),
+      body: jsonEncode(enriquecerCorpo ? TenantContext.applyToBody(body) : body),
     );
     _handleUnauthorized(response.statusCode, enrichedUrl);
     return _toNetworkResponse(response);
