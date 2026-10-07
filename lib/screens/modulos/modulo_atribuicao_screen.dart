@@ -425,11 +425,20 @@ class ModuloAtribuicaoScreenState extends State<ModuloAtribuicaoScreen> {
     if (!mounted) return;
 
     if (!resRegistro.isSuccess) {
+      // So' 404 significa "nao encontrado"; 401 (sessao expirada) e demais
+      // falhas nao podem ser mascaradas como se o ID nao existisse.
+      final rotulo = _tipo == 'parceiro' ? 'Parceiro' : 'Empresa';
+      AppLogger.i.warn(
+          'ModuloAtribuicaoScreen: GET $urlRegistro falhou (HTTP ${resRegistro.statusCode})');
       setState(() {
         _carregando = false;
-        _erro = _tipo == 'parceiro'
-            ? 'Parceiro nao encontrado para o ID informado.'
-            : 'Empresa nao encontrada para o ID informado.';
+        _erro = resRegistro.statusCode == 404
+            ? (_tipo == 'parceiro'
+                ? 'Parceiro nao encontrado para o ID informado.'
+                : 'Empresa nao encontrada para o ID informado.')
+            : resRegistro.statusCode == 401
+                ? 'Sessao expirada. Entre novamente no Painel do Dono.'
+                : 'Nao foi possivel carregar $rotulo (HTTP ${resRegistro.statusCode}).';
       });
       return;
     }

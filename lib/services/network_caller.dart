@@ -21,6 +21,13 @@ class NetworkCaller {
   final http.Client _client;
   final UnauthorizedHandler? onUnauthorized;
 
+  /// Handler global (registrado em main.dart) usado quando o NetworkCaller nao
+  /// recebeu um [onUnauthorized] proprio. Sem ele, um token expirado/revogado
+  /// (401 do JwtAuthorizationFilter: expirado, logout, sessao encerrada na
+  /// meia-noite/ociosidade) deixava as telas mostrando "(401)" e "lista nao
+  /// carregada" sem mandar o usuario para o login.
+  static UnauthorizedHandler? globalOnUnauthorized;
+
   static const _publicRoutePatterns = [
     '/rest/auth/',
     '/api/public/',
@@ -30,7 +37,7 @@ class NetworkCaller {
     if (statusCode != 401) return;
     final path = Uri.tryParse(url)?.path ?? url;
     if (_publicRoutePatterns.any((p) => path.contains(p))) return;
-    onUnauthorized?.call();
+    (onUnauthorized ?? globalOnUnauthorized)?.call();
   }
 
   Future<NetworkResponse> getRequest(String url) async {
@@ -53,13 +60,17 @@ class NetworkCaller {
     return _toNetworkResponse(response);
   }
 
-  Future<NetworkResponse> putRequest(
-      String url, Map<String, dynamic> body) async {
+  /// [enriquecerCorpo] = false envia o corpo exatamente como informado (sem
+  /// injetar empresa/parceiro/aplicativo). Necessario para endpoints que leem
+  /// o corpo como mapa simples (ex.: aprovar/rejeitar trial: {"status": ...}) e
+  /// recusam objetos aninhados.
+  Future<NetworkResponse> putRequest(String url, Map<String, dynamic> body,
+      {bool enriquecerCorpo = true}) async {
     final enrichedUrl = TenantContext.applyToUrl(url);
     final response = await _client.put(
       Uri.parse(enrichedUrl),
       headers: TenantContext.jsonHeaders,
-      body: jsonEncode(TenantContext.applyToBody(body)),
+      body: jsonEncode(enriquecerCorpo ? TenantContext.applyToBody(body) : body),
     );
     _handleUnauthorized(response.statusCode, enrichedUrl);
     return _toNetworkResponse(response);

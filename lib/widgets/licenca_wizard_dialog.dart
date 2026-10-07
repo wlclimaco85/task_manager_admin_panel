@@ -1,8 +1,21 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../config/api_links.dart';
 import '../services/network_caller.dart';
+import '../utils/app_logger.dart';
 import '../utils/grid_colors.dart';
+import '../utils/tenant_context.dart';
 import 'generic_grid_windows_screen.dart';
+
+/// Dados sugeridos para criar o usuario do cliente na etapa 2 (ex.: vindos de
+/// uma solicitacao de trial).
+class UsuarioSugerido {
+  const UsuarioSugerido({this.nome = '', this.email = '', this.cpfCnpj = ''});
+  final String nome;
+  final String email;
+  final String cpfCnpj;
+}
 
 /// Wizard modal progressivo com 3 etapas:
 /// 1. Selecionar / verificar Role vinculada às telas dos módulos contratados
@@ -16,6 +29,13 @@ class LicencaWizardDialog extends StatefulWidget {
   final List<String> modulosNomes;
   final NetworkCaller? networkCaller;
 
+  /// Pre-preenche o dialogo "Criar usuario" da etapa 2.
+  final UsuarioSugerido? usuarioSugerido;
+
+  /// Chamado com o id de cada login criado pelo wizard — permite ao chamador
+  /// desfazer a criacao se o fluxo for cancelado depois.
+  final void Function(int loginId)? onLoginCriado;
+
   const LicencaWizardDialog({
     super.key,
     required this.empresaId,
@@ -24,6 +44,8 @@ class LicencaWizardDialog extends StatefulWidget {
     this.tipoAlvo = 'empresa',
     this.empresaMatrizId,
     this.networkCaller,
+    this.usuarioSugerido,
+    this.onLoginCriado,
   });
 
   @override
@@ -166,6 +188,100 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
     });
   }
 
+  static String _senhaTemporaria() {
+    const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    final rnd = Random.secure();
+    return List.generate(8, (_) => alfabeto[rnd.nextInt(alfabeto.length)]).join();
+  }
+
+  /// Etapa 2: cria o usuario do cliente (mesmo endpoint do cadastro de
+  /// logins) quando ainda nao existe nenhum, ja vinculado ao parceiro/empresa.
+  Future<void> _abrirCriarUsuario() async {
+    final dados = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (_) => _NovoUsuarioDialog(
+        sugerido: widget.usuarioSugerido,
+        senhaInicial: _senhaTemporaria(),
+      ),
+    );
+    if (dados == null || !mounted) return;
+    await _criarUsuario(dados);
+  }
+
+  Map<String, dynamic> _montarPayloadUsuario(Map<String, String> dados) {
+    final ehParceiro = widget.tipoAlvo == 'parceiro';
+    final empresaId =
+        ehParceiro ? (widget.empresaMatrizId ?? TenantContext.empresaId) : widget.empresaId;
+    final documento = (widget.usuarioSugerido?.cpfCnpj ?? '').replaceAll(RegExp(r'\D'), '');
+    return {
+      'nome': dados['nome'],
+      'email': dados['email'],
+      'senha': dados['senha'],
+      if (documento.isNotEmpty) 'cpfCnpj': documento,
+      'tipoLogin': 'APP_ABRACO',
+      if (empresaId != null) 'empresa': {'id': empresaId},
+      if (ehParceiro) 'parceiro': {'id': widget.empresaId},
+      'aplicativo': {'id': 1},
+      'ativo': true,
+      'trocarSenhaProximoLogin': true,
+    };
+  }
+
+  Future<void> _criarUsuario(Map<String, String> dados) async {
+    setState(() {
+      _salvando = true;
+      _erro = null;
+    });
+    try {
+      final res = await _caller.postRequest(
+          ApiLinks.createLoginCadastro, _montarPayloadUsuario(dados));
+      if (!mounted) return;
+      final loginId = res.isSuccess ? _extrairIdLogin(res.body) : null;
+      if (loginId == null) {
+        AppLogger.i.warn(
+            'LicencaWizard: falha ao criar usuario ${dados['email']} (HTTP ${res.statusCode})');
+        setState(() => _salvando = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: GridColors.error,
+          content: Text(res.isSuccess
+              ? 'Usuário criado, mas a API não retornou o ID.'
+              : 'Não foi possível criar o usuário (HTTP ${res.statusCode}). Verifique se o e-mail já existe.'),
+        ));
+        return;
+      }
+      widget.onLoginCriado?.call(loginId);
+      setState(() {
+        _salvando = false;
+        _usuarios.add({'id': loginId, 'nome': dados['nome'], 'email': dados['email']});
+        _usuariosSelecionadosIds.add(loginId);
+      });
+    } catch (e, st) {
+      AppLogger.i.error('LicencaWizard: erro ao criar usuario: $e', st);
+      if (mounted) {
+        setState(() => _salvando = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: GridColors.error,
+          content: Text('Erro ao criar usuário: $e'),
+        ));
+      }
+    }
+  }
+
+  int? _extrairIdLogin(Map<String, dynamic>? body) {
+    if (body == null) return null;
+    final direto = body['id'];
+    if (direto is int) return direto;
+    if (direto != null) return int.tryParse(direto.toString());
+    for (final chave in ['data', 'dados', 'login']) {
+      final nested = body[chave];
+      if (nested is Map) return _extrairIdLogin(Map<String, dynamic>.from(nested));
+      if (nested is List && nested.isNotEmpty && nested.first is Map) {
+        return _extrairIdLogin(Map<String, dynamic>.from(nested.first as Map));
+      }
+    }
+    return null;
+  }
+
   Future<void> _finalizarConcessao() async {
     if (_roleSelecionadaId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -206,6 +322,17 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
       }
 
       if (!mounted) return;
+
+      if (atribuidosComSucesso == 0) {
+        // Nenhuma role foi atribuida: nao declarar a licenca como concedida.
+        AppLogger.i.warn(
+            'LicencaWizard: role $roleId nao atribuida a nenhum dos ${_usuariosSelecionadosIds.length} usuario(s) selecionado(s)');
+        setState(() {
+          _salvando = false;
+          _erro = 'Não foi possível atribuir a role a nenhum usuário. Tente novamente.';
+        });
+        return;
+      }
 
       setState(() => _salvando = false);
 
@@ -604,7 +731,18 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
           'Marque os colaboradores que devem receber o perfil "${_roleSelecionadaNome ?? 'selecionado'}":',
           style: const TextStyle(fontSize: 13, color: GridColors.textMuted),
         ),
-        const SizedBox(height: 12),
+        if (_usuarios.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const Key('licenca_wizard_criar_usuario_btn'),
+              icon: const Icon(Icons.person_add_alt_1, size: 16),
+              label: const Text('Criar usuário'),
+              onPressed: _salvando ? null : _abrirCriarUsuario,
+            ),
+          )
+        else
+          const SizedBox(height: 12),
         Expanded(
           child: _usuarios.isEmpty
               ? Center(
@@ -616,6 +754,13 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
                       const Text(
                         'Nenhum usuário cadastrado para esta empresa.',
                         style: TextStyle(color: GridColors.textMuted),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        key: const Key('licenca_wizard_criar_usuario_vazio_btn'),
+                        icon: const Icon(Icons.person_add_alt_1, size: 18),
+                        label: const Text('Criar usuário'),
+                        onPressed: _salvando ? null : _abrirCriarUsuario,
                       ),
                     ],
                   ),
@@ -678,7 +823,8 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
   }
 
   Widget _buildEtapaFinalizar(bool isDark) {
-    return Column(
+    return SingleChildScrollView(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Row(
@@ -743,6 +889,7 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
           ),
         ),
       ],
+      ),
     );
   }
 
@@ -831,6 +978,98 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Dialogo "Criar usuario": dono dos controllers (descartados junto com o
+/// dialogo, depois da animacao de saida).
+class _NovoUsuarioDialog extends StatefulWidget {
+  const _NovoUsuarioDialog({required this.senhaInicial, this.sugerido});
+
+  final UsuarioSugerido? sugerido;
+  final String senhaInicial;
+
+  @override
+  State<_NovoUsuarioDialog> createState() => _NovoUsuarioDialogState();
+}
+
+class _NovoUsuarioDialogState extends State<_NovoUsuarioDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nomeCtrl =
+      TextEditingController(text: widget.sugerido?.nome ?? '');
+  late final TextEditingController _emailCtrl =
+      TextEditingController(text: widget.sugerido?.email ?? '');
+  late final TextEditingController _senhaCtrl =
+      TextEditingController(text: widget.senhaInicial);
+
+  @override
+  void dispose() {
+    _nomeCtrl.dispose();
+    _emailCtrl.dispose();
+    _senhaCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Criar usuário de acesso'),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                key: const Key('licenca_wizard_novo_usuario_nome'),
+                controller: _nomeCtrl,
+                decoration: const InputDecoration(labelText: 'Nome'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+              ),
+              TextFormField(
+                key: const Key('licenca_wizard_novo_usuario_email'),
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'E-mail (login)'),
+                validator: (v) => (v == null || !v.contains('@'))
+                    ? 'Informe um e-mail válido'
+                    : null,
+              ),
+              TextFormField(
+                key: const Key('licenca_wizard_novo_usuario_senha'),
+                controller: _senhaCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Senha temporária',
+                  helperText: 'Troca obrigatória no primeiro acesso.',
+                ),
+                validator: (v) =>
+                    (v == null || v.length < 6) ? 'Mínimo de 6 caracteres' : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          key: const Key('licenca_wizard_novo_usuario_salvar'),
+          onPressed: () {
+            if (!_formKey.currentState!.validate()) return;
+            Navigator.of(context).pop(<String, String>{
+              'nome': _nomeCtrl.text.trim(),
+              'email': _emailCtrl.text.trim(),
+              'senha': _senhaCtrl.text,
+            });
+          },
+          child: const Text('Criar usuário'),
+        ),
+      ],
     );
   }
 }
