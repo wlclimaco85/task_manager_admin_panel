@@ -89,8 +89,9 @@ class MockNetworkCaller extends _i1.Mock implements _i3.NetworkCaller {
   @override
   _i4.Future<_i2.NetworkResponse> putRequest(
     String? url,
-    Map<String, dynamic>? body,
-  ) =>
+    Map<String, dynamic>? body, {
+    bool? enriquecerCorpo = true,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #putRequest,
@@ -98,6 +99,7 @@ class MockNetworkCaller extends _i1.Mock implements _i3.NetworkCaller {
             url,
             body,
           ],
+          {#enriquecerCorpo: enriquecerCorpo},
         ),
         returnValue:
             _i4.Future<_i2.NetworkResponse>.value(_FakeNetworkResponse_0(
@@ -108,6 +110,7 @@ class MockNetworkCaller extends _i1.Mock implements _i3.NetworkCaller {
               url,
               body,
             ],
+            {#enriquecerCorpo: enriquecerCorpo},
           ),
         )),
       ) as _i4.Future<_i2.NetworkResponse>);

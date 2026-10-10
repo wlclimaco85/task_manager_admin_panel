@@ -70,7 +70,7 @@ void main() {
     final responseLogins = NetworkResponse(true, 200, jsonEncode({"data": {"dados": []}}));
 
     when(mockCaller.getRequest(any)).thenAnswer((_) async => responseRoles);
-    when(mockCaller.getRequest(ApiLinks.loginsByEmpresa('99'))).thenAnswer((_) async => responseLogins);
+    when(mockCaller.getRequest('${ApiLinks.baseUrl}/api/logins?parcId=20&empId=99')).thenAnswer((_) async => responseLogins);
 
     await tester.pumpWidget(buildApp(LicencaWizardDialog(
       empresaId: 20,
@@ -84,7 +84,8 @@ void main() {
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
 
-    verify(mockCaller.getRequest(ApiLinks.loginsByEmpresa('99'))).called(1);
+    // Parceiro: logins filtrados por parceiro (empresaId) + empresa matriz.
+    verify(mockCaller.getRequest('${ApiLinks.baseUrl}/api/logins?parcId=20&empId=99')).called(1);
 
     addTearDown(tester.view.resetPhysicalSize);
   });
