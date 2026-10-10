@@ -70,34 +70,45 @@ class _ServerStatusFooterState extends State<ServerStatusFooter> {
         top: false,
         child: Row(
           children: [
-            // --- dots de status ---
-            _StatusDot(
-              label: 'Backend',
-              status: _result.backend,
-              carregando: _carregando,
+            // --- dots de status (encolhem em telas estreitas) ---
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _StatusDot(
+                      label: 'Backend',
+                      status: _result.backend,
+                      carregando: _carregando,
+                    ),
+                    const SizedBox(width: 10),
+                    _StatusDot(
+                      label: 'Web',
+                      status: webConfigurada
+                          ? _result.frontendWeb
+                          : ServerStatus.offline,
+                      carregando: _carregando,
+                      tooltip: webConfigurada
+                          ? null
+                          : 'Configure FRONTEND_WEB_URL para monitorar',
+                      inativo: !webConfigurada,
+                    ),
+                    const SizedBox(width: 10),
+                    // Windows e app local — sem URL de servidor
+                    const _StatusDot(
+                      label: 'Windows',
+                      status: ServerStatus.online,
+                      carregando: false,
+                      tooltip: 'App desktop local — sem monitoramento remoto',
+                      inativo: true,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(width: 10),
-            _StatusDot(
-              label: 'Web',
-              status: webConfigurada
-                  ? _result.frontendWeb
-                  : ServerStatus.offline,
-              carregando: _carregando,
-              tooltip: webConfigurada
-                  ? null
-                  : 'Configure FRONTEND_WEB_URL para monitorar',
-              inativo: !webConfigurada,
-            ),
-            const SizedBox(width: 10),
-            // Windows e app local — sem URL de servidor
-            const _StatusDot(
-              label: 'Windows',
-              status: ServerStatus.online,
-              carregando: false,
-              tooltip: 'App desktop local — sem monitoramento remoto',
-              inativo: true,
-            ),
-            const Spacer(),
+            const SizedBox(width: 8),
             // --- badge de excecoes ---
             GestureDetector(
               onTap: () => _abrirLogs(context),
@@ -173,7 +184,8 @@ class _StatusDot extends StatelessWidget {
 
   Color get _cor {
     if (inativo) return GridColors.textPrimaryMuted;
-    if (carregando || status == ServerStatus.checking) return GridColors.warning;
+    if (carregando || status == ServerStatus.checking)
+      return GridColors.warning;
     if (status == ServerStatus.online) return GridColors.success;
     return GridColors.error;
   }
@@ -195,9 +207,8 @@ class _StatusDot extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: inativo
-                ? GridColors.textPrimaryMuted
-                : GridColors.textPrimary,
+            color:
+                inativo ? GridColors.textPrimaryMuted : GridColors.textPrimary,
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -223,9 +234,8 @@ class _BadgeExcecoes extends StatelessWidget {
   Widget build(BuildContext context) {
     final temErros = !carregando && count > 0;
     final cor = temErros ? GridColors.error : GridColors.textPrimaryMuted;
-    final bgCor = temErros
-        ? GridColors.error.withAlpha(30)
-        : Colors.transparent;
+    final bgCor =
+        temErros ? GridColors.error.withAlpha(30) : Colors.transparent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
