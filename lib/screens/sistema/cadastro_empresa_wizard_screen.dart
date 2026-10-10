@@ -368,7 +368,7 @@ class CadastroEmpresaWizardScreenState
       formKey: _formKeys[0],
       child: Column(
         children: [
-          _textField('Nome *', _empresaNome, required: true),
+          _textField('Nome *', _empresaNome, required: true, key: 'empresa_nome_field'),
           _textField('Razão Social', _empresaRazaoSocial),
           _textField('E-mail', _empresaEmail, keyboard: TextInputType.emailAddress),
           _textField('Telefone', _empresaTelefone, keyboard: TextInputType.phone),
@@ -410,7 +410,8 @@ class CadastroEmpresaWizardScreenState
                 _textField('Senha', u.senha),
                 _textField('CPF/CNPJ', u.cpfCnpj),
                 const SizedBox(height: AppSpacing.xs),
-                _multiSelectRoles(key: 'roles_${i}',
+                _multiSelectRoles(
+                  key: 'usuario_${i}_roles',
                   selected: u.roleIds,
                   onChanged: (ids) => setState(() => u.roleIds = ids),
                 ),
