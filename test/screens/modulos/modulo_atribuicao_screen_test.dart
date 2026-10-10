@@ -639,12 +639,18 @@ void main() {
       final linha = tester.widget<ColoredBox>(
         find.byKey(const Key('modulo_atribuicao_linha_parceiro10')),
       );
-      expect(linha.color, Colors.white);
+      // Linha nao selecionada usa a cor de superficie do tema (escuro no admin).
+      final corSemSelecao = linha.color;
 
       await tester
           .tap(find.byKey(const Key('modulo_atribuicao_selecionar_todos')));
       await tester.pumpAndSettle();
       expect(find.text('2 selecionado(s)'), findsOneWidget);
+      final linhaSelecionada = tester.widget<ColoredBox>(
+        find.byKey(const Key('modulo_atribuicao_linha_parceiro10')),
+      );
+      expect(linhaSelecionada.color, isNot(corSemSelecao),
+          reason: 'linha selecionada deve ter destaque diferente');
 
       await tester.tap(
         find.byKey(const Key('modulo_atribuicao_bloquear_selecionados')),
