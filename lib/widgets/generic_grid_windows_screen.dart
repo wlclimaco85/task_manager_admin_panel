@@ -231,6 +231,18 @@ bool isFornecedorFieldEnabledByStorage(
 ) =>
     !_isFornecedorLockField(config) || hasParceiroIdOrParcId;
 
+/// Monta a URL de um item: substitui ':id' quando o endpoint tem o placeholder;
+/// caso contrario acrescenta '/id' ao caminho (antes da query string).
+String resolverEndpointComId(String endpoint, String id) {
+  if (endpoint.contains(':id')) return endpoint.replaceAll(':id', id);
+  final partes = endpoint.split('?');
+  final caminho = partes.first.endsWith('/')
+      ? partes.first.substring(0, partes.first.length - 1)
+      : partes.first;
+  final base = '$caminho/$id';
+  return partes.length > 1 ? '$base?${partes.sublist(1).join('?')}' : base;
+}
+
 class FieldConfigWindows {
   final String label;
   final String fieldName;
@@ -1899,9 +1911,15 @@ class GenericGridWindowsScreen<T> extends StatefulWidget {
   /// Caller HTTP injetavel (testes). Padrao: NetworkCaller() novo por chamada.
   final NetworkCaller? networkCaller;
 
+  /// Ajusta o corpo antes de enviar (create: isEditing=false; update: true) -
+  /// ex.: contratos assimetricos POST x PUT do backend.
+  final Map<String, dynamic> Function(Map<String, dynamic> dados, bool isEditing)?
+      transformPayload;
+
   const GenericGridWindowsScreen({
     super.key,
     this.networkCaller,
+    this.transformPayload,
     required this.title,
     required this.fetchEndpoint,
     required this.createEndpoint,
@@ -3138,7 +3156,9 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
 
     final response = await (widget.networkCaller ?? NetworkCaller()).postRequest(
       widget.createEndpoint,
-      normalizeEntityRelationships(enrichedFormData),
+      normalizeEntityRelationships(
+        widget.transformPayload?.call(enrichedFormData, false) ?? enrichedFormData,
+      ),
     );
 
     if (response.isSuccess) {
@@ -3323,11 +3343,13 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
     }
 
     final response = await (widget.networkCaller ?? NetworkCaller()).putRequest(
-      widget.updateEndpoint.replaceAll(
-        ':id',
+      resolverEndpointComId(
+        widget.updateEndpoint,
         adjustedFormData[widget.idFieldName].toString(),
       ),
-      normalizeEntityRelationships(adjustedFormData),
+      normalizeEntityRelationships(
+        widget.transformPayload?.call(adjustedFormData, true) ?? adjustedFormData,
+      ),
     );
 
     if (response.isSuccess) {
@@ -3361,7 +3383,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
     setState(() => _isDeleting = true);
 
     final response = await (widget.networkCaller ?? NetworkCaller()).deleteRequest(
-      widget.deleteEndpoint.replaceAll(':id', id),
+      resolverEndpointComId(widget.deleteEndpoint, id),
     );
 
     setState(() => _isDeleting = false);

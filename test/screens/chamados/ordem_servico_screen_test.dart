@@ -4,13 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_manager_admin_panel/config/api_links.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/screens/chamados/ordem_servico_screen.dart';
 import 'package:task_manager_admin_panel/services/network_caller.dart';
 import 'package:task_manager_admin_panel/widgets/generic_grid_windows_screen.dart';
 
+import '../../helpers/drenar_widget.dart';
+
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   group('transformChamadoPayload', () {
     test('create (isEditing=false): parceiro plano vira parceiroId, sem chave parceiro', () {
       final result = transformChamadoPayload({'parceiro': 5, 'titulo': 'X'}, false);
@@ -78,10 +83,7 @@ void main() {
     );
 
     expect(grid.title, 'Ordem de Servico');
-    
-    
-    
-    expect(grid.deleteEndpoint?.call('1'), ApiLinks.allChamadosOS);
+    expect(grid.deleteEndpoint, ApiLinks.allChamadosOS);
     expect(grid.transformPayload, transformChamadoPayload);
     expect(
       grid.fieldConfigs.map((f) => f.fieldName),
@@ -101,7 +103,7 @@ void main() {
 
     final statusField = grid.fieldConfigs.firstWhere((f) => f.fieldName == 'status');
     expect(
-      statusField.options?.map((o) => o.label).toList(),
+      statusField.dropdownOptions?.map((o) => o['label']).toList(),
       [
         'Aberto',
         'Em andamento',
@@ -122,10 +124,10 @@ void main() {
           title: 'Ordem de Servico',
           fetchEndpoint: ApiLinks.allChamadosOS,
           createEndpoint: ApiLinks.createChamado,
-          updateEndpoint: ApiLinks.updateChamadoOS,
-          deleteEndpoint: ApiLinks.deleteChamado,
+          updateEndpoint: grid.updateEndpoint,
+          deleteEndpoint: grid.deleteEndpoint,
+          networkCaller: caller,
           fieldConfigs: grid.fieldConfigs,
-          
         ),
       ),
     ));
@@ -133,5 +135,7 @@ void main() {
 
     expect(find.text('Aberto'), findsOneWidget);
     expect(find.text('Alta'), findsOneWidget);
+
+    await desmontarEDrenar(tester);
   });
 }

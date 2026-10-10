@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
+import '../../utils/dropdown_helpers.dart';
 import '../../widgets/generic_grid_windows_screen.dart';
 
 /// OS-01 Ordem de Servico, via dominio `Chamado` ja existente (nao ha
@@ -57,11 +58,34 @@ class OrdemServicoScreen extends StatelessWidget {
       ],
     ),
     FieldConfigWindows(
+      fieldName: 'empresa',
+      label: 'Empresa',
+      fieldType: FieldType.dropdown,
+      isRequired: false,
+      isInGrid: false,
+      dropdownFutureBuilder: DropdownHelpers.empresas,
+      dropdownValueField: 'id',
+      dropdownDisplayField: 'nome',
+    ),
+    FieldConfigWindows(
+      fieldName: 'parceiro',
+      label: 'Parceiro',
+      fieldType: FieldType.dropdown,
+      isRequired: false,
+      isInGrid: false,
+      dropdownFutureBuilder: DropdownHelpers.parceiros,
+      dropdownValueField: 'id',
+      dropdownDisplayField: 'nome',
+    ),
+    FieldConfigWindows(
       fieldName: 'setor',
       label: 'Setor',
       fieldType: FieldType.dropdown,
       isRequired: false,
       isInGrid: false,
+      dropdownFutureBuilder: DropdownHelpers.setores,
+      dropdownValueField: 'id',
+      dropdownDisplayField: 'descricao',
     ),
     const FieldConfigWindows(
       fieldName: 'dataAbertura',
@@ -92,7 +116,7 @@ class OrdemServicoScreen extends StatelessWidget {
       updateEndpoint: ApiLinks.allChamadosOS,
       deleteEndpoint: ApiLinks.allChamadosOS,
       fieldConfigs: _fields,
-      
+      transformPayload: transformChamadoPayload,
     );
   }
 }
