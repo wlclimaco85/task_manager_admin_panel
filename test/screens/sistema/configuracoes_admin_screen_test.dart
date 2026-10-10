@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/screens/sistema/configuracoes_admin_screen.dart';
 
+import '../../helpers/drenar_widget.dart';
+
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   Widget wrap() => MaterialApp(
         theme: AppTheme.darkTheme,
         home: const ConfiguracoesAdminScreen(),
@@ -25,6 +30,7 @@ void main() {
         find.byKey(const Key('config_admin_tab_horarios')), findsOneWidget);
     expect(find.byKey(const Key('config_admin_tab_tipos_produto')),
         findsOneWidget);
+    await desmontarEDrenar(tester);
   });
 
   testWidgets('troca de aba funciona (Cargos -> Feriados)', (tester) async {
@@ -38,5 +44,6 @@ void main() {
 
     // A aba Feriados tem o campo "Data", exclusivo dela entre as 6 abas.
     expect(find.text('Feriados'), findsWidgets);
+    await desmontarEDrenar(tester);
   });
 }
