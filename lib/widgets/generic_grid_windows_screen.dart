@@ -1896,8 +1896,12 @@ class GenericGridWindowsScreen<T> extends StatefulWidget {
   final Future<void> Function(Map<String, dynamic> formData, T? item)?
       onAfterSave;
 
+  /// Caller HTTP injetavel (testes). Padrao: NetworkCaller() novo por chamada.
+  final NetworkCaller? networkCaller;
+
   const GenericGridWindowsScreen({
     super.key,
+    this.networkCaller,
     required this.title,
     required this.fetchEndpoint,
     required this.createEndpoint,
@@ -2322,7 +2326,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
         url += '&busca=${Uri.encodeComponent(_searchController.text)}';
       }
 
-      final NetworkResponse response = await NetworkCaller().getRequest(url);
+      final NetworkResponse response = await (widget.networkCaller ?? NetworkCaller()).getRequest(url);
 
       if (response.statusCode == 200 && response.body != null) {
         final responseData = response.body!['data'];
@@ -3132,7 +3136,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
       enrichedFormData["file"] = {"id": fileId};
     }
 
-    final response = await NetworkCaller().postRequest(
+    final response = await (widget.networkCaller ?? NetworkCaller()).postRequest(
       widget.createEndpoint,
       normalizeEntityRelationships(enrichedFormData),
     );
@@ -3318,7 +3322,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
       adjustedFormData["file"] = {"id": fileId};
     }
 
-    final response = await NetworkCaller().putRequest(
+    final response = await (widget.networkCaller ?? NetworkCaller()).putRequest(
       widget.updateEndpoint.replaceAll(
         ':id',
         adjustedFormData[widget.idFieldName].toString(),
@@ -3356,7 +3360,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
 
     setState(() => _isDeleting = true);
 
-    final response = await NetworkCaller().deleteRequest(
+    final response = await (widget.networkCaller ?? NetworkCaller()).deleteRequest(
       widget.deleteEndpoint.replaceAll(':id', id),
     );
 
@@ -4295,7 +4299,8 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                 ),
               ),
             ),
-          if ((widget.hasPermission == null || widget.hasPermission!('deleteMultiple')) &&
+          if (widget.deleteEndpoint.isNotEmpty &&
+              (widget.hasPermission == null || widget.hasPermission!('deleteMultiple')) &&
               widget.buttonPermissions['deleteMultiple']!)
             OutlinedButton.icon(
               onPressed: selectedRows.isNotEmpty ? _deleteSelected : null,
@@ -4739,7 +4744,9 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
             Text('Visualizar', style: TextStyle(fontSize: 13))
           ])));
     }
-    if ((widget.hasPermission == null || widget.hasPermission!('delete')) && widget.buttonPermissions['delete']!) {
+    if (widget.deleteEndpoint.isNotEmpty &&
+        (widget.hasPermission == null || widget.hasPermission!('delete')) &&
+        widget.buttonPermissions['delete']!) {
       menuItems.add(const PopupMenuDivider());
       menuItems.add(const PopupMenuItem(
           value: '__delete__',

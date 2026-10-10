@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_manager_admin_panel/config/api_links.dart';
 import 'package:task_manager_admin_panel/core/theme/app_theme.dart';
 import 'package:task_manager_admin_panel/screens/licenca/licenca_screen.dart';
@@ -11,8 +12,10 @@ import 'package:task_manager_admin_panel/services/network_caller.dart';
 import 'package:task_manager_admin_panel/widgets/generic_grid_windows_screen.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets(
-      'LicencaScreen monta GenericGridWindowsScreen com deleteUrl nulo e sem icone de excluir',
+      'LicencaScreen monta GenericGridWindowsScreen com deleteEndpoint vazio e sem opcao de excluir',
       (tester) async {
     final client = MockClient((request) async {
       // `GET /api/licencas` retorna List direto na raiz (sem envelope
@@ -46,10 +49,7 @@ void main() {
     );
 
     expect(grid.title, 'Licencas');
-    
-    
-    
-    expect(grid.deleteEndpoint, isNull);
+    expect(grid.deleteEndpoint, isEmpty);
     expect(
       grid.fieldConfigs.map((f) => f.fieldName),
       ['codApp', 'nomeApp', 'ativo', 'dataInicio', 'dataVencimento', 'observacao'],
@@ -65,16 +65,25 @@ void main() {
           title: 'Licencas',
           fetchEndpoint: ApiLinks.allLicencas,
           createEndpoint: ApiLinks.createLicenca,
-          updateEndpoint: ApiLinks.updateLicenca,
-          deleteEndpoint: null,
+          networkCaller: caller,
+          updateEndpoint: grid.updateEndpoint,
+          deleteEndpoint: '',
           fieldConfigs: grid.fieldConfigs,
-          
         ),
       ),
     ));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.delete_outline), findsNothing);
-    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    // Aguarda o SnackBar residual do primeiro build (sem caller injetado) sumir.
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    // Menu de acoes da linha: sem 'Excluir' (backend nao expoe DELETE), com 'Editar'.
+    tester
+        .state<PopupMenuButtonState<String>>(find.byType(PopupMenuButton<String>).first)
+        .showButtonMenu();
+    await tester.pumpAndSettle();
+    expect(find.text('Excluir'), findsNothing);
+    expect(find.text('Editar'), findsOneWidget);
   });
 }

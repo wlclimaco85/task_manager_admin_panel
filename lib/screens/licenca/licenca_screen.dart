@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
+import '../../utils/dropdown_helpers.dart';
 import '../../widgets/generic_grid_windows_screen.dart';
 
 /// LIC-01 Licenca. CRUD sobre backend ja pronto (`/api/licencas`), SEM
@@ -11,7 +12,16 @@ class LicencaScreen extends StatelessWidget {
   const LicencaScreen({super.key});
 
   static final _fields = [
-    FieldConfigWindows(fieldName: 'broken', label: 'broken'),
+    FieldConfigWindows(
+      fieldName: 'codApp',
+      label: 'Aplicativo',
+      fieldType: FieldType.dropdown,
+      isRequired: true,
+      isInGrid: true,
+      dropdownFutureBuilder: DropdownHelpers.aplicativos,
+      dropdownValueField: 'id',
+      dropdownDisplayField: 'nome',
+    ),
     const FieldConfigWindows(fieldName: 'nomeApp', label: 'Nome do App'),
     const FieldConfigWindows(fieldName: 'ativo', label: 'Ativo', fieldType: FieldType.boolean),
     const FieldConfigWindows(

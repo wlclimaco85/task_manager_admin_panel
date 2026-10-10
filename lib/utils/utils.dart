@@ -62,11 +62,6 @@ int? pegarEmpresaLogada() {
   return (empresaId != null && empresaId != 0) ? empresaId : null;
 }
 
-int? pegarParceiroLogada() {
-  final parceiroId = AuthUtility.userInfo?.login?.parceiro?.id;
-  return (parceiroId != null && parceiroId != 0) ? parceiroId : null;
-}
-
 int? pegarUsuarioLogado() {
   final user = AuthUtility.userInfo?.login;
   final empresaId = user?.id;
