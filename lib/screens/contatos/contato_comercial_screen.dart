@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/api_links.dart';
+import '../../services/network_caller.dart';
 import '../../widgets/generic_grid_windows_screen.dart';
 
 /// CONT-01 Contatos. Dominio NOVO `ContatoComercial` (backend Fase 3
@@ -9,7 +10,10 @@ import '../../widgets/generic_grid_windows_screen.dart';
 /// de modelagem do backend, nao entra como campo de formulario nesta
 /// primeira versao da tela (ver PLAN.md Task 04.2).
 class ContatoComercialScreen extends StatelessWidget {
-  const ContatoComercialScreen({super.key});
+  const ContatoComercialScreen({super.key, this.networkCaller});
+
+  /// Injetavel para testes (padrao: a propria grid cria o seu NetworkCaller).
+  final NetworkCaller? networkCaller;
 
   static const _fields = [
     FieldConfigWindows(fieldName: 'nome', label: 'Nome', isRequired: true),
@@ -33,6 +37,7 @@ class ContatoComercialScreen extends StatelessWidget {
       updateEndpoint: ApiLinks.allContatosComerciais,
       deleteEndpoint: ApiLinks.allContatosComerciais,
       fieldConfigs: _fields,
+      networkCaller: networkCaller,
     );
   }
 }
