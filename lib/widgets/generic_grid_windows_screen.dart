@@ -258,6 +258,10 @@ class FieldConfigWindows {
   final IconData? icon;
   final bool isSortable;
   final FieldType fieldType;
+
+  /// Total no rodape da grid (soma da pagina). null = automatico: soma campos currency; number/percentage
+  /// so somam com showTotal: true. false desliga.
+  final bool? showTotal;
   final List<Map<String, dynamic>>? dropdownOptions;
   final Future<List<Map<String, dynamic>>> Function()? dropdownFutureBuilder;
 
@@ -326,6 +330,7 @@ class FieldConfigWindows {
     this.icon,
     this.isSortable = true,
     this.fieldType = FieldType.text,
+    this.showTotal,
     this.dropdownOptions,
     this.dropdownFutureBuilder,
     this.dropdownFutureBuilderWithParam,
@@ -4499,6 +4504,43 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
     );
   }
 
+  /// Rodape com o total da pagina atual dos campos numericos (ver [fieldConfigSomaNoRodape]).
+  Widget _buildTotaisRodape(List<T> itens) {
+    final campos = widget.fieldConfigs
+        .where((c) => c.isInGrid && _columnVisibility[c.fieldName] == true)
+        .toList();
+    final totais = calcularTotaisGrid(
+      itens.map((i) => (widget.toJson != null ? widget.toJson!(i) : i as Map<String, dynamic>)).toList(),
+      campos,
+      (linha, campo) => _getNestedValue(linha, campo.displayFieldName ?? campo.fieldName),
+    );
+    if (totais.isEmpty) return const SizedBox.shrink();
+    final dinheiro = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+    final decimal = NumberFormat('#,##0.00', 'pt_BR');
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: GridColors.gridHeader,
+        border: Border.all(color: GridColors.divider),
+      ),
+      child: Wrap(
+        spacing: 24,
+        runSpacing: 4,
+        children: [
+          const Text('Total da página:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: GridColors.textSecondary)),
+          for (final campo in campos.where((c) => totais.containsKey(c.fieldName)))
+            Text(
+              '${campo.label}: ${campo.fieldType == FieldType.currency ? dinheiro.format(totais[campo.fieldName]) : decimal.format(totais[campo.fieldName])}',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: GridColors.textSecondary),
+            ),
+        ],
+      ),
+    );
+  }
+
   List<DataColumn> _buildColumns() {
     final columns = <DataColumn>[];
 
@@ -5273,6 +5315,7 @@ class _GenericGridWindowsScreenState<T> extends State<GenericGridWindowsScreen<T
                   ],
                 ), // fecha Stack
               ), // fecha Expanded
+              _buildTotaisRodape(filtered),
             ],
           ),
           _buildLoadingOverlay(),
@@ -6183,4 +6226,38 @@ class _FilterSearchDialogState extends State<_FilterSearchDialog> {
       ),
     );
   }
+}
+
+/// Campo entra no rodape de totais da grid? (ver [FieldConfigWindows.showTotal])
+bool fieldConfigSomaNoRodape(FieldConfigWindows config) =>
+    config.showTotal ?? config.fieldType == FieldType.currency;
+
+/// Converte valor de celula (num ou texto pt-BR/en) em double; null quando nao numerico.
+double? valorNumericoGrid(dynamic valor) {
+  if (valor is num) return valor.toDouble();
+  if (valor is! String) return null;
+  var texto = valor.trim().replaceAll(RegExp(r'[^0-9,.\-]'), '');
+  if (texto.isEmpty) return null;
+  if (texto.contains(',')) {
+    texto = texto.replaceAll('.', '').replaceAll(',', '.');
+  }
+  return double.tryParse(texto);
+}
+
+/// Soma por campo (fieldName) dos itens da pagina; campos sem nenhum valor numerico ficam de fora.
+Map<String, double> calcularTotaisGrid(
+  List<Map<String, dynamic>> linhas,
+  List<FieldConfigWindows> campos,
+  dynamic Function(Map<String, dynamic> linha, FieldConfigWindows campo) valorDe,
+) {
+  final totais = <String, double>{};
+  for (final campo in campos.where(fieldConfigSomaNoRodape)) {
+    double? soma;
+    for (final linha in linhas) {
+      final valor = valorNumericoGrid(valorDe(linha, campo));
+      if (valor != null) soma = (soma ?? 0) + valor;
+    }
+    if (soma != null) totais[campo.fieldName] = soma;
+  }
+  return totais;
 }
