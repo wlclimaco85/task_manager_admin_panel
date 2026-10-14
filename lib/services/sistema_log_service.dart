@@ -15,6 +15,7 @@ class SistemaLogService {
     int? parceiroId,
     String? usuario,
     String? plataforma,
+    String? appTipo,
     DateTime? dataInicio,
     DateTime? dataFim,
     int page = 0,
@@ -31,6 +32,7 @@ class SistemaLogService {
     if (parceiroId != null) params['parceiroId'] = parceiroId.toString();
     if (usuario != null && usuario.trim().isNotEmpty) params['usuario'] = usuario.trim();
     if (plataforma != null && plataforma.isNotEmpty && plataforma != 'TODAS') params['plataforma'] = plataforma;
+    if (appTipo != null && appTipo.isNotEmpty) params['appTipo'] = appTipo;
     if (dataInicio != null) params['dataInicio'] = dataInicio.toUtc().toIso8601String();
     if (dataFim != null) params['dataFim'] = dataFim.toUtc().toIso8601String();
 

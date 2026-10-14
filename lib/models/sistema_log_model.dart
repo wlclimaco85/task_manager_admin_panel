@@ -11,6 +11,7 @@ class SistemaLogModel {
   final int? parceiroId;
   final String? versaoApp;
   final String? ambiente;
+  final String? appTipo;
 
   SistemaLogModel({
     this.id,
@@ -25,6 +26,7 @@ class SistemaLogModel {
     this.parceiroId,
     this.versaoApp,
     this.ambiente,
+    this.appTipo,
   });
 
   factory SistemaLogModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class SistemaLogModel {
       parceiroId: json['parceiroId'] is int ? json['parceiroId'] : (json['parceiroId'] != null ? int.tryParse(json['parceiroId'].toString()) : null),
       versaoApp: json['versaoApp']?.toString(),
       ambiente: json['ambiente']?.toString(),
+      appTipo: json['appTipo']?.toString(),
     );
   }
 

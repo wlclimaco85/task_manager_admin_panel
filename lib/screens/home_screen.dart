@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/auth_utility.dart';
+import '../widgets/app_selector.dart';
 import '../widgets/server_status_footer.dart';
 import 'chamados/ordem_servico_screen.dart';
 import 'contatos/contato_comercial_screen.dart';
@@ -42,6 +43,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Painel do Dono'),
         actions: [
+          const AppSelector(),
           IconButton(
             key: const Key('home_logout_button'),
             icon: const Icon(Icons.logout),

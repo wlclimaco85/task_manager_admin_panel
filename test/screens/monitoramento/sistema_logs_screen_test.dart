@@ -26,6 +26,7 @@ class FakeSistemaLogService extends SistemaLogService {
     int? parceiroId,
     String? usuario,
     String? plataforma,
+    String? appTipo,
     DateTime? dataInicio,
     DateTime? dataFim,
     int page = 0,

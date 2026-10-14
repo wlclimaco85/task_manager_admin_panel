@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/sistema_log_model.dart';
 import '../../services/sistema_log_service.dart';
+import '../../utils/app_context.dart';
+import '../../widgets/app_selector.dart';
 
 class SistemaLogsScreen extends StatefulWidget {
   const SistemaLogsScreen({super.key, this.service});
@@ -31,11 +33,13 @@ class _SistemaLogsScreenState extends State<SistemaLogsScreen> {
   @override
   void initState() {
     super.initState();
+    AppContext.selecionado.addListener(_carregarDados);
     _carregarDados();
   }
 
   @override
   void dispose() {
+    AppContext.selecionado.removeListener(_carregarDados);
     _buscaController.dispose();
     _empresaController.dispose();
     _parceiroController.dispose();
@@ -55,6 +59,7 @@ class _SistemaLogsScreenState extends State<SistemaLogsScreen> {
         nivel: _filtroNivel,
         origem: _filtroOrigem,
         plataforma: _filtroPlataforma,
+        appTipo: AppContext.selecionado.value,
         busca: _buscaController.text,
         empresaId: empId,
         parceiroId: parcId,
@@ -336,6 +341,8 @@ class _SistemaLogsScreenState extends State<SistemaLogsScreen> {
       appBar: AppBar(
         title: const Text('Logs & Monitoramento'),
         actions: [
+          const AppSelector(),
+          const SizedBox(width: AppSpacing.sm),
           FilledButton.tonalIcon(
             onPressed: _copiarErros,
             icon: const Icon(Icons.copy_all, size: 18),

@@ -4,10 +4,13 @@ import 'core/theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_utility.dart';
+import 'utils/app_context.dart';
 import 'utils/sessao_expirada_handler.dart';
 import 'utils/tenant_context.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppContext.carregar();
   registrarTratamentoSessaoExpirada();
   runApp(const AdminPanelApp());
 }
