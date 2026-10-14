@@ -30,6 +30,7 @@ class _SystemTestRunPanelState extends State<SystemTestRunPanel> {
   static const _muted = Color(0xFF64756A);
 
   static const _groups = <String, String>{
+    'FITNESS_DOCUMENTOS': 'Fitness: fichas e histórico',
     'FASE_1': 'Fase 1',
     'FASE_2': 'Fase 2',
     'COMERCIAL': 'Comercial',
