@@ -11,6 +11,7 @@ import 'query_builder_screen.dart';
 import 'role_permissao_screen.dart';
 import 'sessoes_screen.dart';
 import 'tela_editor_screen.dart';
+import 'modulo_tela_grid_screen.dart';
 
 /// Menu "Sistema" (Fase 2). Lista os 8 itens migrados de `menu_config.dart`
 /// (grupo `sistema`, exceto "Empresas" — fica no cliente, ver
@@ -89,6 +90,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Remetente dos e-mails do sistema (codigo de senha, boas-vindas) por empresa.',
       icone: Icons.mail_outline,
     ),
+    _SistemaMenuItem(
+      id: 'modulo_telas',
+      titulo: 'Telas por Módulo',
+      subtitulo: 'Mapeamento dinâmico de telas e rotas de API por módulo/serviço.',
+      icone: Icons.layers_outlined,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -103,6 +110,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'sistema_logs': _buildSistemaLogs,
     'sessoes': _buildSessoes,
     'email_smtp': _buildEmailSmtp,
+    'modulo_telas': _buildModuloTelas,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -125,6 +133,8 @@ class SistemaMenuScreen extends StatelessWidget {
       const SistemaLogsScreen();
   static Widget _buildSessoes(BuildContext context) => const SessoesScreen();
   static Widget _buildEmailSmtp(BuildContext context) => const EmailSmtpScreen();
+  static Widget _buildModuloTelas(BuildContext context) =>
+      const WebModuloTelaGridScreen();
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {
     final builder = _builders[item.id];
