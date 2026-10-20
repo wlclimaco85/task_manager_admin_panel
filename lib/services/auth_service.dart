@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_links.dart';
 import '../models/login_model.dart';
 import 'auth_utility.dart';
+import '../utils/acesso_app_info.dart';
 
 /// Resultado de uma tentativa de login.
 class LoginResult {
@@ -31,10 +32,11 @@ class AuthService {
     required String senha,
   }) async {
     try {
+      final acesso = await dadosDeAcessoLogin();
       final response = await _client.post(
         Uri.parse(ApiLinks.login),
         headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': senha}),
+        body: jsonEncode({'email': email, 'password': senha, ...acesso}),
       );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {

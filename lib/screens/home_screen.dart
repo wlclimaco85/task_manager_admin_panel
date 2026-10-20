@@ -8,6 +8,7 @@ import 'chamados/ordem_servico_screen.dart';
 import 'contatos/contato_comercial_screen.dart';
 import 'dashboard/dashboard_crescimento_screen.dart';
 import 'licenca/licenca_screen.dart';
+import 'acessos/acessos_screen.dart';
 import 'login_screen.dart';
 import 'modulos/modulo_atribuicao_screen.dart';
 import 'modulos/modulo_servico_screen.dart';
@@ -77,6 +78,20 @@ class HomeScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => const LicencaScreen(),
                   ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Card(
+              child: ListTile(
+                key: const Key('home_acessos_tile'),
+                leading: const Icon(Icons.devices_outlined),
+                title: const Text('Acessos'),
+                subtitle: const Text(
+                    'Usuários por aplicação, plataforma e versão, e acessos por dia.'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AcessosScreen()),
                 ),
               ),
             ),
