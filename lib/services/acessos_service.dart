@@ -29,6 +29,16 @@ class AcessosService {
     return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
   }
 
+  /// Novos usuarios (primeiro acesso): totais, por aplicacao, por dia e lista de primeiros acessos.
+  Future<Map<String, dynamic>> novos(String token, {int dias = 14}) async {
+    final uri = Uri.parse('$_base/novos').replace(queryParameters: {'dias': '$dias'});
+    final response = await _client.get(uri, headers: _headers(token));
+    if (response.statusCode != 200) {
+      throw Exception('Falha ao carregar os novos usuários (HTTP ${response.statusCode}).');
+    }
+    return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+  }
+
   Future<List<Map<String, dynamic>>> diario(String token, {int dias = 30}) async {
     final uri = Uri.parse('$_base/diario').replace(queryParameters: {'dias': '$dias'});
     return _lista(await _client.get(uri, headers: _headers(token)));
