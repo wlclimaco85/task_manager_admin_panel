@@ -160,4 +160,67 @@ void main() {
 
     expect(find.text('public'), findsOneWidget);
   });
+
+  testWidgets('grid de resultados possui scrollbar horizontal e vertical e executa com tamanhoPagina 0', (tester) async {
+    int? tamanhoPaginaRecebido;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/schemas')) {
+        return http.Response(
+          jsonEncode({
+            'data': {'data': []},
+            'response': {'error': false, 'message': 'ok', 'status': 200},
+          }),
+          200,
+        );
+      }
+      if (request.url.path.endsWith('/executar')) {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        tamanhoPaginaRecebido = body['tamanhoPagina'] as int?;
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'colunas': [{'column_name': 'id'}, {'column_name': 'nome'}],
+              'linhas': [[1, 'teste']],
+              'totalLinhas': 1,
+            },
+            'response': {'error': false, 'message': 'ok', 'status': 200},
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'data': {'data': []},
+          'response': {'error': false, 'message': 'ok', 'status': 200},
+        }),
+        200,
+      );
+    });
+    final service = QueryBuilderService(networkCaller: NetworkCaller(client: client));
+
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.darkTheme,
+      home: QueryBuilderScreen(service: service),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('query_builder_sql_field')),
+      'SELECT * FROM login',
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('query_builder_executar_button')));
+    await tester.pumpAndSettle();
+
+    expect(tamanhoPaginaRecebido, 0);
+
+    final scrollbars = tester.widgetList<Scrollbar>(find.byType(Scrollbar)).toList();
+    expect(scrollbars.length, greaterThanOrEqualTo(2));
+    expect(scrollbars.any((s) => s.thumbVisibility == true), isTrue);
+
+    final scrollViews = tester.widgetList<SingleChildScrollView>(find.byType(SingleChildScrollView)).toList();
+    expect(scrollViews.any((s) => s.scrollDirection == Axis.horizontal), isTrue);
+    expect(scrollViews.any((s) => s.scrollDirection == Axis.vertical), isTrue);
+  });
 }

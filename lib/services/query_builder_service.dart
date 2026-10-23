@@ -51,7 +51,7 @@ class QueryBuilderService {
   Future<Map<String, dynamic>> executar(
     String sql, {
     int pagina = 1,
-    int tamanhoPagina = 50,
+    int tamanhoPagina = 0,
   }) async {
     final response = await _networkCaller.postRequest(
       ApiLinks.queryBuilderExecutar,

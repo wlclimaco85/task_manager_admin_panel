@@ -31,6 +31,8 @@ class _QueryBuilderScreenState extends State<QueryBuilderScreen> {
       widget.service ?? QueryBuilderService();
 
   final TextEditingController _sqlController = TextEditingController();
+  final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _horizontalScrollController = ScrollController();
 
   bool _carregandoSchemas = false;
   bool _carregandoTabelas = false;
@@ -64,6 +66,8 @@ class _QueryBuilderScreenState extends State<QueryBuilderScreen> {
   @override
   void dispose() {
     _sqlController.dispose();
+    _verticalScrollController.dispose();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -122,7 +126,7 @@ class _QueryBuilderScreenState extends State<QueryBuilderScreen> {
       _linhasResultado = [];
     });
 
-    final resultado = await _service.executar(sql);
+    final resultado = await _service.executar(sql, tamanhoPagina: 0);
 
     if (!mounted) return;
 
@@ -329,25 +333,63 @@ class _QueryBuilderScreenState extends State<QueryBuilderScreen> {
     if (_colunasResultado.isEmpty) {
       return const Center(child: Text('Nenhum resultado'));
     }
-    return SingleChildScrollView(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: [
-            for (final col in _colunasResultado)
-              DataColumn(label: Text(col['nome']?.toString() ?? col['column_name']?.toString() ?? '?')),
-          ],
-          rows: [
-            for (final linha in _linhasResultado)
-              DataRow(
-                cells: [
-                  for (final valor in linha)
-                    DataCell(Text(valor?.toString() ?? 'null')),
-                ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Scrollbar(
+          controller: _horizontalScrollController,
+          thumbVisibility: true,
+          trackVisibility: true,
+          notificationPredicate: (notif) => notif.metrics.axis == Axis.horizontal,
+          child: Scrollbar(
+            controller: _verticalScrollController,
+            thumbVisibility: true,
+            trackVisibility: true,
+            notificationPredicate: (notif) => notif.metrics.axis == Axis.vertical,
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                child: SingleChildScrollView(
+                  controller: _verticalScrollController,
+                  scrollDirection: Axis.vertical,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: DataTable(
+                    columns: [
+                      for (final col in _colunasResultado)
+                        DataColumn(
+                          label: Text(
+                            col['nome']?.toString() ??
+                                col['column_name']?.toString() ??
+                                '?',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                    rows: [
+                      for (final linha in _linhasResultado)
+                        DataRow(
+                          cells: [
+                            for (final valor in linha)
+                              DataCell(
+                                SelectableText(
+                                  valor?.toString() ?? 'null',
+                                  style: TextStyle(
+                                    color: valor == null ? colors.onSurfaceMuted : null,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
               ),
-          ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
