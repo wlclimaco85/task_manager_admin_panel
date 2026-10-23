@@ -42,6 +42,7 @@ class _SystemTestRunPanelState extends State<SystemTestRunPanel> {
     'TRADING': 'Bolsa de valores',
     'GME': 'GME',
     'TRIAL_REQUEST': 'Trial Request',
+    'ACESSOS': 'Acessos (painel do dono)',
     'TODOS': 'Tudo: fases 1 e 2',
   };
 
