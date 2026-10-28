@@ -66,6 +66,10 @@ class ApiLinks {
   // SIS-01 Aplicativo
   static String get allAplicativos => '$_baseUrl/api/aplicativo';
   static String get allEmpresas => '$_baseUrl/api/empresa';
+  static String smtpConfigEmpresa(int empresaId) =>
+      '$_baseUrl/api/smtp-config/empresa/$empresaId';
+  static String smtpConfigParceiro(int parceiroId) =>
+      '$_baseUrl/api/smtp-config/parceiro/$parceiroId';
   static String get allParceiros => '$_baseUrl/api/parceiro';
   static String get allSetores => '$_baseUrl/api/setor';
   static String get createAplicativo => '$_baseUrl/api/aplicativo';

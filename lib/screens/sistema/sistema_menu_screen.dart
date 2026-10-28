@@ -4,6 +4,7 @@ import '../monitoramento/sistema_logs_screen.dart';
 import 'aplicativo_screen.dart';
 import 'cadastro_empresa_wizard_screen.dart';
 import 'configuracoes_admin_screen.dart';
+import 'email_smtp_screen.dart';
 import 'configuracoes_sistema/configuracoes_sistema_screen.dart';
 import 'endpoint_tester_screen.dart';
 import 'query_builder_screen.dart';
@@ -82,6 +83,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Matar sessão de um usuário; meia-noite e ociosidade (>1h) são automáticas.',
       icone: Icons.no_accounts_outlined,
     ),
+    _SistemaMenuItem(
+      id: 'email_smtp',
+      titulo: 'E-mail (SMTP)',
+      subtitulo: 'Remetente dos e-mails do sistema (codigo de senha, boas-vindas) por empresa.',
+      icone: Icons.mail_outline,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -95,6 +102,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'query_builder': _buildQueryBuilder,
     'sistema_logs': _buildSistemaLogs,
     'sessoes': _buildSessoes,
+    'email_smtp': _buildEmailSmtp,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -116,6 +124,7 @@ class SistemaMenuScreen extends StatelessWidget {
   static Widget _buildSistemaLogs(BuildContext context) =>
       const SistemaLogsScreen();
   static Widget _buildSessoes(BuildContext context) => const SessoesScreen();
+  static Widget _buildEmailSmtp(BuildContext context) => const EmailSmtpScreen();
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {
     final builder = _builders[item.id];

@@ -10,17 +10,18 @@ import 'package:task_manager_admin_panel/screens/monitoramento/sistema_logs_scre
 import 'package:task_manager_admin_panel/screens/sistema/query_builder_screen.dart';
 import 'package:task_manager_admin_panel/screens/sistema/role_permissao_screen.dart';
 import 'package:task_manager_admin_panel/screens/sistema/sessoes_screen.dart';
+import 'package:task_manager_admin_panel/screens/sistema/email_smtp_screen.dart';
 import 'package:task_manager_admin_panel/screens/sistema/sistema_menu_screen.dart';
 import 'package:task_manager_admin_panel/screens/sistema/tela_editor_screen.dart';
 
 Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.darkTheme, home: child);
 
 void main() {
-  testWidgets('renderiza os 10 itens do menu Sistema', (tester) async {
+  testWidgets('renderiza os 11 itens do menu Sistema', (tester) async {
     await tester.pumpWidget(_wrap(const SistemaMenuScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ListTile), findsNWidgets(10));
+    expect(find.byType(ListTile), findsNWidgets(11));
     expect(find.text('Aplicativo'), findsOneWidget);
     expect(find.text('Cadastro Empresa'), findsOneWidget);
     expect(find.text('Configurações Admin'), findsOneWidget);
@@ -31,6 +32,7 @@ void main() {
     expect(find.text('Query Builder'), findsOneWidget);
     expect(find.text('Logs & Monitoramento'), findsOneWidget);
     expect(find.text('Sessões'), findsOneWidget);
+    expect(find.text('E-mail (SMTP)'), findsOneWidget);
   });
 
   final casos = <String, Type>{
@@ -44,6 +46,7 @@ void main() {
     'Query Builder': QueryBuilderScreen,
     'Logs & Monitoramento': SistemaLogsScreen,
     'Sessões': SessoesScreen,
+    'E-mail (SMTP)': EmailSmtpScreen,
   };
 
   for (final entry in casos.entries) {
