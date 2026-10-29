@@ -58,7 +58,10 @@ class TenantContext {
     final hasExplicitEmpresaScope = params.containsKey('empId') ||
         params.containsKey('empresaId') ||
         params.containsKey('empresa');
-    if (hasEmpresa && !hasExplicitEmpresaScope) {
+    // O dono enxerga todas as empresas: na listagem de empresas o backend trata
+    // empId como filtro e devolveria so a empresa a que o login esta vinculado.
+    final listagemDeEmpresas = isAdmin && uri.path.endsWith('/api/empresa');
+    if (hasEmpresa && !hasExplicitEmpresaScope && !listagemDeEmpresas) {
       params['empId'] = empresaId.toString();
     }
 
