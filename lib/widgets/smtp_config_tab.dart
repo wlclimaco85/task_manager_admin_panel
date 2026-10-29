@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/network_caller.dart';
 import '../config/api_links.dart';
+import '../utils/app_logger.dart';
 
 enum SmtpConfigScope { empresa, parceiro }
 
@@ -32,6 +33,7 @@ class _SmtpConfigTabState extends State<SmtpConfigTab> {
   final _timeoutController = TextEditingController(text: '10000');
 
   bool _ativo = false;
+  bool _testando = false;
   bool _auth = true;
   bool _starttls = true;
   bool _ssl = false;
@@ -137,6 +139,35 @@ class _SmtpConfigTabState extends State<SmtpConfigTab> {
     }
 
     setState(() => _saving = false);
+  }
+
+  /// Envia um e-mail de teste, com a configuracao SALVA, para o e-mail de quem esta logado.
+  Future<void> _testar() async {
+    setState(() {
+      _testando = true;
+      _erro = null;
+    });
+
+    String mensagem;
+    try {
+      final response = await NetworkCaller().postRequest('$_endpoint/testar', {});
+      final texto = response.body?['mensagem']?.toString();
+      mensagem = response.isSuccess
+          ? (texto ?? 'Teste concluido.')
+          : 'Nao foi possivel testar (HTTP ${response.statusCode}).';
+    } catch (e, st) {
+      AppLogger.i.error('SmtpConfigTab: erro ao testar SMTP: $e', st);
+      mensagem = 'Nao foi possivel testar: $e';
+    }
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        duration: const Duration(seconds: 8),
+      ),
+    );
+    setState(() => _testando = false);
   }
 
   Future<void> _remover() async {
@@ -352,6 +383,21 @@ class _SmtpConfigTabState extends State<SmtpConfigTab> {
                         : const Icon(Icons.delete_outline),
                     label: const Text('Remover'),
                   ),
+                  if (widget.scope == SmtpConfigScope.empresa) ...[
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      key: const Key('smtp_testar'),
+                      onPressed: _testando ? null : _testar,
+                      icon: _testando
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.forward_to_inbox_outlined),
+                      label: const Text('Testar'),
+                    ),
+                  ],
                 ],
               ),
             ],
