@@ -428,9 +428,9 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
     return Colors.blueGrey;
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({bool compact = false}) {
     return Container(
-      height: 56,
+      constraints: const BoxConstraints(minHeight: 56),
       color: GridColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -453,6 +453,13 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (compact)
+            IconButton(
+              tooltip: 'Recarregar Cache',
+              icon: const Icon(Icons.sync, color: Colors.white),
+              onPressed: _isRecarregandoCache ? null : _recarregarCache,
+            )
+          else ...[
           OutlinedButton.icon(
             icon: _isRecarregandoCache
                 ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -477,6 +484,7 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
             ),
             onPressed: () => _abrirModalFormulario(),
           ),
+          ],
         ],
       ),
     );
@@ -525,6 +533,7 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
           SizedBox(
             width: 220,
             child: DropdownButtonFormField<int?>(
+              isExpanded: true,
               value: _moduloFiltroId,
               decoration: const InputDecoration(
                 labelText: 'Filtrar por Módulo',
@@ -747,8 +756,14 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
               ),
             ),
           ),
-          // Barra de paginacao
-          Container(
+          _buildPaginacao(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginacao() {
+    return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: GridColors.divider)),
@@ -756,10 +771,10 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                Expanded(child: Text(
                   'Página ${_paginaAtual + 1} de $_totalPaginas ($_totalElementos itens)',
                   style: const TextStyle(fontSize: 12, color: GridColors.textMuted),
-                ),
+                )),
                 Row(
                   children: [
                     IconButton(
@@ -786,16 +801,13 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
+          );
   }
 
   Widget _buildMobileLayout() {
     return Column(
       children: [
-        _buildHeader(),
+        _buildHeader(compact: true),
         _buildBannerInformativo(),
         _buildBarraFiltros(),
         Expanded(
@@ -866,10 +878,12 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isMobile) {
+    return LayoutBuilder(builder: (context, constraints) {
+    if (widget.isMobile || constraints.maxWidth < 700) {
       return Scaffold(
         backgroundColor: GridColors.background,
         body: SafeArea(child: _buildMobileLayout()),
+        bottomNavigationBar: SafeArea(top: false, child: _buildPaginacao()),
         floatingActionButton: FloatingActionButton(
           backgroundColor: GridColors.primary,
           foregroundColor: Colors.white,
@@ -890,5 +904,6 @@ class _WebModuloTelaGridScreenState extends State<WebModuloTelaGridScreen> {
         ],
       ),
     );
+    });
   }
 }

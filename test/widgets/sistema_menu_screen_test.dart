@@ -13,15 +13,17 @@ import 'package:task_manager_admin_panel/screens/sistema/sessoes_screen.dart';
 import 'package:task_manager_admin_panel/screens/sistema/email_smtp_screen.dart';
 import 'package:task_manager_admin_panel/screens/sistema/sistema_menu_screen.dart';
 import 'package:task_manager_admin_panel/screens/sistema/tela_editor_screen.dart';
+import 'package:task_manager_admin_panel/screens/sistema/modulo_tela_grid_screen.dart';
 
 Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.darkTheme, home: child);
 
 void main() {
-  testWidgets('renderiza os 11 itens do menu Sistema', (tester) async {
+  testWidgets('renderiza os 12 itens do menu Sistema', (tester) async {
     await tester.pumpWidget(_wrap(const SistemaMenuScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ListTile), findsNWidgets(11));
+    expect(find.byType(ListTile), findsNWidgets(12));
+    expect(find.text('Telas por Módulo'), findsOneWidget);
     expect(find.text('Aplicativo'), findsOneWidget);
     expect(find.text('Cadastro Empresa'), findsOneWidget);
     expect(find.text('Configurações Admin'), findsOneWidget);
@@ -36,6 +38,7 @@ void main() {
   });
 
   final casos = <String, Type>{
+    'Telas por Módulo': WebModuloTelaGridScreen,
     'Aplicativo': AplicativoScreen,
     'Cadastro Empresa': CadastroEmpresaWizardScreen,
     'Configurações Admin': ConfiguracoesAdminScreen,
