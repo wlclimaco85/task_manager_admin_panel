@@ -95,7 +95,7 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
       // 2. Carregar Usuários da Empresa / Parceiro
       final urlLogins = widget.tipoAlvo == 'parceiro'
           ? (widget.empresaMatrizId != null
-              ? '${ApiLinks.baseUrl}/api/logins?parcId=${widget.empresaId}&empId=${widget.empresaMatrizId}'
+              ? '${ApiLinks.baseUrl}/api/logins?parcId=${widget.empresaId}&empId=${widget.empresaMatrizId}&incluirMatriz=true'
               : ApiLinks.loginsByParceiro(widget.empresaId.toString()))
           : ApiLinks.loginsByEmpresa(widget.empresaId.toString());
       final resLogins = await _caller.getRequest(urlLogins);
