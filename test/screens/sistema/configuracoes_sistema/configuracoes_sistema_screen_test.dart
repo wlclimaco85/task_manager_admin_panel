@@ -9,7 +9,7 @@ void main() {
         home: const ConfiguracoesSistemaScreen(),
       );
 
-  testWidgets('renderiza as 4 abas das seções de Config. Sistema',
+  testWidgets('renderiza as 5 abas das seções de Config. Sistema',
       (tester) async {
     await tester.pumpWidget(wrap());
     await tester.pump();
@@ -23,6 +23,10 @@ void main() {
     );
     expect(
       find.byKey(const Key('config_sistema_tab_importacao_cadastros')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('config_sistema_tab_servidor_nfse')),
       findsOneWidget,
     );
   });

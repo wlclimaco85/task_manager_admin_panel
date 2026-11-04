@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../config/api_links.dart';
+import '../../../widgets/nfse_servidor_config_card.dart';
+
 import 'acoes_screen.dart';
 import 'importacao_cadastros_screen.dart';
 import 'importacao_contas_screen.dart';
@@ -43,6 +46,10 @@ class _ConfiguracoesSistemaScreenState
       text: 'Importação Cadastros',
       key: Key('config_sistema_tab_importacao_cadastros'),
     ),
+    Tab(
+      text: 'Servidor NFS-e',
+      key: Key('config_sistema_tab_servidor_nfse'),
+    ),
   ];
 
   late final TabController _tabController =
@@ -73,6 +80,10 @@ class _ConfiguracoesSistemaScreenState
           const JobsScreen(),
           ImportacaoContasScreen(),
           ImportacaoCadastrosScreen(),
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: NfseServidorConfigCard(baseUrl: ApiLinks.baseUrl),
+          ),
         ],
       ),
     );
