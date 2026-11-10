@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../services/acao_java_service.dart';
+import '../services/dicionario_campo_service.dart';
 import '../services/modulo_java_service.dart';
 import '../utils/app_logger.dart';
 
-/// Dicionário de Dados (plataforma low-code): por tela/tabela, as abas **Ações** (botões que chamam uma
-/// rotina Java, com parâmetros de popup) e **Eventos** (rotinas Java em insert/update/delete).
-/// As abas Campos e Ligações entram em etapa seguinte. Somente MASTER (o servidor também exige).
+/// Dicionário de Dados (plataforma low-code), por tela/tabela, com 4 abas:
+/// **Campos** (só o rótulo muda; tipo e nome são fixos e o campo nunca é excluído; dá para incluir campo em tela
+/// da própria empresa), **Ligações** (FK: o campo vira lista de busca), **Ações** (botões que chamam uma rotina
+/// Java, com parâmetros de popup) e **Eventos** (rotinas Java em insert/update/delete).
+/// Somente MASTER (o servidor também exige).
 class DicionarioDadosView extends StatefulWidget {
   final AcaoJavaService? acoes;
   final ModuloJavaService? modulos;
+  final DicionarioCampoService? campos;
 
-  const DicionarioDadosView({super.key, this.acoes, this.modulos});
+  const DicionarioDadosView({super.key, this.acoes, this.modulos, this.campos});
 
   @override
   State<DicionarioDadosView> createState() => _DicionarioDadosViewState();
@@ -20,6 +24,12 @@ class DicionarioDadosView extends StatefulWidget {
 class _DicionarioDadosViewState extends State<DicionarioDadosView> {
   late final AcaoJavaService _acoesSvc = widget.acoes ?? AcaoJavaService();
   late final ModuloJavaService _modulosSvc = widget.modulos ?? ModuloJavaService();
+  late final DicionarioCampoService _camposSvc = widget.campos ?? DicionarioCampoService();
+
+  List<CampoDicionario> _campos = const [];
+  bool _carregandoCampos = false;
+  bool _camposCarregados = false;
+  String? _erroCampos;
 
   final _tela = TextEditingController();
   final _tabela = TextEditingController();
@@ -43,8 +53,9 @@ class _DicionarioDadosViewState extends State<DicionarioDadosView> {
 
   void _aviso(String t, {bool erro = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(t), backgroundColor: erro ? Colors.red.shade700 : null));
+    final m = ScaffoldMessenger.of(context);
+    m.hideCurrentSnackBar(); // a mensagem nova nao espera a anterior sair da fila
+    m.showSnackBar(SnackBar(content: Text(t), backgroundColor: erro ? Colors.red.shade700 : null));
   }
 
   Future<void> _garantirModulos() async {
@@ -55,6 +66,96 @@ class _DicionarioDadosViewState extends State<DicionarioDadosView> {
       AppLogger.i.warn('DicionarioDadosView: módulos indisponíveis: $e');
       _aviso('$e', erro: true);
     }
+  }
+
+  Future<void> _carregarCampos() async {
+    final tela = _tela.text.trim();
+    if (tela.isEmpty) {
+      _aviso('Informe o nome da tela.', erro: true);
+      return;
+    }
+    setState(() {
+      _carregandoCampos = true;
+      _erroCampos = null;
+    });
+    try {
+      final lista = await _camposSvc.campos(tela);
+      if (mounted) setState(() { _campos = lista; _camposCarregados = true; });
+    } catch (e) {
+      AppLogger.i.warn('DicionarioDadosView: erro ao listar campos: $e');
+      if (mounted) setState(() => _erroCampos = '$e');
+    }
+    if (mounted) setState(() => _carregandoCampos = false);
+  }
+
+  Future<void> _alterarRotulo(CampoDicionario c) async {
+    final novo = await _pedirTexto('Rótulo do campo ${c.fieldName}', 'Rótulo', c.label,
+        ajuda: 'Original: ${c.labelOriginal}. O tipo e o nome do campo não mudam.');
+    if (novo == null || novo.trim().isEmpty) return;
+    try {
+      await _camposSvc.alterarLabel(_tela.text.trim(), c.fieldName, novo.trim());
+      _aviso('Rótulo salvo.');
+      await _carregarCampos();
+    } catch (e) {
+      AppLogger.i.warn('DicionarioDadosView: erro ao alterar rótulo: $e');
+      _aviso('$e', erro: true);
+    }
+  }
+
+  Future<void> _incluirCampo() async {
+    final r = await showDialog<List<String>>(
+      context: context,
+      builder: (_) => const _NovoCampoDialog(),
+    );
+    if (r == null) return;
+    try {
+      await _camposSvc.incluirCampo(_tela.text.trim(), r[0], r[1], r[2]);
+      _aviso('Campo incluído.');
+      await _carregarCampos();
+    } catch (e) {
+      AppLogger.i.warn('DicionarioDadosView: erro ao incluir campo: $e');
+      _aviso('$e', erro: true);
+    }
+  }
+
+  Future<void> _editarLigacao(CampoDicionario c) async {
+    final r = await showDialog<_ResultadoLigacao>(
+      context: context,
+      builder: (_) => _LigacaoDialog(campo: c),
+    );
+    if (r == null) return;
+    try {
+      final tela = _tela.text.trim();
+      if (r.remover) {
+        await _camposSvc.excluirLigacao(tela, c.fieldName);
+        _aviso('Ligação removida.');
+      } else {
+        await _camposSvc.salvarLigacao(tela, r.ligacao!);
+        _aviso('Ligação salva.');
+      }
+      await _carregarCampos();
+    } catch (e) {
+      AppLogger.i.warn('DicionarioDadosView: erro na ligação: $e');
+      _aviso('$e', erro: true);
+    }
+  }
+
+  Future<String?> _pedirTexto(String titulo, String rotulo, String inicial, {String? ajuda}) {
+    final ctrl = TextEditingController(text: inicial);
+    return showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(titulo),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          TextField(controller: ctrl, autofocus: true, maxLength: 100, decoration: InputDecoration(labelText: rotulo)),
+          if (ajuda != null) Text(ajuda, style: const TextStyle(fontSize: 12)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Salvar')),
+        ],
+      ),
+    );
   }
 
   Future<void> _carregarAcoes() async {
@@ -183,7 +284,7 @@ class _DicionarioDadosViewState extends State<DicionarioDadosView> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 4,
       child: Column(children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -193,9 +294,14 @@ class _DicionarioDadosViewState extends State<DicionarioDadosView> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           ),
         ),
-        const TabBar(tabs: [Tab(text: 'Ações'), Tab(text: 'Eventos')]),
+        const TabBar(isScrollable: true, tabs: [
+          Tab(text: 'Campos'),
+          Tab(text: 'Ligações'),
+          Tab(text: 'Ações'),
+          Tab(text: 'Eventos'),
+        ]),
         Expanded(
-          child: TabBarView(children: [_abaAcoes(), _abaEventos()]),
+          child: TabBarView(children: [_abaCampos(), _abaLigacoes(), _abaAcoes(), _abaEventos()]),
         ),
       ]),
     );
@@ -220,6 +326,80 @@ class _DicionarioDadosViewState extends State<DicionarioDadosView> {
         ),
       ]),
     );
+  }
+
+  Widget _abaCampos() {
+    return Column(children: [
+      _filtro(_tela, 'Tela (nome usado nas grids)', 'ex.: produto', _carregarCampos, _carregandoCampos),
+      if (_camposCarregados)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+                onPressed: _incluirCampo, icon: const Icon(Icons.add), label: const Text('Incluir campo')),
+          ),
+        ),
+      Expanded(
+        child: _carregandoCampos
+            ? const Center(child: CircularProgressIndicator())
+            : _erroCampos != null
+                ? Center(child: Padding(padding: const EdgeInsets.all(16), child: Text(_erroCampos!)))
+                : !_camposCarregados
+                    ? const Center(child: Text('Informe a tela e toque em Carregar.'))
+                    : _campos.isEmpty
+                        ? const Center(child: Text('A tela não tem campos.'))
+                        : ListView.separated(
+                            itemCount: _campos.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (_, i) {
+                              final c = _campos[i];
+                              return ListTile(
+                                minVerticalPadding: 8,
+                                title: Text(c.label),
+                                subtitle: Text('${c.fieldName} · ${c.fieldType}'
+                                    '${c.labelPersonalizado ? ' · original: ${c.labelOriginal}' : ''}'),
+                                trailing: IconButton(
+                                    tooltip: 'Alterar rótulo',
+                                    onPressed: () => _alterarRotulo(c),
+                                    icon: const Icon(Icons.edit_outlined)),
+                              );
+                            }),
+      ),
+    ]);
+  }
+
+  Widget _abaLigacoes() {
+    return Column(children: [
+      _filtro(_tela, 'Tela (nome usado nas grids)', 'ex.: produto', _carregarCampos, _carregandoCampos),
+      Expanded(
+        child: _carregandoCampos
+            ? const Center(child: CircularProgressIndicator())
+            : _erroCampos != null
+                ? Center(child: Padding(padding: const EdgeInsets.all(16), child: Text(_erroCampos!)))
+                : !_camposCarregados
+                    ? const Center(child: Text('Informe a tela e toque em Carregar.'))
+                    : ListView.separated(
+                        itemCount: _campos.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final c = _campos[i];
+                          final l = c.ligacao;
+                          return ListTile(
+                            minVerticalPadding: 8,
+                            leading: Icon(l == null ? Icons.link_off : Icons.link),
+                            title: Text(c.label),
+                            subtitle: Text(l == null
+                                ? '${c.fieldName} · sem ligação'
+                                : '${c.fieldName} → ${l.tabelaDestino} (${l.endpoint}) · ${l.campoChave}/${l.campoExibicao}'),
+                            trailing: IconButton(
+                                tooltip: 'Editar ligação',
+                                onPressed: () => _editarLigacao(c),
+                                icon: const Icon(Icons.edit_outlined)),
+                          );
+                        }),
+      ),
+    ]);
   }
 
   Widget _abaAcoes() {
@@ -757,6 +937,165 @@ class _EventoDialogState extends State<_EventoDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(onPressed: _salvar, child: const Text('Salvar')),
+      ],
+    );
+  }
+}
+
+class _NovoCampoDialog extends StatefulWidget {
+  const _NovoCampoDialog();
+
+  @override
+  State<_NovoCampoDialog> createState() => _NovoCampoDialogState();
+}
+
+class _NovoCampoDialogState extends State<_NovoCampoDialog> {
+  final _form = GlobalKey<FormState>();
+  final _nome = TextEditingController();
+  final _rotulo = TextEditingController();
+  String _tipo = 'text';
+
+  @override
+  void dispose() {
+    _nome.dispose();
+    _rotulo.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Incluir campo'),
+      content: Form(
+        key: _form,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          TextFormField(
+            controller: _nome,
+            decoration: const InputDecoration(labelText: 'Nome do campo *'),
+            validator: (v) => RegExp(r'^[a-z][A-Za-z0-9_]{0,59}$').hasMatch((v ?? '').trim())
+                ? null
+                : 'Comece com letra minúscula; use letras, números e _',
+          ),
+          TextFormField(
+            controller: _rotulo,
+            maxLength: 100,
+            decoration: const InputDecoration(labelText: 'Rótulo *'),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Informe o rótulo' : null,
+          ),
+          DropdownButtonFormField<String>(
+            initialValue: _tipo,
+            decoration: const InputDecoration(labelText: 'Tipo (não pode ser alterado depois)'),
+            items: const [
+              DropdownMenuItem(value: 'text', child: Text('Texto')),
+              DropdownMenuItem(value: 'number', child: Text('Número inteiro')),
+              DropdownMenuItem(value: 'decimal', child: Text('Número decimal')),
+              DropdownMenuItem(value: 'date', child: Text('Data')),
+              DropdownMenuItem(value: 'boolean', child: Text('Sim/Não')),
+            ],
+            onChanged: (v) => _tipo = v ?? 'text',
+          ),
+          const SizedBox(height: 8),
+          const Text('Só é possível incluir campo em tela da própria empresa; telas compartilhadas aceitam apenas alterar o rótulo.',
+              style: TextStyle(fontSize: 12)),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: () {
+            if (!_form.currentState!.validate()) return;
+            Navigator.pop(context, [_nome.text.trim(), _rotulo.text.trim(), _tipo]);
+          },
+          child: const Text('Incluir'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResultadoLigacao {
+  final LigacaoCampo? ligacao;
+  final bool remover;
+
+  const _ResultadoLigacao.salvar(LigacaoCampo l)
+      : ligacao = l,
+        remover = false;
+  const _ResultadoLigacao.remover()
+      : ligacao = null,
+        remover = true;
+}
+
+class _LigacaoDialog extends StatefulWidget {
+  final CampoDicionario campo;
+
+  const _LigacaoDialog({required this.campo});
+
+  @override
+  State<_LigacaoDialog> createState() => _LigacaoDialogState();
+}
+
+class _LigacaoDialogState extends State<_LigacaoDialog> {
+  final _form = GlobalKey<FormState>();
+  late final _tabela = TextEditingController(text: widget.campo.ligacao?.tabelaDestino ?? '');
+  late final _endpoint = TextEditingController(text: widget.campo.ligacao?.endpoint ?? '/api/');
+  late final _chave = TextEditingController(text: widget.campo.ligacao?.campoChave ?? 'id');
+  late final _exibicao = TextEditingController(text: widget.campo.ligacao?.campoExibicao ?? 'nome');
+
+  @override
+  void dispose() {
+    for (final c in [_tabela, _endpoint, _chave, _exibicao]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  String? _identificador(String? v) =>
+      RegExp(r'^[a-z][a-z0-9_]{0,62}$').hasMatch((v ?? '').trim().toLowerCase()) ? null : 'Use letras minúsculas, números e _';
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Ligação de ${widget.campo.fieldName}'),
+      content: SizedBox(
+        width: 460,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _form,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              TextFormField(controller: _tabela, decoration: const InputDecoration(labelText: 'Tabela de destino *'), validator: _identificador),
+              TextFormField(
+                controller: _endpoint,
+                decoration: const InputDecoration(labelText: 'Endpoint da lista *', helperText: 'Caminho interno da API, ex.: /api/parceiro'),
+                validator: (v) => RegExp(r'^/api/[a-z0-9_\-]+(/[a-z0-9_\-]+)*$').hasMatch((v ?? '').trim().toLowerCase())
+                    ? null
+                    : 'Use um caminho interno, ex.: /api/parceiro',
+              ),
+              TextFormField(controller: _chave, decoration: const InputDecoration(labelText: 'Campo chave'), validator: _identificador),
+              TextFormField(controller: _exibicao, decoration: const InputDecoration(labelText: 'Campo exibido'), validator: _identificador),
+            ]),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+        if (widget.campo.ligacao != null)
+          TextButton(onPressed: () => Navigator.pop(context, const _ResultadoLigacao.remover()), child: const Text('Remover')),
+        FilledButton(
+          onPressed: () {
+            if (!_form.currentState!.validate()) return;
+            Navigator.pop(
+              context,
+              _ResultadoLigacao.salvar(LigacaoCampo(
+                campo: widget.campo.fieldName,
+                tabelaDestino: _tabela.text.trim().toLowerCase(),
+                endpoint: _endpoint.text.trim().toLowerCase(),
+                campoChave: _chave.text.trim().toLowerCase(),
+                campoExibicao: _exibicao.text.trim().toLowerCase(),
+              )),
+            );
+          },
+          child: const Text('Salvar'),
+        ),
       ],
     );
   }

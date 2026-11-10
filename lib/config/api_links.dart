@@ -54,6 +54,14 @@ class ApiLinks {
   static String downloadFile(String id) => '$_baseUrl/api/download/$id';
 
   // Modulo Java (plataforma low-code)
+  static String dicionarioCampos(String tela) =>
+      '$_baseUrl/api/dicionario/telas/${Uri.encodeComponent(tela)}/campos';
+  static String dicionarioLabel(String tela, String campo) =>
+      '$_baseUrl/api/dicionario/telas/${Uri.encodeComponent(tela)}/campos/${Uri.encodeComponent(campo)}/label';
+  static String dicionarioLigacao(String tela, String campo) =>
+      '$_baseUrl/api/dicionario/telas/${Uri.encodeComponent(tela)}/ligacoes/${Uri.encodeComponent(campo)}';
+  static String dicionarioPersonalizacao(String tela) =>
+      '$_baseUrl/api/dicionario/telas/${Uri.encodeComponent(tela)}/personalizacao';
   static String get acoesJava => '$_baseUrl/api/acoes-java';
   static String acaoJava(String id) => '$_baseUrl/api/acoes-java/$id';
   static String acaoJavaExecutar(String id) =>
