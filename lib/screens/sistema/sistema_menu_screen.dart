@@ -12,6 +12,7 @@ import 'role_permissao_screen.dart';
 import 'sessoes_screen.dart';
 import 'tela_editor_screen.dart';
 import 'modulo_tela_grid_screen.dart';
+import '../../widgets/modulo_java_view.dart';
 
 /// Menu "Sistema" (Fase 2). Lista os 8 itens migrados de `menu_config.dart`
 /// (grupo `sistema`, exceto "Empresas" — fica no cliente, ver
@@ -96,6 +97,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Mapeamento dinâmico de telas e rotas de API por módulo/serviço.',
       icone: Icons.layers_outlined,
     ),
+    _SistemaMenuItem(
+      id: 'modulo_java',
+      titulo: 'Módulo Java',
+      subtitulo: 'Cadastro de módulos e upload de .jar para ações e eventos (somente MASTER).',
+      icone: Icons.extension_outlined,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -111,6 +118,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'sessoes': _buildSessoes,
     'email_smtp': _buildEmailSmtp,
     'modulo_telas': _buildModuloTelas,
+    'modulo_java': _buildModuloJava,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -135,6 +143,11 @@ class SistemaMenuScreen extends StatelessWidget {
   static Widget _buildEmailSmtp(BuildContext context) => const EmailSmtpScreen();
   static Widget _buildModuloTelas(BuildContext context) =>
       const WebModuloTelaGridScreen();
+
+  static Widget _buildModuloJava(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Módulo Java')),
+        body: const SafeArea(child: ModuloJavaView()),
+      );
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {
     final builder = _builders[item.id];

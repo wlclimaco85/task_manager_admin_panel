@@ -53,6 +53,14 @@ class ApiLinks {
   static String uploadFile = '$_baseUrl/api/upload';
   static String downloadFile(String id) => '$_baseUrl/api/download/$id';
 
+  // Modulo Java (plataforma low-code)
+  static String get modulosJava => '$_baseUrl/api/modulos-java';
+  static String moduloJava(String id) => '$_baseUrl/api/modulos-java/$id';
+  static String moduloJavaArquivos(String id) =>
+      '$_baseUrl/api/modulos-java/$id/arquivos';
+  static String moduloJavaArquivo(String id, String arquivoId) =>
+      '$_baseUrl/api/modulos-java/$id/arquivos/$arquivoId';
+
   // Sistema Logs e Monitoramento
   static String get sistemaLogs => '$_baseUrl/api/sistema-logs';
   static String get sistemaLogsMetricas =>

@@ -39,6 +39,7 @@ class _SystemTestRunPanelState extends State<SystemTestRunPanel> {
     'NFSE': 'NFS-e',
     'NFCE': 'NFC-e',
     'TRANSPORTE': 'Transporte (MDF-e e CT-e)',
+    'MODULO_JAVA': 'Módulo Java (cadastro e jars)',
     'FINANCEIRO_AVANCADO': 'Financeiro avançado',
     'TRADING': 'Bolsa de valores',
     'GME': 'GME',
