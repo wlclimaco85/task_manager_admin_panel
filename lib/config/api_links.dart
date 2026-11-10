@@ -54,6 +54,20 @@ class ApiLinks {
   static String downloadFile(String id) => '$_baseUrl/api/download/$id';
 
   // Modulo Java (plataforma low-code)
+  static String get acoesJava => '$_baseUrl/api/acoes-java';
+  static String acaoJava(String id) => '$_baseUrl/api/acoes-java/$id';
+  static String acaoJavaExecutar(String id) =>
+      '$_baseUrl/api/acoes-java/$id/executar';
+  static String acoesJavaDaTela(String tela) =>
+      '$_baseUrl/api/acoes-java?tela=${Uri.encodeQueryComponent(tela)}';
+  static String acoesJavaAdmin(String tela) =>
+      '$_baseUrl/api/acoes-java/admin?tela=${Uri.encodeQueryComponent(tela)}';
+  static String get eventosTabelaRaiz => '$_baseUrl/api/eventos-tabela';
+  static String eventoTabela(String id) => '$_baseUrl/api/eventos-tabela/$id';
+  static String eventosTabela(String tabela) =>
+      '$_baseUrl/api/eventos-tabela?tabela=${Uri.encodeQueryComponent(tabela)}';
+  static String moduloJavaClasses(String id) =>
+      '$_baseUrl/api/modulos-java/$id/classes';
   static String get modulosJava => '$_baseUrl/api/modulos-java';
   static String moduloJava(String id) => '$_baseUrl/api/modulos-java/$id';
   static String moduloJavaArquivos(String id) =>

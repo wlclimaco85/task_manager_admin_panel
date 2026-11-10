@@ -88,6 +88,21 @@ class ModuloJavaException implements Exception {
   String toString() => mensagem;
 }
 
+/// O NetworkCaller entrega listas JSON como {data: [...]}; aqui volta a lista de objetos.
+List<Map<String, dynamic>> listaDeResposta(NetworkResponse r) {
+  final d = r.body?['data'];
+  if (d is! List) return const [];
+  return d.whereType<Map<String, dynamic>>().toList();
+}
+
+/// Mensagem de erro enviada pelo servidor (campo message ou error), se houver.
+String? mensagemDeResposta(NetworkResponse r) {
+  final b = r.body;
+  if (b == null) return null;
+  final m = b['message'] ?? b['error'];
+  return m?.toString();
+}
+
 const int kModuloJavaTamanhoMaximoBytes = 10 * 1024 * 1024;
 
 class ModuloJavaService {
@@ -98,11 +113,7 @@ class ModuloJavaService {
   Future<List<ModuloJava>> listar() async {
     final r = await _rede.getRequest(ApiLinks.modulosJava);
     _exigirSucesso(r, 'listar os módulos');
-    final lista = r.body is List ? r.body as List : const [];
-    return lista
-        .whereType<Map<String, dynamic>>()
-        .map(ModuloJava.fromJson)
-        .toList();
+    return listaDeResposta(r).map(ModuloJava.fromJson).toList();
   }
 
   Future<ModuloJava> salvar(ModuloJava modulo) async {
@@ -122,11 +133,7 @@ class ModuloJavaService {
   Future<List<ModuloJavaArquivo>> listarArquivos(int moduloId) async {
     final r = await _rede.getRequest(ApiLinks.moduloJavaArquivos('$moduloId'));
     _exigirSucesso(r, 'listar os arquivos');
-    final lista = r.body is List ? r.body as List : const [];
-    return lista
-        .whereType<Map<String, dynamic>>()
-        .map(ModuloJavaArquivo.fromJson)
-        .toList();
+    return listaDeResposta(r).map(ModuloJavaArquivo.fromJson).toList();
   }
 
   /// Valida no cliente o que o servidor tambem valida (extensao .jar e 10MB), para dar erro rapido e claro.
@@ -167,8 +174,8 @@ class ModuloJavaService {
         return ModuloJavaArquivo.fromJson(
             jsonDecode(corpo) as Map<String, dynamic>);
       }
-      throw ModuloJavaException(
-          _mensagemErro(corpo, streamed.statusCode, 'enviar o arquivo'));
+      throw ModuloJavaException(_mensagemErro(
+          _mensagemDeTexto(corpo), streamed.statusCode, 'enviar o arquivo'));
     } on ModuloJavaException {
       rethrow;
     } catch (e, st) {
@@ -184,20 +191,24 @@ class ModuloJavaService {
     _exigirSucesso(r, 'excluir o arquivo');
   }
 
-  void _exigirSucesso(NetworkResponse r, String acao) {
-    if (r.isSuccess) return;
-    final corpo = r.body is String ? r.body as String : jsonEncode(r.body);
-    throw ModuloJavaException(_mensagemErro(corpo, r.statusCode, acao));
-  }
-
-  static String _mensagemErro(String corpo, int status, String acao) {
-    if (status == 403) return 'Somente o usuário MASTER pode gerenciar módulos Java.';
-    if (status == 409) return 'Já existe um registro igual (identificador ou arquivo duplicado).';
+  static String? _mensagemDeTexto(String corpo) {
     try {
       final j = jsonDecode(corpo);
-      if (j is Map && j['message'] != null) return j['message'].toString();
-      if (j is Map && j['error'] != null) return j['error'].toString();
+      if (j is Map) return (j['message'] ?? j['error'])?.toString();
     } catch (_) {}
+    return null;
+  }
+
+  void _exigirSucesso(NetworkResponse r, String acao) {
+    if (r.isSuccess) return;
+    throw ModuloJavaException(
+        _mensagemErro(mensagemDeResposta(r), r.statusCode, acao));
+  }
+
+  static String _mensagemErro(String? mensagem, int status, String acao) {
+    if (status == 403) return 'Somente o usuário MASTER pode gerenciar módulos Java.';
+    if (status == 409) return 'Já existe um registro igual (identificador ou arquivo duplicado).';
+    if (mensagem != null && mensagem.isNotEmpty) return mensagem;
     return 'Não foi possível $acao (HTTP $status).';
   }
 }

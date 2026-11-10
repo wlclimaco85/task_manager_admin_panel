@@ -12,6 +12,7 @@ import 'role_permissao_screen.dart';
 import 'sessoes_screen.dart';
 import 'tela_editor_screen.dart';
 import 'modulo_tela_grid_screen.dart';
+import '../../widgets/dicionario_dados_view.dart';
 import '../../widgets/modulo_java_view.dart';
 
 /// Menu "Sistema" (Fase 2). Lista os 8 itens migrados de `menu_config.dart`
@@ -103,6 +104,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Cadastro de módulos e upload de .jar para ações e eventos (somente MASTER).',
       icone: Icons.extension_outlined,
     ),
+    _SistemaMenuItem(
+      id: 'dicionario_dados',
+      titulo: 'Dicionário de Dados',
+      subtitulo: 'Ações (botões com rotina Java) e eventos de insert/update/delete por tela/tabela (somente MASTER).',
+      icone: Icons.menu_book_outlined,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -119,6 +126,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'email_smtp': _buildEmailSmtp,
     'modulo_telas': _buildModuloTelas,
     'modulo_java': _buildModuloJava,
+    'dicionario_dados': _buildDicionarioDados,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -147,6 +155,11 @@ class SistemaMenuScreen extends StatelessWidget {
   static Widget _buildModuloJava(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Módulo Java')),
         body: const SafeArea(child: ModuloJavaView()),
+      );
+
+  static Widget _buildDicionarioDados(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Dicionário de Dados')),
+        body: const SafeArea(child: DicionarioDadosView()),
       );
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {
