@@ -62,6 +62,10 @@ class ApiLinks {
       '$_baseUrl/api/dicionario/telas/${Uri.encodeComponent(tela)}/ligacoes/${Uri.encodeComponent(campo)}';
   static String dicionarioPersonalizacao(String tela) =>
       '$_baseUrl/api/dicionario/telas/${Uri.encodeComponent(tela)}/personalizacao';
+  static String get construtorTabelas => '$_baseUrl/api/construtor/tabelas';
+  static String get construtorTelas => '$_baseUrl/api/construtor/telas';
+  static String get construtorTelasTodas => '$_baseUrl/api/construtor/telas/todas';
+  static String construtorTela(String id) => '$_baseUrl/api/construtor/telas/$id';
   static String get acoesJava => '$_baseUrl/api/acoes-java';
   static String acaoJava(String id) => '$_baseUrl/api/acoes-java/$id';
   static String acaoJavaExecutar(String id) =>
