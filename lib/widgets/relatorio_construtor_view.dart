@@ -353,6 +353,11 @@ class _RelatorioDialogState extends State<_RelatorioDialog> {
     if (resultado != null && mounted) setState(() => _layout = resultado);
   }
 
+  List<RelColuna> _colunasConfig() => [
+        for (final c in _colunas)
+          RelColuna(nome: c.nome, rotulo: c.rotulo.text.trim().isEmpty ? c.nome : c.rotulo.text.trim(), formato: c.formato, total: c.total),
+      ];
+
   void _salvar() {
     if (!_form.currentState!.validate()) return;
     Navigator.pop(
@@ -378,11 +383,8 @@ class _RelatorioDialogState extends State<_RelatorioDialog> {
           rodape: _rodape.text.trim().isEmpty ? null : _rodape.text.trim(),
           agruparPor: _agruparPor,
           modo: _modo,
-          layout: _modo == 'AVANCADO' ? (_layout ?? const RelLayout()) : null,
-          colunas: [
-            for (final c in _colunas)
-              RelColuna(nome: c.nome, rotulo: c.rotulo.text.trim().isEmpty ? c.nome : c.rotulo.text.trim(), formato: c.formato, total: c.total),
-          ],
+          layout: _modo == 'AVANCADO' ? (_layout ?? layoutInicial(_titulo.text.trim(), _colunasConfig(), _orientacao)) : null,
+          colunas: _colunasConfig(),
         ),
       ),
     );

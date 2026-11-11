@@ -101,6 +101,10 @@ class _RelatorioDesignerViewState extends State<RelatorioDesignerView> {
     return b.elementos[_elSel!];
   }
 
+  /// Chave dos campos numericos de propriedades: muda quando o elemento e movido/redimensionado por gesto
+  /// (para o campo mostrar o valor novo), mas NAO a cada digito (senao o campo perde o foco).
+  int _versaoCampos = 0;
+
   void _setBanda(String nome, RelBanda b) => setState(() => _layout = _layout.comBanda(nome, b));
 
   void _atualizarElemento(String banda, int i, RelElemento novo) {
@@ -305,7 +309,8 @@ class _RelatorioDesignerViewState extends State<RelatorioDesignerView> {
         onPanUpdate: (d) {
           final nx = (e.x + d.delta.dx).clamp(0, (_util - e.largura).clamp(0, _util)).toDouble();
           final ny = (e.y + d.delta.dy).clamp(0, (b.altura - e.altura).clamp(0, b.altura)).toDouble();
-          _atualizarElemento(banda, i, e.copiar(x: nx, y: ny));
+          _versaoCampos++;
+                  _atualizarElemento(banda, i, e.copiar(x: nx, y: ny));
         },
         child: Stack(clipBehavior: Clip.none, children: [
           Positioned.fill(child: _conteudo(e, selecionado)),
@@ -316,8 +321,9 @@ class _RelatorioDesignerViewState extends State<RelatorioDesignerView> {
               child: GestureDetector(
                 key: Key('alca_${banda}_$i'),
                 onPanUpdate: (d) {
-                  final nl = (e.largura + d.delta.dx).clamp(4, _util - e.x).toDouble();
-                  final na = (e.altura + d.delta.dy).clamp(1, b.altura - e.y).toDouble();
+                  final nl = _lim(e.largura + d.delta.dx, 4, _util - e.x);
+                  final na = _lim(e.altura + d.delta.dy, 1, b.altura - e.y);
+                  _versaoCampos++;
                   _atualizarElemento(banda, i, e.copiar(largura: nl, altura: na));
                 },
                 child: Container(width: 12, height: 12, color: Theme.of(context).colorScheme.primary),
@@ -379,7 +385,7 @@ class _RelatorioDesignerViewState extends State<RelatorioDesignerView> {
     Widget num(String rotulo, double valor, void Function(double) f, {Key? key}) => SizedBox(
           width: 100,
           child: TextFormField(
-            key: key ?? ValueKey('$rotulo-${_bandaSel}_$i-$valor'),
+            key: key ?? ValueKey('$rotulo-${_bandaSel}_$i-$_versaoCampos'),
             initialValue: valor.toStringAsFixed(valor == valor.roundToDouble() ? 0 : 1),
             keyboardType: TextInputType.number,
             decoration: InputDecoration(labelText: rotulo, isDense: true),
@@ -397,9 +403,9 @@ class _RelatorioDesignerViewState extends State<RelatorioDesignerView> {
           IconButton(key: const Key('remover_elemento'), tooltip: 'Remover elemento', onPressed: _remover, icon: const Icon(Icons.delete_outline)),
         ]),
         Wrap(spacing: 8, runSpacing: 6, children: [
-          num('X', e.x, (v) => mudar(e.copiar(x: v.clamp(0, _util - e.largura).toDouble()))),
+          num('X', e.x, (v) => mudar(e.copiar(x: _lim(v, 0, _util - e.largura)))),
           num('Y', e.y, (v) => mudar(e.copiar(y: v < 0 ? 0 : v))),
-          num('Largura', e.largura, (v) => mudar(e.copiar(largura: v < 1 ? 1 : v))),
+          num('Largura', e.largura, (v) => mudar(e.copiar(largura: _lim(v, 1, _util)))),
           num('Altura', e.altura, (v) => mudar(e.copiar(altura: v < 1 ? 1 : v))),
         ]),
         if (e.tipo == 'TEXTO')
@@ -473,4 +479,10 @@ class _RelatorioDesignerViewState extends State<RelatorioDesignerView> {
       IconButton(tooltip: 'Sem $rotulo'.toLowerCase(), visualDensity: VisualDensity.compact, onPressed: () => f(null), icon: const Icon(Icons.block, size: 16)),
     ]);
   }
+}
+
+/// Limita [v] ao intervalo, sem lancar quando o maximo fica abaixo do minimo (como o clamp do num).
+double _lim(double v, double min, double max) {
+  if (max < min) return min;
+  return v < min ? min : (v > max ? max : v);
 }

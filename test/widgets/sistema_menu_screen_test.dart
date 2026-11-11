@@ -18,11 +18,11 @@ import 'package:task_manager_admin_panel/screens/sistema/modulo_tela_grid_screen
 Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.darkTheme, home: child);
 
 void main() {
-  testWidgets('renderiza os 12 itens do menu Sistema', (tester) async {
+  testWidgets('renderiza os 17 itens do menu Sistema', (tester) async {
     await tester.pumpWidget(_wrap(const SistemaMenuScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ListTile), findsNWidgets(12));
+    expect(find.byType(ListTile), findsNWidgets(17));
     expect(find.text('Telas por Módulo'), findsOneWidget);
     expect(find.text('Aplicativo'), findsOneWidget);
     expect(find.text('Cadastro Empresa'), findsOneWidget);
@@ -35,6 +35,12 @@ void main() {
     expect(find.text('Logs & Monitoramento'), findsOneWidget);
     expect(find.text('Sessões'), findsOneWidget);
     expect(find.text('E-mail (SMTP)'), findsOneWidget);
+    // plataforma low-code (F1-F7)
+    expect(find.text('Módulo Java'), findsOneWidget);
+    expect(find.text('Dicionário de Dados'), findsOneWidget);
+    expect(find.text('Construtor de Telas'), findsOneWidget);
+    expect(find.text('Construtor de Dashboards'), findsOneWidget);
+    expect(find.text('Construtor de Relatórios'), findsOneWidget);
   });
 
   final casos = <String, Type>{

@@ -170,4 +170,23 @@ void main() {
     expect(l.cabecalhoPagina, isNotNull);
     expect(l.rodapePagina, isNotNull);
   });
+
+  testWidgets('largura acima da area util e alca nao lancam excecao; digitar varios digitos mantem o campo', (t) async {
+    await _abrir(t);
+    await t.tap(find.byKey(const Key('el_detalhe_0')));
+    await t.pumpAndSettle();
+    final campo = find.widgetWithText(TextFormField, 'Largura');
+    await t.enterText(campo, '9');
+    await t.pump();
+    await t.enterText(campo, '99');
+    await t.pump();
+    await t.enterText(campo, '9999');
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+    await t.drag(find.byKey(const Key('alca_detalhe_0')), const Offset(30, 10));
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull, reason: 'clamp com limite abaixo do minimo nao pode lancar');
+    final e = (await _aplicar(t)).detalhe.elementos.single;
+    expect(e.largura, lessThanOrEqualTo(larguraUtil('RETRATO') + 0.5));
+  });
 }

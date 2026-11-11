@@ -250,5 +250,29 @@ void main() {
     expect(r.config.layout!.detalhe.elementos.map((e) => e.campo), ['nome', 'qtd']);
     expect(r.config.layout!.cabecalhoPagina!.elementos.length, 2);
   });
+
+  testWidgets('modo Avancado sem abrir o designer salva o layout inicial (nunca um PDF em branco)', (t) async {
+    t.view.physicalSize = const Size(1700, 3200);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final s = _ServicoFalso();
+    await t.pumpWidget(_app(RelatorioConstrutorView(servico: s)));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Novo relatório'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextFormField, 'Título *'), 'Estoque');
+    await t.enterText(find.widgetWithText(TextFormField, 'SQL (SELECT) *'), 'SELECT nome, qtd FROM item WHERE empresa_id = :empresaId');
+    await t.tap(find.text('Testar'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Carregar colunas'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Avançado (designer)'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Salvar'));
+    await t.pumpAndSettle();
+    final r = s.salvos.single;
+    expect(r.config.modo, 'AVANCADO');
+    expect(r.config.layout!.detalhe.elementos.map((e) => e.campo), ['nome', 'qtd']);
+  });
   });
 }
