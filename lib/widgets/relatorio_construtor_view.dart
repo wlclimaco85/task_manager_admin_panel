@@ -4,6 +4,8 @@ import '../services/dashboard_personalizado_service.dart' show DashFiltro;
 import '../services/relatorio_personalizado_service.dart';
 import '../utils/app_logger.dart';
 import 'dashboard_componente_view.dart';
+import 'relatorio_designer_view.dart';
+import 'package:file_saver/file_saver.dart';
 
 const _formatos = ['TEXTO', 'NUMERO', 'MOEDA', 'PERCENTUAL', 'DATA'];
 const _tiposFiltro = ['TEXTO', 'INTEIRO', 'DECIMAL', 'DATA', 'LOGICO'];
@@ -14,7 +16,10 @@ const _tiposFiltro = ['TEXTO', 'INTEIRO', 'DECIMAL', 'DATA', 'LOGICO'];
 class RelatorioConstrutorView extends StatefulWidget {
   final RelatorioPersonalizadoService? servico;
 
-  const RelatorioConstrutorView({super.key, this.servico});
+  /// Entrega o PDF da previa ao usuario (padrao: FileSaver; injetavel para teste).
+  final Future<void> Function(PdfRelatorio pdf)? salvar;
+
+  const RelatorioConstrutorView({super.key, this.servico, this.salvar});
 
   @override
   State<RelatorioConstrutorView> createState() => _RelatorioConstrutorViewState();
@@ -68,7 +73,7 @@ class _RelatorioConstrutorViewState extends State<RelatorioConstrutorView> {
     if (!mounted) return;
     final editado = await showDialog<RelatorioPersonalizado>(
       context: context,
-      builder: (_) => _RelatorioDialog(atual: base, servico: _svc),
+      builder: (_) => _RelatorioDialog(atual: base, servico: _svc, salvar: widget.salvar),
     );
     if (editado == null) return;
     try {
@@ -178,8 +183,9 @@ class _FiltroEdit {
 class _RelatorioDialog extends StatefulWidget {
   final RelatorioPersonalizado? atual;
   final RelatorioPersonalizadoService servico;
+  final Future<void> Function(PdfRelatorio pdf)? salvar;
 
-  const _RelatorioDialog({required this.atual, required this.servico});
+  const _RelatorioDialog({required this.atual, required this.servico, this.salvar});
 
   @override
   State<_RelatorioDialog> createState() => _RelatorioDialogState();
@@ -198,6 +204,8 @@ class _RelatorioDialogState extends State<_RelatorioDialog> {
   late String? _agruparPor = widget.atual?.config.agruparPor;
   late final List<_ColEdit> _colunas = [for (final c in widget.atual?.config.colunas ?? const <RelColuna>[]) _ColEdit.de(c)];
   late final List<_FiltroEdit> _filtros = [for (final f in widget.atual?.filtros ?? const <DashFiltro>[]) _FiltroEdit.de(f)];
+  late String _modo = widget.atual?.config.modo ?? 'SIMPLES';
+  late RelLayout? _layout = widget.atual?.config.layout;
   ResultadoDashLocal? _previa;
   String? _erroPrevia;
   bool _testando = false;
@@ -282,6 +290,69 @@ class _RelatorioDialogState extends State<_RelatorioDialog> {
     return s.isEmpty ? nome : s[0].toUpperCase() + s.substring(1);
   }
 
+  List<String> _nomesDeColunas() {
+    if (_previa != null) return _previa!.colunas;
+    return [for (final c in _colunas) c.nome];
+  }
+
+  List<RelColuna> _configColunas() => [
+        for (final c in _colunas)
+          RelColuna(nome: c.nome, rotulo: c.rotulo.text.trim().isEmpty ? c.nome : c.rotulo.text.trim(), formato: c.formato, total: c.total),
+      ];
+
+  Future<void> _salvarPrevia(PdfRelatorio pdf) async {
+    if (widget.salvar != null) {
+      await widget.salvar!(pdf);
+      return;
+    }
+    await FileSaver.instance.saveFile(name: 'previa_relatorio', bytes: pdf.bytes, fileExtension: 'pdf', mimeType: MimeType.pdf);
+  }
+
+  Future<void> _previaPdf(RelLayout layout) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final pdf = await widget.servico.previaPdf(
+        _titulo.text.trim(),
+        _sql.text.trim(),
+        _valoresDeTeste(),
+        RelConfig(orientacao: _orientacao, modo: 'AVANCADO', layout: layout, colunas: _configColunas()),
+      );
+      await _salvarPrevia(pdf);
+      messenger.showSnackBar(const SnackBar(content: Text('Prévia gerada.')));
+    } catch (e) {
+      AppLogger.i.warn('RelatorioConstrutorView: previa PDF falhou: $e');
+      messenger.showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red.shade700));
+    }
+  }
+
+  Future<void> _abrirDesigner() async {
+    final colunas = _nomesDeColunas();
+    if (colunas.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Use Testar e Carregar colunas antes de abrir o designer.')));
+      return;
+    }
+    ScaffoldMessenger.of(context).hideCurrentSnackBar(); // o aviso nao pode cobrir os botoes do designer
+    final resultado = await showDialog<RelLayout>(
+      context: context,
+      builder: (ctx) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(title: const Text('Designer do relatório')),
+          body: RelatorioDesignerView(
+            layout: _layout ?? layoutInicial(_titulo.text.trim(), _configColunas().isEmpty ? [for (final c in colunas) RelColuna(nome: c, rotulo: c)] : _configColunas(), _orientacao),
+            colunas: colunas,
+            orientacao: _orientacao,
+            titulo: _titulo.text.trim(),
+            configColunas: _configColunas(),
+            onAplicar: (l) => Navigator.pop(ctx, l),
+            onCancelar: () => Navigator.pop(ctx),
+            onPrevia: _previaPdf,
+          ),
+        ),
+      ),
+    );
+    if (resultado != null && mounted) setState(() => _layout = resultado);
+  }
+
   void _salvar() {
     if (!_form.currentState!.validate()) return;
     Navigator.pop(
@@ -306,6 +377,8 @@ class _RelatorioDialogState extends State<_RelatorioDialog> {
           subtitulo: _subtitulo.text.trim().isEmpty ? null : _subtitulo.text.trim(),
           rodape: _rodape.text.trim().isEmpty ? null : _rodape.text.trim(),
           agruparPor: _agruparPor,
+          modo: _modo,
+          layout: _modo == 'AVANCADO' ? (_layout ?? const RelLayout()) : null,
           colunas: [
             for (final c in _colunas)
               RelColuna(nome: c.nome, rotulo: c.rotulo.text.trim().isEmpty ? c.nome : c.rotulo.text.trim(), formato: c.formato, total: c.total),
@@ -395,6 +468,24 @@ class _RelatorioDialogState extends State<_RelatorioDialog> {
                 SizedBox(width: 280, child: TextFormField(controller: _subtitulo, decoration: const InputDecoration(labelText: 'Subtítulo'))),
                 SizedBox(width: 280, child: TextFormField(controller: _rodape, decoration: const InputDecoration(labelText: 'Rodapé'))),
               ]),
+              const SizedBox(height: 8),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'SIMPLES', label: Text('Simples'), icon: Icon(Icons.table_rows_outlined)),
+                  ButtonSegment(value: 'AVANCADO', label: Text('Avançado (designer)'), icon: Icon(Icons.dashboard_customize_outlined)),
+                ],
+                selected: {_modo},
+                onSelectionChanged: (v) => setState(() => _modo = v.first),
+              ),
+              if (_modo == 'AVANCADO')
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(children: [
+                    FilledButton.tonalIcon(onPressed: _abrirDesigner, icon: const Icon(Icons.edit_note), label: const Text('Abrir designer')),
+                    const SizedBox(width: 8),
+                    Text(_layout == null ? 'Sem layout ainda' : 'Layout definido', style: const TextStyle(fontSize: 12)),
+                  ]),
+                ),
               if (_colunas.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String?>(

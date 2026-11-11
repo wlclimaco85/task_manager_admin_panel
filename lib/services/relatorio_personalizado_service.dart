@@ -29,6 +29,178 @@ class RelColuna {
   Map<String, dynamic> toJson() => {'nome': nome, 'rotulo': rotulo, 'formato': formato, 'total': total};
 }
 
+const Object _manter = Object();
+
+/// Elemento posicionado numa banda (pontos, origem no canto superior esquerdo da banda).
+/// tipos: TEXTO, CAMPO, LINHA, RETANGULO, PAGINA.
+class RelElemento {
+  final String tipo;
+  final double x;
+  final double y;
+  final double largura;
+  final double altura;
+  final String? texto;
+  final String? campo;
+  final String? formato;
+  final String? agregado;
+  final double tamanho;
+  final bool negrito;
+  final String alinhamento; // ESQUERDA | CENTRO | DIREITA
+  final String? cor; // #RRGGBB
+  final String? fundo;
+
+  const RelElemento({
+    required this.tipo,
+    this.x = 0,
+    this.y = 0,
+    this.largura = 100,
+    this.altura = 14,
+    this.texto,
+    this.campo,
+    this.formato,
+    this.agregado,
+    this.tamanho = 9,
+    this.negrito = false,
+    this.alinhamento = 'ESQUERDA',
+    this.cor,
+    this.fundo,
+  });
+
+  RelElemento copiar({
+    double? x,
+    double? y,
+    double? largura,
+    double? altura,
+    Object? texto = _manter,
+    Object? campo = _manter,
+    Object? formato = _manter,
+    Object? agregado = _manter,
+    double? tamanho,
+    bool? negrito,
+    String? alinhamento,
+    Object? cor = _manter,
+    Object? fundo = _manter,
+  }) =>
+      RelElemento(
+        tipo: tipo,
+        x: x ?? this.x,
+        y: y ?? this.y,
+        largura: largura ?? this.largura,
+        altura: altura ?? this.altura,
+        texto: identical(texto, _manter) ? this.texto : texto as String?,
+        campo: identical(campo, _manter) ? this.campo : campo as String?,
+        formato: identical(formato, _manter) ? this.formato : formato as String?,
+        agregado: identical(agregado, _manter) ? this.agregado : agregado as String?,
+        tamanho: tamanho ?? this.tamanho,
+        negrito: negrito ?? this.negrito,
+        alinhamento: alinhamento ?? this.alinhamento,
+        cor: identical(cor, _manter) ? this.cor : cor as String?,
+        fundo: identical(fundo, _manter) ? this.fundo : fundo as String?,
+      );
+
+  factory RelElemento.fromJson(Map<String, dynamic> j) => RelElemento(
+        tipo: (j['tipo']?.toString() ?? 'TEXTO').toUpperCase(),
+        x: (j['x'] as num?)?.toDouble() ?? 0,
+        y: (j['y'] as num?)?.toDouble() ?? 0,
+        largura: (j['largura'] as num?)?.toDouble() ?? 100,
+        altura: (j['altura'] as num?)?.toDouble() ?? 14,
+        texto: j['texto']?.toString(),
+        campo: j['campo']?.toString(),
+        formato: j['formato']?.toString(),
+        agregado: j['agregado']?.toString(),
+        tamanho: (j['tamanho'] as num?)?.toDouble() ?? 9,
+        negrito: j['negrito'] == true,
+        alinhamento: (j['alinhamento']?.toString() ?? 'ESQUERDA').toUpperCase(),
+        cor: j['cor']?.toString(),
+        fundo: j['fundo']?.toString(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'tipo': tipo,
+        'x': x,
+        'y': y,
+        'largura': largura,
+        'altura': altura,
+        'texto': texto,
+        'campo': campo,
+        'formato': formato,
+        'agregado': agregado,
+        'tamanho': tamanho,
+        'negrito': negrito,
+        'alinhamento': alinhamento,
+        'cor': cor,
+        'fundo': fundo,
+      };
+}
+
+class RelBanda {
+  final double altura;
+  final List<RelElemento> elementos;
+
+  const RelBanda({this.altura = 20, this.elementos = const []});
+
+  RelBanda copiar({double? altura, List<RelElemento>? elementos}) =>
+      RelBanda(altura: altura ?? this.altura, elementos: elementos ?? this.elementos);
+
+  factory RelBanda.fromJson(Map<String, dynamic>? j) => j == null
+      ? const RelBanda()
+      : RelBanda(
+          altura: (j['altura'] as num?)?.toDouble() ?? 20,
+          elementos: ((j['elementos'] as List?) ?? const []).whereType<Map<String, dynamic>>().map(RelElemento.fromJson).toList(),
+        );
+
+  Map<String, dynamic> toJson() => {'altura': altura, 'elementos': elementos.map((e) => e.toJson()).toList()};
+}
+
+/// Layout por bandas do relatorio avancado.
+class RelLayout {
+  final RelBanda? titulo;
+  final RelBanda? cabecalhoPagina;
+  final RelBanda detalhe;
+  final RelBanda? resumo;
+  final RelBanda? rodapePagina;
+
+  const RelLayout({this.titulo, this.cabecalhoPagina, this.detalhe = const RelBanda(altura: 16), this.resumo, this.rodapePagina});
+
+  static const nomes = ['titulo', 'cabecalhoPagina', 'detalhe', 'resumo', 'rodapePagina'];
+
+  RelBanda? banda(String nome) => switch (nome) {
+        'titulo' => titulo,
+        'cabecalhoPagina' => cabecalhoPagina,
+        'detalhe' => detalhe,
+        'resumo' => resumo,
+        _ => rodapePagina,
+      };
+
+  RelLayout comBanda(String nome, RelBanda? b) => RelLayout(
+        titulo: nome == 'titulo' ? b : titulo,
+        cabecalhoPagina: nome == 'cabecalhoPagina' ? b : cabecalhoPagina,
+        detalhe: nome == 'detalhe' ? (b ?? detalhe) : detalhe,
+        resumo: nome == 'resumo' ? b : resumo,
+        rodapePagina: nome == 'rodapePagina' ? b : rodapePagina,
+      );
+
+  factory RelLayout.fromJson(Map<String, dynamic>? j) {
+    if (j == null) return const RelLayout();
+    RelBanda? b(String k) => j[k] is Map<String, dynamic> ? RelBanda.fromJson(j[k] as Map<String, dynamic>) : null;
+    return RelLayout(
+      titulo: b('titulo'),
+      cabecalhoPagina: b('cabecalhoPagina'),
+      detalhe: b('detalhe') ?? const RelBanda(altura: 16),
+      resumo: b('resumo'),
+      rodapePagina: b('rodapePagina'),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'titulo': titulo?.toJson(),
+        'cabecalhoPagina': cabecalhoPagina?.toJson(),
+        'detalhe': detalhe.toJson(),
+        'resumo': resumo?.toJson(),
+        'rodapePagina': rodapePagina?.toJson(),
+      };
+}
+
 /// Layout do relatorio (orientacao, subtitulo, rodape, agrupamento e colunas).
 class RelConfig {
   final String orientacao; // RETRATO | PAISAGEM
@@ -36,8 +208,30 @@ class RelConfig {
   final String? rodape;
   final String? agruparPor;
   final List<RelColuna> colunas;
+  final String modo; // SIMPLES | AVANCADO
+  final RelLayout? layout;
 
-  const RelConfig({this.orientacao = 'RETRATO', this.subtitulo, this.rodape, this.agruparPor, this.colunas = const []});
+  const RelConfig({
+    this.orientacao = 'RETRATO',
+    this.subtitulo,
+    this.rodape,
+    this.agruparPor,
+    this.colunas = const [],
+    this.modo = 'SIMPLES',
+    this.layout,
+  });
+
+  bool get avancado => modo == 'AVANCADO';
+
+  RelConfig copiar({String? orientacao, String? modo, RelLayout? layout}) => RelConfig(
+        orientacao: orientacao ?? this.orientacao,
+        subtitulo: subtitulo,
+        rodape: rodape,
+        agruparPor: agruparPor,
+        colunas: colunas,
+        modo: modo ?? this.modo,
+        layout: layout ?? this.layout,
+      );
 
   factory RelConfig.fromJson(Map<String, dynamic>? j) => j == null
       ? const RelConfig()
@@ -47,6 +241,8 @@ class RelConfig {
           rodape: j['rodape']?.toString(),
           agruparPor: j['agruparPor']?.toString(),
           colunas: ((j['colunas'] as List?) ?? const []).whereType<Map<String, dynamic>>().map(RelColuna.fromJson).toList(),
+          modo: (j['modo']?.toString() ?? 'SIMPLES').toUpperCase(),
+          layout: j['layout'] is Map<String, dynamic> ? RelLayout.fromJson(j['layout'] as Map<String, dynamic>) : null,
         );
 
   Map<String, dynamic> toJson() => {
@@ -55,6 +251,8 @@ class RelConfig {
         'rodape': rodape,
         'agruparPor': agruparPor,
         'colunas': colunas.map((c) => c.toJson()).toList(),
+        'modo': modo,
+        'layout': layout?.toJson(),
       };
 }
 
@@ -180,6 +378,20 @@ class RelatorioPersonalizadoService {
     final r = await _rede.postRequest(ApiLinks.relatoriosPersonalizadosTestar, {'sql': sql, 'parametros': parametros});
     _exigir(r, 'testar o SQL');
     return ResultadoDash.fromJson({...r.body!, 'tipo': 'TABELA', 'titulo': 'Prévia'});
+  }
+
+  /// Previa em PDF do SQL + layout ainda nao salvos (construtor, MASTER): ate 50 linhas.
+  Future<PdfRelatorio> previaPdf(String titulo, String sql, Map<String, dynamic> parametros, RelConfig config) async {
+    final r = await http.post(
+      Uri.parse(TenantContext.applyToUrl(ApiLinks.relatoriosPersonalizadosPrevia)),
+      headers: TenantContext.jsonHeaders,
+      body: jsonEncode(TenantContext.applyToBody(
+          {'titulo': titulo, 'sql': sql, 'parametros': parametros, 'config': config.toJson()})),
+    );
+    if (r.statusCode != 200) {
+      throw ModuloJavaException(_mensagemDeCorpo(r.body) ?? 'Não foi possível gerar a prévia (HTTP ${r.statusCode}).');
+    }
+    return PdfRelatorio(r.bodyBytes, 'previa.pdf');
   }
 
   void _exigir(NetworkResponse r, String acao) {

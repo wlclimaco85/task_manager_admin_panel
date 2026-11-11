@@ -208,5 +208,47 @@ void main() {
       expect(r.config.colunas.last.total, isTrue);
       expect(r.config.colunas.first.total, isFalse);
     });
+
+  testWidgets('modo Avancado: exige colunas, abre o designer, aplica o layout e salva com modo e layout', (t) async {
+    t.view.physicalSize = const Size(1700, 3200);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final s = _ServicoFalso();
+    await t.pumpWidget(_app(RelatorioConstrutorView(servico: s)));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Novo relatório'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextFormField, 'Título *'), 'Estoque');
+    await t.enterText(find.widgetWithText(TextFormField, 'SQL (SELECT) *'), 'SELECT nome, qtd FROM item WHERE empresa_id = :empresaId');
+
+    await t.tap(find.text('Avançado (designer)'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Abrir designer'));
+    await t.pumpAndSettle();
+    expect(find.text('Use Testar e Carregar colunas antes de abrir o designer.'), findsOneWidget);
+    await t.pump(const Duration(seconds: 6)); // deixa o aviso sair do caminho
+    await t.pumpAndSettle();
+
+    await t.tap(find.text('Testar'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Carregar colunas'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Abrir designer'));
+    await t.pumpAndSettle();
+    expect(find.text('Designer do relatório'), findsOneWidget);
+    await t.tap(find.text('Layout inicial'));
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(FilledButton, 'Aplicar layout'));
+    await t.pumpAndSettle();
+    expect(find.text('Designer do relatório'), findsNothing, reason: 'o designer fecha ao aplicar');
+    expect(find.text('Layout definido'), findsOneWidget);
+
+    await t.tap(find.text('Salvar'));
+    await t.pumpAndSettle();
+    final r = s.salvos.single;
+    expect(r.config.modo, 'AVANCADO');
+    expect(r.config.layout!.detalhe.elementos.map((e) => e.campo), ['nome', 'qtd']);
+    expect(r.config.layout!.cabecalhoPagina!.elementos.length, 2);
+  });
   });
 }
