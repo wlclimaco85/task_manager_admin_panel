@@ -14,6 +14,7 @@ import 'tela_editor_screen.dart';
 import 'modulo_tela_grid_screen.dart';
 import '../../widgets/construtor_telas_view.dart';
 import '../../widgets/dashboard_construtor_view.dart';
+import '../../widgets/relatorio_construtor_view.dart';
 import '../../widgets/dicionario_dados_view.dart';
 import '../../widgets/modulo_java_view.dart';
 
@@ -124,6 +125,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Dashboards com gráficos e tabelas alimentados por SQL somente-leitura (somente MASTER).',
       icone: Icons.insights_outlined,
     ),
+    _SistemaMenuItem(
+      id: 'construtor_relatorios',
+      titulo: 'Construtor de Relatórios',
+      subtitulo: 'Relatórios em PDF a partir de SQL somente-leitura, com filtros, totais e agrupamento (somente MASTER).',
+      icone: Icons.picture_as_pdf_outlined,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -143,6 +150,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'dicionario_dados': _buildDicionarioDados,
     'construtor_telas': _buildConstrutorTelas,
     'construtor_dashboards': _buildConstrutorDashboards,
+    'construtor_relatorios': _buildConstrutorRelatorios,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -186,6 +194,11 @@ class SistemaMenuScreen extends StatelessWidget {
   static Widget _buildConstrutorDashboards(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Construtor de Dashboards')),
         body: const SafeArea(child: DashboardConstrutorView()),
+      );
+
+  static Widget _buildConstrutorRelatorios(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Construtor de Relatórios')),
+        body: const SafeArea(child: RelatorioConstrutorView()),
       );
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {

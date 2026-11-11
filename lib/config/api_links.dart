@@ -72,6 +72,12 @@ class ApiLinks {
   static String dashboardPersonalizado(String id) => '$_baseUrl/api/dashboards-personalizados/$id';
   static String dashboardPersonalizadoAdmin(String id) => '$_baseUrl/api/dashboards-personalizados/$id/admin';
   static String dashboardPersonalizadoExecutar(String id) => '$_baseUrl/api/dashboards-personalizados/$id/executar';
+  static String get relatoriosPersonalizados => '$_baseUrl/api/relatorios-personalizados';
+  static String get relatoriosPersonalizadosTodos => '$_baseUrl/api/relatorios-personalizados/todos';
+  static String get relatoriosPersonalizadosTestar => '$_baseUrl/api/relatorios-personalizados/testar';
+  static String relatorioPersonalizado(String id) => '$_baseUrl/api/relatorios-personalizados/$id';
+  static String relatorioPersonalizadoAdmin(String id) => '$_baseUrl/api/relatorios-personalizados/$id/admin';
+  static String relatorioPersonalizadoPdf(String id) => '$_baseUrl/api/relatorios-personalizados/$id/pdf';
   static String get acoesJava => '$_baseUrl/api/acoes-java';
   static String acaoJava(String id) => '$_baseUrl/api/acoes-java/$id';
   static String acaoJavaExecutar(String id) =>
