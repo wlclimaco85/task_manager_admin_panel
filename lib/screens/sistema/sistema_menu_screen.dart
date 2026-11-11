@@ -13,6 +13,7 @@ import 'sessoes_screen.dart';
 import 'tela_editor_screen.dart';
 import 'modulo_tela_grid_screen.dart';
 import '../../widgets/construtor_telas_view.dart';
+import '../../widgets/dashboard_construtor_view.dart';
 import '../../widgets/dicionario_dados_view.dart';
 import '../../widgets/modulo_java_view.dart';
 
@@ -117,6 +118,12 @@ class SistemaMenuScreen extends StatelessWidget {
       subtitulo: 'Cria uma tela com CRUD sobre uma tabela da empresa, sem código (somente MASTER).',
       icone: Icons.dashboard_customize_outlined,
     ),
+    _SistemaMenuItem(
+      id: 'construtor_dashboards',
+      titulo: 'Construtor de Dashboards',
+      subtitulo: 'Dashboards com gráficos e tabelas alimentados por SQL somente-leitura (somente MASTER).',
+      icone: Icons.insights_outlined,
+    ),
   ];
 
   static const _builders = <String, WidgetBuilder>{
@@ -135,6 +142,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'modulo_java': _buildModuloJava,
     'dicionario_dados': _buildDicionarioDados,
     'construtor_telas': _buildConstrutorTelas,
+    'construtor_dashboards': _buildConstrutorDashboards,
   };
 
   static Widget _buildAplicativo(BuildContext context) =>
@@ -173,6 +181,11 @@ class SistemaMenuScreen extends StatelessWidget {
   static Widget _buildConstrutorTelas(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Construtor de Telas')),
         body: const SafeArea(child: ConstrutorTelasView()),
+      );
+
+  static Widget _buildConstrutorDashboards(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Construtor de Dashboards')),
+        body: const SafeArea(child: DashboardConstrutorView()),
       );
 
   void _onTap(BuildContext context, _SistemaMenuItem item) {
