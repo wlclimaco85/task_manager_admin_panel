@@ -2,6 +2,10 @@
 
 > Regras globais da workspace estão em `C:\App_Academia\CLAUDE.md`. Em conflito, o pai prevalece.
 
+## Regra Absoluta: Cores/Tema/Marca Sao EXCLUSIVOS Deste Projeto
+
+**NUNCA copiar** cores, tema, paleta, logo, icones, marca, login/vitrine ou qualquer arquivo de template visual de/para outro projeto da triade (`task_manager_flutter`, `_merged_final`, `_por_cliente`, `task_manager_admin_panel`). Cada app tem identidade propria. Replicacao entre projetos vale SO para logica; ao replicar, usar os tokens de cor DESTE projeto, nunca `Color(0x...)` literal do outro. Pedido "replicar o visual do app X" NAO autoriza copiar cores. Regra completa em `C:/App_Academia/CLAUDE.md` (Cada App Tem Sua Propria Cor). O code review bloqueia violacao.
+
 ## Project
 
 **Flutter — Painel do Dono/Admin. App NOVO e SEPARADO dos apps cliente.**
