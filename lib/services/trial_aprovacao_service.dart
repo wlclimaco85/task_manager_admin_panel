@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import '../config/api_links.dart';
 import '../utils/app_logger.dart';
-import '../utils/tenant_context.dart';
 import '../widgets/generic_grid_windows_screen.dart';
 import 'network_caller.dart';
 
@@ -32,33 +31,66 @@ class ModulosMapeados {
   bool get temCorrespondencia => ids.isNotEmpty;
 }
 
-/// Cliente (Parceiro) preparado para a concessao de licenca: parceiro
-/// garantido + modulos vinculados. Guarda o estado anterior para permitir a
-/// compensacao caso o fluxo seja cancelado antes da conclusao.
+/// Resposta de `GET /api/admin/trial/resolver-cnpj`: a quem o CNPJ/CPF
+/// pertence (empresa ou parceiro) e os usuarios/roles SO desse escopo.
+class ResolucaoCnpj {
+  const ResolucaoCnpj({
+    required this.tipoAlvo,
+    this.empresaId,
+    this.empresaNome,
+    this.parceiroId,
+    this.parceiroNome,
+    this.usuarios = const [],
+    this.roles = const [],
+  });
+
+  /// `EMPRESA`, `PARCEIRO` ou `NAO_ENCONTRADO`.
+  final String tipoAlvo;
+  final int? empresaId;
+  final String? empresaNome;
+  final int? parceiroId;
+  final String? parceiroNome;
+  final List<Map<String, dynamic>> usuarios;
+  final List<Map<String, dynamic>> roles;
+
+  bool get naoEncontrado => tipoAlvo == 'NAO_ENCONTRADO';
+  bool get ehParceiro => tipoAlvo == 'PARCEIRO';
+
+  factory ResolucaoCnpj.fromJson(Map<String, dynamic> json) {
+    List<Map<String, dynamic>> lista(dynamic v) => v is List
+        ? v.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList()
+        : const [];
+    return ResolucaoCnpj(
+      tipoAlvo: (json['tipoAlvo'] ?? 'NAO_ENCONTRADO').toString(),
+      empresaId: TrialAprovacaoService._toInt(json['empresaId']),
+      empresaNome: json['empresaNome']?.toString(),
+      parceiroId: TrialAprovacaoService._toInt(json['parceiroId']),
+      parceiroNome: json['parceiroNome']?.toString(),
+      usuarios: lista(json['usuarios']),
+      roles: lista(json['roles']),
+    );
+  }
+}
+
+/// Cliente da solicitacao preparado para a concessao de licenca: alvo
+/// (empresa OU parceiro, resolvido pelo CNPJ) + modulos vinculados. Guarda o
+/// estado anterior para compensar caso o fluxo seja cancelado.
 class ClienteTrialPreparado {
   ClienteTrialPreparado({
-    required this.parceiroId,
-    required this.parceiroNome,
-    required this.parceiroCriado,
-    required this.empresaId,
+    required this.resolucao,
     required this.modulos,
     required this.modulosNomes,
     required this.modulosAnteriores,
     required this.modulosAlterados,
   });
 
-  final int parceiroId;
-  final String parceiroNome;
-
-  /// `true` quando o parceiro foi criado por este fluxo (e nao reaproveitado).
-  final bool parceiroCriado;
-  final int? empresaId;
+  final ResolucaoCnpj resolucao;
   final ModulosMapeados modulos;
 
-  /// Nomes de TODOS os modulos do cliente apos o vinculo (anteriores + novos).
+  /// Nomes de TODOS os modulos do alvo apos o vinculo (anteriores + novos).
   final List<String> modulosNomes;
 
-  /// Vinculos que o parceiro ja tinha antes (com valor/dia de vencimento).
+  /// Vinculos que o alvo ja tinha antes (com valor/dia de vencimento, no parceiro).
   final List<Map<String, dynamic>> modulosAnteriores;
 
   /// `true` se o POST de vinculo foi executado (precisa ser revertido).
@@ -66,22 +98,27 @@ class ClienteTrialPreparado {
 
   /// Logins criados durante o popup (etapa 2) — removidos se cancelar.
   final List<int> loginsCriados = <int>[];
+
+  bool get ehParceiro => resolucao.ehParceiro;
+
+  /// Id do alvo dos modulos: parceiro quando o CNPJ e' de parceiro, senao a empresa.
+  int get alvoId => ehParceiro ? resolucao.parceiroId! : resolucao.empresaId!;
+  String get alvoNome {
+    final nome = ehParceiro ? resolucao.parceiroNome : resolucao.empresaNome;
+    return (nome == null || nome.isEmpty) ? '#$alvoId' : nome;
+  }
 }
 
-/// Fluxo do botao "Aprovar" de Solicitacoes de Trial: transforma a solicitacao
-/// em um cliente com licenca e modulos (mesmo processo de "Atribuicao de
-/// Modulos"). Destinatario: **Parceiro** (cliente) sob a empresa do usuario
-/// master logado — e' o destinatario que aparece em "Clientes com Licencas &
-/// Modulos" (resumo) e o padrao da tela de atribuicao.
+/// Fluxo do botao "Aprovar" de Solicitacoes de Trial (30 dias gratis). O
+/// destinatario e' descoberto pelo CNPJ/CPF da PROPRIA solicitacao — empresa
+/// ou parceiro — e nunca pela empresa de quem esta logado no Painel do Dono.
 class TrialAprovacaoService {
-  TrialAprovacaoService({NetworkCaller? caller, int? Function()? empresaIdProvider})
+  TrialAprovacaoService({NetworkCaller? caller})
       : _caller = caller ?? NetworkCaller(),
-        _donoDoCaller = caller == null,
-        _empresaIdProvider = empresaIdProvider ?? (() => TenantContext.empresaId);
+        _donoDoCaller = caller == null;
 
   final NetworkCaller _caller;
   final bool _donoDoCaller;
-  final int? Function() _empresaIdProvider;
 
   void close() {
     if (_donoDoCaller) _caller.close();
@@ -184,45 +221,58 @@ class TrialAprovacaoService {
     return GenericGridWindowsScreen.extractRows(res.body);
   }
 
-  /// Garante o parceiro (reaproveita por CNPJ/CPF ou e-mail; senao cria) e
-  /// vincula os modulos mapeados, preservando os que o cliente ja tinha. Se
-  /// qualquer passo falhar, desfaz o que ja foi feito e relanca a falha.
+  /// Descobre pelo CNPJ/CPF se o cliente e' empresa ou parceiro e traz so' os
+  /// usuarios e roles desse escopo.
+  Future<ResolucaoCnpj> resolverCnpj(String documento) async {
+    final res = await _caller.getRequest(ApiLinks.trialResolverCnpj(documento));
+    if (!res.isSuccess || res.body == null) {
+      final erro = res.body?['erro']?.toString();
+      throw TrialAprovacaoException(erro != null && erro.isNotEmpty
+          ? erro
+          : _mensagemHttp('Nao foi possivel localizar o cliente pelo CNPJ', res.statusCode));
+    }
+    return ResolucaoCnpj.fromJson(res.body!);
+  }
+
+  /// Resolve o cliente pelo CNPJ/CPF da solicitacao e vincula os modulos mapeados
+  /// ao alvo (empresa ou parceiro), preservando os que ele ja tinha. Se o
+  /// documento nao pertence a nenhuma empresa/parceiro, falha com mensagem clara:
+  /// nunca cria cadastro sob a empresa de quem esta logado. Se o vinculo falhar,
+  /// desfaz o que foi feito e relanca.
   Future<ClienteTrialPreparado> prepararCliente(
       Map<String, dynamic> solicitacao, ModulosMapeados mapa) async {
     if (!mapa.temCorrespondencia) {
       throw const TrialAprovacaoException(
           'Nenhum modulo da solicitacao existe no catalogo. Cadastre os modulos antes de aprovar.');
     }
-    final empresaId = _empresaIdProvider();
-    if (empresaId == null) {
+    final documento = documentoDaSolicitacao(solicitacao);
+    if (documento.isEmpty) {
       throw const TrialAprovacaoException(
-          'Sessao sem empresa. Saia e entre novamente no Painel do Dono.');
+          'A solicitacao nao tem CNPJ/CPF. Sem o documento nao e possivel localizar o cliente.');
     }
 
-    int? parceiroId;
-    String nome = (solicitacao['nome'] ?? '').toString().trim();
-    var criado = false;
+    final resolucao = await resolverCnpj(documento);
+    if (resolucao.naoEncontrado) {
+      throw TrialAprovacaoException(
+          'CNPJ/CPF $documento nao pertence a nenhuma empresa nem parceiro cadastrado. Cadastre o cliente antes de conceder o trial.');
+    }
+
     var modulosAlterados = false;
     List<Map<String, dynamic>> anteriores = const [];
+    final preparado = ClienteTrialPreparado(
+      resolucao: resolucao,
+      modulos: mapa,
+      modulosNomes: const [],
+      modulosAnteriores: const [],
+      modulosAlterados: false,
+    );
     try {
-      final existente = await _buscarParceiroExistente(solicitacao);
-      if (existente != null) {
-        parceiroId = existente.$1;
-        if (existente.$2.isNotEmpty) nome = existente.$2;
-      } else {
-        parceiroId = await _criarParceiro(solicitacao, empresaId);
-        criado = true;
-      }
-
-      anteriores = criado ? const [] : await _modulosDoParceiro(parceiroId);
-      final idsAnteriores = anteriores
-          .map((m) => _toInt(m['id'] ?? m['moduloId']))
-          .whereType<int>()
-          .toList();
+      anteriores = await _modulosDoAlvo(preparado);
+      final idsAnteriores = _idsDe(anteriores);
       final uniao = <int>{...idsAnteriores, ...mapa.ids}.toList();
       if (uniao.length != idsAnteriores.length) {
         modulosAlterados = true;
-        await _vincularModulos(parceiroId, uniao, anteriores);
+        await _vincularModulos(preparado, uniao, anteriores);
       }
 
       final nomes = <String>{
@@ -231,10 +281,7 @@ class TrialAprovacaoService {
       }.where((n) => n.isNotEmpty).toList();
 
       return ClienteTrialPreparado(
-        parceiroId: parceiroId,
-        parceiroNome: nome.isEmpty ? 'Parceiro #$parceiroId' : nome,
-        parceiroCriado: criado,
-        empresaId: empresaId,
+        resolucao: resolucao,
         modulos: mapa,
         modulosNomes: nomes,
         modulosAnteriores: anteriores,
@@ -242,11 +289,10 @@ class TrialAprovacaoService {
       );
     } catch (e, st) {
       AppLogger.i.error('Aprovar trial: falha ao preparar cliente: $e', st);
-      if (parceiroId != null) {
+      if (modulosAlterados) {
         await _compensar(
-          parceiroId: parceiroId,
-          parceiroCriado: criado,
-          modulosAlterados: modulosAlterados,
+          cliente: preparado,
+          modulosAlterados: true,
           anteriores: anteriores,
           loginsCriados: const [],
         );
@@ -257,13 +303,11 @@ class TrialAprovacaoService {
   }
 
   /// Compensacao: usuario cancelou o popup (ou algo falhou depois do vinculo).
-  /// Remove logins criados no popup, restaura os modulos anteriores e apaga o
-  /// parceiro quando ele foi criado por este fluxo. Retorna `true` se tudo foi
-  /// revertido; `false` (com log) se algo ficou para limpeza manual.
+  /// Remove logins criados no popup e restaura os modulos anteriores. Retorna
+  /// `true` se tudo foi revertido; `false` (com log) se algo ficou para limpeza manual.
   Future<bool> desfazer(ClienteTrialPreparado cliente) {
     return _compensar(
-      parceiroId: cliente.parceiroId,
-      parceiroCriado: cliente.parceiroCriado,
+      cliente: cliente,
       modulosAlterados: cliente.modulosAlterados,
       anteriores: cliente.modulosAnteriores,
       loginsCriados: cliente.loginsCriados,
@@ -287,78 +331,14 @@ class TrialAprovacaoService {
   // Internos
   // ---------------------------------------------------------------------------
 
-  /// (id, nome) do parceiro ja cadastrado com o mesmo documento ou e-mail.
-  Future<(int, String)?> _buscarParceiroExistente(
-      Map<String, dynamic> solicitacao) async {
-    final documento = documentoDaSolicitacao(solicitacao);
-    final email = (solicitacao['email'] ?? '').toString().trim().toLowerCase();
-    final termos = <String>[
-      if (documento.isNotEmpty) documento,
-      if (email.isNotEmpty) email,
-    ];
-    for (final termo in termos) {
-      final url = '${ApiLinks.allParceiros}?busca=${Uri.encodeQueryComponent(termo)}&tamanho=50';
-      final res = await _caller.getRequest(url);
-      if (!res.isSuccess) {
-        throw TrialAprovacaoException(_mensagemHttp(
-            'Nao foi possivel verificar se o cliente ja existe', res.statusCode));
-      }
-      for (final p in GenericGridWindowsScreen.extractRows(res.body)) {
-        final doc = _digitos((p['cpf'] ?? p['cnpj'] ?? '').toString());
-        final mail = (p['email'] ?? '').toString().trim().toLowerCase();
-        final mesmoDoc = documento.isNotEmpty && doc == documento;
-        final mesmoMail = documento.isEmpty && email.isNotEmpty && mail == email;
-        final id = _toInt(p['id']);
-        if (id != null && (mesmoDoc || mesmoMail)) {
-          final nome =
-              (p['nome'] ?? p['razaoSocial'] ?? p['razao_social'] ?? '').toString();
-          return (id, nome);
-        }
-      }
-    }
-    return null;
-  }
+  List<int> _idsDe(List<Map<String, dynamic>> modulos) =>
+      modulos.map((m) => _toInt(m['id'] ?? m['moduloId'])).whereType<int>().toList();
 
-  Future<int> _criarParceiro(Map<String, dynamic> s, int empresaId) async {
-    final documento = documentoDaSolicitacao(s);
-    final localizacao = (s['localizacao'] ?? '').toString().trim();
-    final uf = RegExp(r'([A-Za-z]{2})\s*$').firstMatch(localizacao)?.group(1);
-    final cidade = uf == null
-        ? localizacao
-        : localizacao
-            .substring(0, localizacao.length - uf.length)
-            .replaceAll(RegExp(r'[\s,/\-]+$'), '')
-            .trim();
-    final payload = <String, dynamic>{
-      'nome': (s['nome'] ?? '').toString().trim(),
-      if (documento.isNotEmpty) 'cpf': documento,
-      'email': (s['email'] ?? '').toString().trim(),
-      if ((s['telefone'] ?? '').toString().isNotEmpty)
-        'telefone1': s['telefone'].toString(),
-      if (cidade.isNotEmpty) 'cidade': cidade,
-      if (uf != null) 'estado': uf.toUpperCase(),
-      'status': 'A',
-      'tipo_cliente': 'CLIENTE',
-      'empresa': {'id': empresaId},
-      'tipos_parceiro': [
-        {'id': 1}
-      ],
-    };
-    final res = await _caller.postRequest(ApiLinks.insertParceiro, payload);
-    if (!res.isSuccess) {
-      throw TrialAprovacaoException(
-          _mensagemHttp('Nao foi possivel cadastrar o cliente', res.statusCode));
-    }
-    final id = _extrairId(res.body);
-    if (id == null) {
-      throw const TrialAprovacaoException(
-          'Cliente cadastrado, mas a API nao retornou o ID.');
-    }
-    return id;
-  }
-
-  Future<List<Map<String, dynamic>>> _modulosDoParceiro(int parceiroId) async {
-    final res = await _caller.getRequest(ApiLinks.parceiroModulos(parceiroId.toString()));
+  Future<List<Map<String, dynamic>>> _modulosDoAlvo(ClienteTrialPreparado c) async {
+    final url = c.ehParceiro
+        ? ApiLinks.parceiroModulos(c.alvoId.toString())
+        : ApiLinks.empresaModulos(c.alvoId.toString());
+    final res = await _caller.getRequest(url);
     if (!res.isSuccess) {
       throw TrialAprovacaoException(_mensagemHttp(
           'Nao foi possivel ler os modulos atuais do cliente', res.statusCode));
@@ -366,17 +346,24 @@ class TrialAprovacaoService {
     return GenericGridWindowsScreen.extractRows(res.body);
   }
 
+  Future<dynamic> _postVinculo(ClienteTrialPreparado c, List<int> ids) {
+    return c.ehParceiro
+        ? _caller.postRequest(
+            ApiLinks.vincularParceiroModulos, {'parceiroId': c.alvoId, 'moduloIds': ids})
+        : _caller.postRequest(
+            ApiLinks.vincularEmpresaModulos, {'empresaId': c.alvoId, 'moduloIds': ids});
+  }
+
   /// POST de vinculo SUBSTITUI todo o conjunto (apaga e reinsere), o que zera
-  /// valor mensal/dia de vencimento; por isso reaplica os valores anteriores.
-  Future<void> _vincularModulos(
-      int parceiroId, List<int> ids, List<Map<String, dynamic>> anteriores) async {
-    final res = await _caller.postRequest(
-        ApiLinks.vincularParceiroModulos, {'parceiroId': parceiroId, 'moduloIds': ids});
+  /// valor mensal/dia de vencimento do parceiro; por isso reaplica os valores anteriores.
+  Future<void> _vincularModulos(ClienteTrialPreparado c, List<int> ids,
+      List<Map<String, dynamic>> anteriores) async {
+    final res = await _postVinculo(c, ids);
     if (!res.isSuccess) {
       throw TrialAprovacaoException(
           _mensagemHttp('Nao foi possivel vincular os modulos', res.statusCode));
     }
-    await _restaurarValores(parceiroId, ids, anteriores);
+    if (c.ehParceiro) await _restaurarValores(c.alvoId, ids, anteriores);
   }
 
   Future<void> _restaurarValores(
@@ -405,8 +392,7 @@ class TrialAprovacaoService {
   }
 
   Future<bool> _compensar({
-    required int parceiroId,
-    required bool parceiroCriado,
+    required ClienteTrialPreparado cliente,
     required bool modulosAlterados,
     required List<Map<String, dynamic>> anteriores,
     required List<int> loginsCriados,
@@ -416,27 +402,19 @@ class TrialAprovacaoService {
       tudoOk &= await _tentar(
           'remover login $loginId', () => _caller.deleteRequest(ApiLinks.deleteLogin('$loginId')));
     }
-    if (parceiroCriado) {
-      tudoOk &= await _tentar('desvincular modulos do parceiro $parceiroId', () =>
-          _caller.postRequest(ApiLinks.vincularParceiroModulos,
-              {'parceiroId': parceiroId, 'moduloIds': <int>[]}));
-      tudoOk &= await _tentar('remover parceiro $parceiroId',
-          () => _caller.deleteRequest(ApiLinks.deleteParceiro('$parceiroId')));
-    } else if (modulosAlterados) {
-      final idsAnteriores = anteriores
-          .map((m) => _toInt(m['id'] ?? m['moduloId']))
-          .whereType<int>()
-          .toList();
-      tudoOk &= await _tentar('restaurar modulos do parceiro $parceiroId', () async {
-        final r = await _caller.postRequest(ApiLinks.vincularParceiroModulos,
-            {'parceiroId': parceiroId, 'moduloIds': idsAnteriores});
-        if (r.isSuccess) await _restaurarValores(parceiroId, idsAnteriores, anteriores);
+    if (modulosAlterados) {
+      final idsAnteriores = _idsDe(anteriores);
+      tudoOk &= await _tentar('restaurar modulos de ${cliente.alvoNome}', () async {
+        final r = await _postVinculo(cliente, idsAnteriores);
+        if (r.isSuccess && cliente.ehParceiro) {
+          await _restaurarValores(cliente.alvoId, idsAnteriores, anteriores);
+        }
         return r;
       });
     }
     if (!tudoOk) {
       AppLogger.i.warn(
-          'Aprovar trial: compensacao incompleta para o parceiro $parceiroId — revisar manualmente em Atribuicao de Modulos.');
+          'Aprovar trial: compensacao incompleta para ${cliente.alvoNome} — revisar manualmente em Atribuicao de Modulos.');
     }
     return tudoOk;
   }
@@ -461,22 +439,6 @@ class TrialAprovacaoService {
     }
     if (status == 403) return '$base: sem permissao (HTTP 403).';
     return '$base (HTTP $status).';
-  }
-
-  static int? _extrairId(Map<String, dynamic>? body) {
-    if (body == null) return null;
-    final direto = _toInt(body['id']);
-    if (direto != null) return direto;
-    final data = body['data'];
-    if (data is Map) return _extrairId(Map<String, dynamic>.from(data));
-    if (data is List && data.isNotEmpty && data.first is Map) {
-      return _extrairId(Map<String, dynamic>.from(data.first as Map));
-    }
-    for (final chave in ['parceiro', 'dados']) {
-      final nested = body[chave];
-      if (nested is Map) return _extrairId(Map<String, dynamic>.from(nested));
-    }
-    return null;
   }
 
   static int? _toInt(dynamic v) {

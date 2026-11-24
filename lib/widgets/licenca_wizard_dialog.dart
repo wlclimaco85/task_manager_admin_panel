@@ -36,6 +36,11 @@ class LicencaWizardDialog extends StatefulWidget {
   /// desfazer a criacao se o fluxo for cancelado depois.
   final void Function(int loginId)? onLoginCriado;
 
+  /// Roles e usuarios ja filtrados para o cliente (resolvidos pelo CNPJ). Quando
+  /// informados, o wizard NAO busca todas as roles do sistema nem os logins.
+  final List<Map<String, dynamic>>? rolesIniciais;
+  final List<Map<String, dynamic>>? usuariosIniciais;
+
   const LicencaWizardDialog({
     super.key,
     required this.empresaId,
@@ -46,6 +51,8 @@ class LicencaWizardDialog extends StatefulWidget {
     this.networkCaller,
     this.usuarioSugerido,
     this.onLoginCriado,
+    this.rolesIniciais,
+    this.usuariosIniciais,
   });
 
   @override
@@ -90,33 +97,41 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
     });
 
     try {
-      // 1. Carregar Roles
-      final resRoles = await _caller.getRequest(ApiLinks.allRoles);
-      // 2. Carregar Usuários da Empresa / Parceiro
-      final urlLogins = widget.tipoAlvo == 'parceiro'
-          ? (widget.empresaMatrizId != null
-              ? '${ApiLinks.baseUrl}/api/logins?parcId=${widget.empresaId}&empId=${widget.empresaMatrizId}&incluirMatriz=true'
-              : ApiLinks.loginsByParceiro(widget.empresaId.toString()))
-          : ApiLinks.loginsByEmpresa(widget.empresaId.toString());
-      final resLogins = await _caller.getRequest(urlLogins);
+      List<Map<String, dynamic>> roles;
+      List<Map<String, dynamic>> usuarios;
+      if (widget.rolesIniciais != null && widget.usuariosIniciais != null) {
+        // Escopo ja resolvido pelo CNPJ: so' roles/usuarios do cliente certo.
+        roles = List.of(widget.rolesIniciais!);
+        usuarios = List.of(widget.usuariosIniciais!);
+      } else {
+        // 1. Carregar Roles
+        final resRoles = await _caller.getRequest(ApiLinks.allRoles);
+        // 2. Carregar Usuários da Empresa / Parceiro
+        final urlLogins = widget.tipoAlvo == 'parceiro'
+            ? (widget.empresaMatrizId != null
+                ? '${ApiLinks.baseUrl}/api/logins?parcId=${widget.empresaId}&empId=${widget.empresaMatrizId}&incluirMatriz=true'
+                : ApiLinks.loginsByParceiro(widget.empresaId.toString()))
+            : ApiLinks.loginsByEmpresa(widget.empresaId.toString());
+        final resLogins = await _caller.getRequest(urlLogins);
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (!resRoles.isSuccess) {
-        setState(() {
-          _carregando = false;
-          _erro = 'Não foi possível carregar as roles do sistema.';
-        });
-        return;
+        if (!resRoles.isSuccess) {
+          setState(() {
+            _carregando = false;
+            _erro = 'Não foi possível carregar as roles do sistema.';
+          });
+          return;
+        }
+
+        final rolesRaw = GenericGridWindowsScreen.extractRows(resRoles.body);
+        roles = rolesRaw.map((r) => Map<String, dynamic>.from(r)).toList();
+
+        final loginsRaw = resLogins.isSuccess
+            ? GenericGridWindowsScreen.extractRows(resLogins.body)
+            : <dynamic>[];
+        usuarios = loginsRaw.map((u) => Map<String, dynamic>.from(u)).toList();
       }
-
-      final rolesRaw = GenericGridWindowsScreen.extractRows(resRoles.body);
-      final roles = rolesRaw.map((r) => Map<String, dynamic>.from(r)).toList();
-
-      final loginsRaw = resLogins.isSuccess
-          ? GenericGridWindowsScreen.extractRows(resLogins.body)
-          : <dynamic>[];
-      final usuarios = loginsRaw.map((u) => Map<String, dynamic>.from(u)).toList();
 
       final usuariosIds = <int>{};
       for (final u in usuarios) {
@@ -309,6 +324,7 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
     });
 
     int atribuidosComSucesso = 0;
+    int? ultimoStatusErro;
     final roleId = _roleSelecionadaId!;
 
     try {
@@ -318,6 +334,10 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
         final res = await _caller.postRequest(urlAddRole, {});
         if (res.isSuccess) {
           atribuidosComSucesso++;
+        } else {
+          ultimoStatusErro = res.statusCode;
+          AppLogger.i.warn(
+              'LicencaWizard: POST /api/login/$loginId/roles/$roleId falhou (HTTP ${res.statusCode})');
         }
       }
 
@@ -329,7 +349,8 @@ class _LicencaWizardDialogState extends State<LicencaWizardDialog> {
             'LicencaWizard: role $roleId nao atribuida a nenhum dos ${_usuariosSelecionadosIds.length} usuario(s) selecionado(s)');
         setState(() {
           _salvando = false;
-          _erro = 'Não foi possível atribuir a role a nenhum usuário. Tente novamente.';
+          _erro =
+              'Não foi possível atribuir a role a nenhum usuário (HTTP ${ultimoStatusErro ?? '?'}). Tente novamente.';
         });
         return;
       }

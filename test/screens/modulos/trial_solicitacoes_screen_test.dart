@@ -18,7 +18,8 @@ const _solicitacao = {
   'status': 'PENDENTE',
 };
 
-FakeBackend _backend({List<Map<String, dynamic>> logins = const []}) {
+/// CNPJ pertence a uma EMPRESA (id 10) que ja tem 1 usuario e 1 role proprios.
+FakeBackend _backend({List<Map<String, dynamic>> usuarios = const []}) {
   final api = FakeBackend();
   api.json('GET /api/admin/trial/solicitacoes', jsonEncode({'data': [_solicitacao]}));
   api.json(
@@ -29,15 +30,23 @@ FakeBackend _backend({List<Map<String, dynamic>> logins = const []}) {
           {'id': 2, 'nome': 'Financeiro'},
         ]
       }));
-  api.json('GET /api/parceiro', jsonEncode({'data': {'dados': []}}));
-  api.json('POST /api/parceiro/insert', jsonEncode({'data': {'id': 416}}));
-  api.json('POST /api/parceiro-modulo', '{}');
-  api.json('GET /api/role', jsonEncode({'data': {'dados': [{'id': 5, 'description': 'Financeiro'}]}}));
-  api.json('GET /api/logins', jsonEncode({'data': {'dados': logins}}));
+  api.json(
+      'GET /api/admin/trial/resolver-cnpj',
+      jsonEncode({
+        'tipoAlvo': 'EMPRESA',
+        'empresaId': 10,
+        'empresaNome': 'Padaria do Ze LTDA',
+        'usuarios': usuarios,
+        'roles': [
+          {'id': 5, 'key': 'ROLE_FISCAL', 'description': 'Fiscal da Padaria'}
+        ],
+      }));
+  api.json('GET /api/empresa-modulo', jsonEncode([]));
+  api.json('POST /api/empresa-modulo', '{}');
   api.json('POST /api/logins', jsonEncode({'data': {'id': 900}}));
   api.json('POST /api/login/900/roles/5', '{}');
+  api.json('POST /api/login/1/roles/5', '{}');
   api.json('PUT /api/admin/trial/solicitacoes/7/status', '{}');
-  api.json('DELETE /api/parceiro/416', '{}');
   api.json('DELETE /api/login/900', '{}');
   return api;
 }
@@ -47,10 +56,7 @@ Future<void> _abrir(WidgetTester tester, FakeBackend api) async {
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(MaterialApp(
-    home: TrialSolicitacoesScreen(
-      networkCaller: NetworkCaller(client: api.client),
-      empresaIdProvider: () => 1,
-    ),
+    home: TrialSolicitacoesScreen(networkCaller: NetworkCaller(client: api.client)),
   ));
   await _assentar(tester);
 }
@@ -64,7 +70,7 @@ Future<void> _assentar(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('Aprovar cria o cliente, abre o popup de licenca e cancelar desfaz tudo (continua PENDENTE)',
+  testWidgets('Aprovar localiza a empresa pelo CNPJ, vincula modulos nela e cancelar desfaz (continua PENDENTE)',
       (tester) async {
     final api = _backend();
     await _abrir(tester, api);
@@ -72,22 +78,27 @@ void main() {
     await tester.tap(find.byKey(const Key('trial_aprovar_7')));
     await _assentar(tester);
 
-    // Popup identico ao de Atribuicao de Modulos, ja com o cliente e os modulos
     expect(find.text('Concessão de Licença & Acessos'), findsOneWidget);
-    expect(find.text('Padaria do Ze'), findsWidgets);
+    expect(find.text('Padaria do Ze LTDA'), findsWidgets);
     expect(find.textContaining('NFC-e, Financeiro'), findsOneWidget);
-    expect(api.vezes('POST /api/parceiro/insert'), 1);
-    expect(api.vezes('POST /api/parceiro-modulo'), 1);
+    expect(api.vezes('GET /api/admin/trial/resolver-cnpj'), 1);
+    expect(api.vezes('POST /api/empresa-modulo'), 1);
+    // nada de cadastrar parceiro sob a empresa de quem esta logado
+    expect(api.vezes('POST /api/parceiro/insert'), 0);
+    // roles/usuarios vem da resolucao do CNPJ, nao da lista global do sistema
+    expect(api.vezes('GET /api/role'), 0);
+    expect(api.vezes('GET /api/logins'), 0);
 
     await tester.tap(find.byKey(const Key('licenca_wizard_fechar_btn')));
     await _assentar(tester);
 
     expect(api.vezes('PUT /api/admin/trial/solicitacoes/7/status'), 0);
-    expect(api.vezes('DELETE /api/parceiro/416'), 1);
+    // compensacao: restaura o conjunto anterior (vazio) de modulos da empresa
+    expect(api.vezes('POST /api/empresa-modulo'), 2);
     expect(find.textContaining('continua PENDENTE'), findsOneWidget);
   });
 
-  testWidgets('Aprovar: cria usuario com o e-mail da solicitacao, atribui a role e so entao marca APROVADO',
+  testWidgets('Aprovar: cria usuario NA empresa do CNPJ, atribui a role e so entao marca APROVADO',
       (tester) async {
     final api = _backend();
     await _abrir(tester, api);
@@ -97,7 +108,6 @@ void main() {
 
     await tester.tap(find.byKey(const Key('licenca_wizard_proximo_btn')));
     await _assentar(tester);
-    // Etapa 2: sem usuarios -> criar usuario (dialogo ja vem com o e-mail da solicitacao)
     await tester.tap(find.byKey(const Key('licenca_wizard_criar_usuario_vazio_btn')));
     await _assentar(tester);
     expect(find.widgetWithText(TextFormField, 'ze@padaria.com'), findsOneWidget);
@@ -107,8 +117,8 @@ void main() {
     final criar = api.chamadas.indexOf('POST /api/logins');
     final payload = jsonDecode(api.corpos[criar]) as Map<String, dynamic>;
     expect(payload['email'], 'ze@padaria.com');
-    expect(payload['parceiro'], {'id': 416});
-    expect(payload['empresa'], {'id': 1});
+    expect(payload['empresa'], {'id': 10});
+    expect(payload.containsKey('parceiro'), isFalse);
 
     await tester.tap(find.byKey(const Key('licenca_wizard_proximo_btn')));
     await _assentar(tester);
@@ -119,10 +129,46 @@ void main() {
     final put = api.chamadas.indexOf('PUT /api/admin/trial/solicitacoes/7/status');
     expect(put, greaterThan(api.chamadas.indexOf('POST /api/login/900/roles/5')));
     expect(jsonDecode(api.corpos[put])['status'], 'APROVADO');
-    expect(api.vezes('DELETE /api/parceiro/416'), 0);
   });
 
-  testWidgets('Aprovar com modulo sem correspondencia avisa e cancelar nao cria nada', (tester) async {
+  testWidgets('Aprovar com usuario ja existente na empresa do CNPJ: lista so os dela e atribui a role a ele',
+      (tester) async {
+    final api = _backend(usuarios: [
+      {'id': 1, 'nome': 'Ze da Padaria', 'email': 'ze@padaria.com'}
+    ]);
+    await _abrir(tester, api);
+
+    await tester.tap(find.byKey(const Key('trial_aprovar_7')));
+    await _assentar(tester);
+    await tester.tap(find.byKey(const Key('licenca_wizard_proximo_btn')));
+    await _assentar(tester);
+    expect(find.text('Ze da Padaria'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('licenca_wizard_proximo_btn')));
+    await _assentar(tester);
+    await tester.tap(find.byKey(const Key('licenca_wizard_finalizar_btn')));
+    await _assentar(tester);
+
+    expect(api.vezes('POST /api/login/1/roles/5'), 1);
+    expect(api.vezes('POST /api/logins'), 0);
+  });
+
+  testWidgets('CNPJ que nao e de nenhuma empresa/parceiro: avisa e nao cria nada', (tester) async {
+    final api = _backend();
+    api.json('GET /api/admin/trial/resolver-cnpj', jsonEncode({'tipoAlvo': 'NAO_ENCONTRADO'}));
+    await _abrir(tester, api);
+
+    await tester.tap(find.byKey(const Key('trial_aprovar_7')));
+    await _assentar(tester);
+
+    expect(find.textContaining('nao pertence a nenhuma empresa'), findsOneWidget);
+    expect(find.text('Concessão de Licença & Acessos'), findsNothing);
+    expect(api.vezes('POST /api/empresa-modulo'), 0);
+    expect(api.vezes('POST /api/parceiro/insert'), 0);
+    expect(api.vezes('PUT /api/admin/trial/solicitacoes/7/status'), 0);
+  });
+
+  testWidgets('Aprovar com modulo sem correspondencia avisa e cancelar nao consulta nem vincula nada',
+      (tester) async {
     final api = _backend();
     api.json('GET /api/admin/trial/solicitacoes',
         jsonEncode({'data': [{..._solicitacao, 'modulos': '["NFC-e","Modulo Fantasma"]'}]}));
@@ -135,7 +181,8 @@ void main() {
     await tester.tap(find.byKey(const Key('trial_modulos_cancelar_btn')));
     await _assentar(tester);
 
-    expect(api.vezes('POST /api/parceiro/insert'), 0);
+    expect(api.vezes('GET /api/admin/trial/resolver-cnpj'), 0);
+    expect(api.vezes('POST /api/empresa-modulo'), 0);
     expect(api.vezes('PUT /api/admin/trial/solicitacoes/7/status'), 0);
   });
 }

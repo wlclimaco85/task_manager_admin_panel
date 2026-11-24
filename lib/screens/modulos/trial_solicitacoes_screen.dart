@@ -9,11 +9,10 @@ import '../../widgets/licenca_wizard_dialog.dart';
 import '../../services/trial_aprovacao_service.dart';
 
 class TrialSolicitacoesScreen extends StatefulWidget {
-  const TrialSolicitacoesScreen({super.key, this.networkCaller, this.empresaIdProvider});
+  const TrialSolicitacoesScreen({super.key, this.networkCaller});
 
-  /// Injetaveis para teste.
+  /// Injetavel para teste.
   final NetworkCaller? networkCaller;
-  final int? Function()? empresaIdProvider;
 
   @override
   State<TrialSolicitacoesScreen> createState() => _TrialSolicitacoesScreenState();
@@ -21,8 +20,8 @@ class TrialSolicitacoesScreen extends StatefulWidget {
 
 class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
   late final NetworkCaller _networkCaller = widget.networkCaller ?? NetworkCaller();
-  late final TrialAprovacaoService _service = TrialAprovacaoService(
-      caller: _networkCaller, empresaIdProvider: widget.empresaIdProvider);
+  late final TrialAprovacaoService _service =
+      TrialAprovacaoService(caller: _networkCaller);
   bool _isLoading = false;
   List<dynamic> _solicitacoes = [];
   String? _errorMessage;
@@ -80,11 +79,13 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
         context: context,
         barrierDismissible: false,
         builder: (_) => LicencaWizardDialog(
-          empresaId: preparado.parceiroId,
-          empresaNome: preparado.parceiroNome,
+          empresaId: preparado.alvoId,
+          empresaNome: preparado.alvoNome,
           modulosNomes: preparado.modulosNomes,
-          tipoAlvo: 'parceiro',
-          empresaMatrizId: preparado.empresaId,
+          tipoAlvo: preparado.ehParceiro ? 'parceiro' : 'empresa',
+          empresaMatrizId: preparado.resolucao.empresaId,
+          rolesIniciais: preparado.resolucao.roles,
+          usuariosIniciais: preparado.resolucao.usuarios,
           networkCaller: _networkCaller,
           usuarioSugerido: UsuarioSugerido(
             nome: (item['nome'] ?? '').toString(),
@@ -112,7 +113,7 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
           obs: _montarObs(preparado, mapa));
       if (mounted) {
         SnackbarUtils.showSuccess(context,
-            'Solicitação aprovada: ${preparado.parceiroNome} agora aparece em Clientes com Licenças & Módulos.');
+            'Solicitação aprovada: ${preparado.alvoNome} agora aparece em Clientes com Licenças & Módulos.');
         _fetchSolicitacoes();
       }
     } on TrialAprovacaoException catch (e) {
@@ -135,7 +136,7 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
 
   String _montarObs(ClienteTrialPreparado cliente, ModulosMapeados mapa) {
     final partes = <String>[
-      'Cliente ${cliente.parceiroCriado ? 'criado' : 'reaproveitado'}: parceiro #${cliente.parceiroId}',
+      'Cliente localizado pelo CNPJ: ${cliente.ehParceiro ? 'parceiro' : 'empresa'} #${cliente.alvoId}',
       'módulos: ${mapa.nomesVinculados.join(', ')}',
       if (mapa.naoEncontrados.isNotEmpty)
         'sem correspondência no catálogo: ${mapa.naoEncontrados.join(', ')}',

@@ -368,6 +368,8 @@ class ApiLinks {
   // Trial e Termos SaaS
   static String get trialSolicitacoes => '$_baseUrl/api/admin/trial/solicitacoes';
   static String trialSolicitacaoStatus(int id) => '$_baseUrl/api/admin/trial/solicitacoes/$id/status';
+  static String trialResolverCnpj(String documento) =>
+      '$_baseUrl/api/admin/trial/resolver-cnpj?cnpj=${Uri.encodeQueryComponent(documento)}';
   static String get trialTermos => '$_baseUrl/api/admin/trial/termos';
   static String trialTermo(int id) => '$_baseUrl/api/admin/trial/termos/$id';
 }
