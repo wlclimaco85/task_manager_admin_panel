@@ -370,6 +370,8 @@ class ApiLinks {
   static String trialSolicitacaoStatus(int id) => '$_baseUrl/api/admin/trial/solicitacoes/$id/status';
   static String trialResolverCnpj(String documento) =>
       '$_baseUrl/api/admin/trial/resolver-cnpj?cnpj=${Uri.encodeQueryComponent(documento)}';
+  static String trialCriarEmpresa(int solicitacaoId) =>
+      '$_baseUrl/api/admin/trial/solicitacoes/$solicitacaoId/criar-empresa';
   static String get trialTermos => '$_baseUrl/api/admin/trial/termos';
   static String trialTermo(int id) => '$_baseUrl/api/admin/trial/termos/$id';
 }

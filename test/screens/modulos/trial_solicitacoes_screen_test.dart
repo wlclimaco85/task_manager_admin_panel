@@ -160,7 +160,11 @@ void main() {
     await tester.tap(find.byKey(const Key('trial_aprovar_7')));
     await _assentar(tester);
 
+    expect(find.text('Empresa não cadastrada'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('trial_criar_empresa_cancelar_btn')));
+    await _assentar(tester);
     expect(find.textContaining('nao pertence a nenhuma empresa'), findsOneWidget);
+    expect(api.vezes('POST /api/admin/trial/solicitacoes/7/criar-empresa'), 0);
     expect(find.text('Concessão de Licença & Acessos'), findsNothing);
     expect(api.vezes('POST /api/empresa-modulo'), 0);
     expect(api.vezes('POST /api/parceiro/insert'), 0);
@@ -184,5 +188,30 @@ void main() {
     expect(api.vezes('GET /api/admin/trial/resolver-cnpj'), 0);
     expect(api.vezes('POST /api/empresa-modulo'), 0);
     expect(api.vezes('PUT /api/admin/trial/solicitacoes/7/status'), 0);
+  });
+
+  testWidgets('CNPJ novo: confirma, cria a empresa e abre o wizard no tenant criado', (tester) async {
+    final api = _backend();
+    api.json('GET /api/admin/trial/resolver-cnpj', jsonEncode({'tipoAlvo': 'NAO_ENCONTRADO'}));
+    api.json(
+        'POST /api/admin/trial/solicitacoes/7/criar-empresa',
+        jsonEncode({
+          'tipoAlvo': 'EMPRESA',
+          'empresaId': 77,
+          'empresaNome': 'Padaria do Ze',
+          'usuarios': [],
+          'roles': [],
+        }));
+    await _abrir(tester, api);
+
+    await tester.tap(find.byKey(const Key('trial_aprovar_7')));
+    await _assentar(tester);
+    await tester.tap(find.byKey(const Key('trial_criar_empresa_btn')));
+    await _assentar(tester);
+
+    expect(api.vezes('POST /api/admin/trial/solicitacoes/7/criar-empresa'), 1);
+    final v = api.chamadas.indexOf('POST /api/empresa-modulo');
+    expect(jsonDecode(api.corpos[v])['empresaId'], 77);
+    expect(find.text('Concessão de Licença & Acessos'), findsOneWidget);
   });
 }

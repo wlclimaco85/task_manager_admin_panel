@@ -68,7 +68,8 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
         if (!continuar || !mounted) return;
       }
 
-      cliente = await _service.prepararCliente(item, mapa);
+      cliente = await _service.prepararCliente(item, mapa,
+          confirmarCriarEmpresa: _confirmarCriarEmpresa);
       if (!mounted) {
         await _service.desfazer(cliente);
         return;
@@ -142,6 +143,30 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
         'sem correspondência no catálogo: ${mapa.naoEncontrados.join(', ')}',
     ];
     return partes.join(' | ');
+  }
+
+  Future<bool> _confirmarCriarEmpresa(String documento) async {
+    final criar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Empresa não cadastrada'),
+        content: Text('O CNPJ $documento não é de nenhuma empresa nem parceiro. '
+            'Criar a empresa do cliente (novo tenant) para conceder o trial?'),
+        actions: [
+          TextButton(
+            key: const Key('trial_criar_empresa_cancelar_btn'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            key: const Key('trial_criar_empresa_btn'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Criar empresa'),
+          ),
+        ],
+      ),
+    );
+    return criar == true;
   }
 
   Future<bool> _confirmarModulosSemCorrespondencia(ModulosMapeados mapa) async {

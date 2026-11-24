@@ -234,13 +234,30 @@ class TrialAprovacaoService {
     return ResolucaoCnpj.fromJson(res.body!);
   }
 
+  /// Cria no backend a empresa (tenant proprio) do CNPJ da solicitacao.
+  Future<ResolucaoCnpj> criarEmpresa(dynamic solicitacaoId) async {
+    final id = int.tryParse('$solicitacaoId');
+    if (id == null) {
+      throw const TrialAprovacaoException('Solicitacao sem id valido.');
+    }
+    final res = await _caller.postRequest(ApiLinks.trialCriarEmpresa(id), {});
+    if (!res.isSuccess || res.body == null) {
+      final erro = res.body?['erro']?.toString();
+      throw TrialAprovacaoException(erro != null && erro.isNotEmpty
+          ? erro
+          : _mensagemHttp('Nao foi possivel criar a empresa', res.statusCode));
+    }
+    return ResolucaoCnpj.fromJson(res.body!);
+  }
+
   /// Resolve o cliente pelo CNPJ/CPF da solicitacao e vincula os modulos mapeados
   /// ao alvo (empresa ou parceiro), preservando os que ele ja tinha. Se o
   /// documento nao pertence a nenhuma empresa/parceiro, falha com mensagem clara:
   /// nunca cria cadastro sob a empresa de quem esta logado. Se o vinculo falhar,
   /// desfaz o que foi feito e relanca.
   Future<ClienteTrialPreparado> prepararCliente(
-      Map<String, dynamic> solicitacao, ModulosMapeados mapa) async {
+      Map<String, dynamic> solicitacao, ModulosMapeados mapa,
+      {Future<bool> Function(String documento)? confirmarCriarEmpresa}) async {
     if (!mapa.temCorrespondencia) {
       throw const TrialAprovacaoException(
           'Nenhum modulo da solicitacao existe no catalogo. Cadastre os modulos antes de aprovar.');
@@ -251,10 +268,14 @@ class TrialAprovacaoService {
           'A solicitacao nao tem CNPJ/CPF. Sem o documento nao e possivel localizar o cliente.');
     }
 
-    final resolucao = await resolverCnpj(documento);
+    var resolucao = await resolverCnpj(documento);
     if (resolucao.naoEncontrado) {
-      throw TrialAprovacaoException(
-          'CNPJ/CPF $documento nao pertence a nenhuma empresa nem parceiro cadastrado. Cadastre o cliente antes de conceder o trial.');
+      final criar = confirmarCriarEmpresa != null && await confirmarCriarEmpresa(documento);
+      if (!criar) {
+        throw TrialAprovacaoException(
+            'CNPJ/CPF $documento nao pertence a nenhuma empresa nem parceiro cadastrado. Crie a empresa do cliente para conceder o trial.');
+      }
+      resolucao = await criarEmpresa(solicitacao['id']);
     }
 
     var modulosAlterados = false;
