@@ -27,7 +27,8 @@ String endereco(int linha, int coluna) => '${nomeColuna(coluna)}${linha + 1}';
 double? lerNumero(String texto) {
   final t = texto.trim();
   if (RegExp(r'^-?(\d{1,3}(\.\d{3})+|\d+),\d+$').hasMatch(t) ||
-      RegExp(r'^-?\d{1,3}(\.\d{3}){2,}$').hasMatch(t)) {
+      // Mesma regra do servidor (PlanilhaExcel): "1.500" e' mil e quinhentos; "10.5" e "0.125" sao decimais.
+      RegExp(r'^-?[1-9]\d{0,2}(\.\d{3})+$').hasMatch(t)) {
     return double.parse(t.replaceAll('.', '').replaceAll(',', '.'));
   }
   if (RegExp(r'^-?\d+(\.\d+)?$').hasMatch(t)) return double.parse(t);

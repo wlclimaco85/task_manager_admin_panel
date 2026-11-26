@@ -16,6 +16,12 @@ void main() {
     expect(calc(c, 'B5'), '1233');
   });
 
+  test('ponto de milhar segue o pt-BR, como o servidor', () {
+    expect(lerNumero('1.500'), 1500);
+    expect(lerNumero('0.125'), 0.125);
+    expect(lerNumero('10.5'), 10.5);
+  });
+
   test('erros nao derrubam a tela', () {
     final c = {'A1': '=A2', 'A2': '=A1', 'B1': '=1/0', 'B2': '=SE(A1;1;2)', 'B3': '=1+', 'B4': 'x', 'B5': '=B4+1'};
     expect(calc(c, 'A1'), '#CICLO');
