@@ -153,6 +153,14 @@ class PlanilhaService {
         },
       );
 
+  /// Botao de Modulo Java com os valores digitados; devolve o resultado com as celulas a preencher.
+  Future<Map<String, dynamic>> executarBotao(
+      int planilhaId, int acaoId, List<Map<String, dynamic>> linhas, Map<String, dynamic> parametros) async {
+    final r = await _enviar('POST',
+        '$_raiz/$planilhaId/acoes/$acaoId', {'linhas': linhas, 'parametros': parametros});
+    return _json(r, 'executar a ação') as Map<String, dynamic>;
+  }
+
   /// Registros de um cadastro para a coluna do tipo pesquisa: devolve o texto de [campo] de cada um.
   Future<List<String>> pesquisar(String endpoint, String campo, String termo) async {
     // so caminho relativo da propria API (o servidor tambem valida ao gravar)

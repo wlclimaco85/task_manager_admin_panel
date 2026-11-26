@@ -2,10 +2,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/acao_java_service.dart';
 import '../services/planilha_service.dart';
 import '../utils/app_logger.dart';
 import 'package:file_saver/file_saver.dart';
 import '../utils/grid_colors.dart';
+import '../utils/planilha_acao.dart';
 import '../utils/planilha_acrescentar.dart';
 import '../utils/planilha_formula.dart';
 import '../utils/planilha_tipos.dart';
@@ -13,14 +15,16 @@ import '../utils/tenant_context.dart';
 import 'coluna_planilha_dialogs.dart';
 import 'compartilhar_planilha_dialog.dart';
 import 'importar_planilha_dialog.dart';
+import 'planilha_botoes.dart';
 
 /// Planilha tipo Excel: celulas com formulas, colar do Excel, importar/exportar .xlsx, salvar por empresa/parceiro e
 /// (MASTER) trazer dados do sistema com SELECT. Cores somente pelos tokens GridColors do proprio app.
 class PlanilhaView extends StatefulWidget {
   final PlanilhaService? servico;
+  final AcaoJavaService? acoes;
   final bool? podeConsultar;
 
-  const PlanilhaView({super.key, this.servico, this.podeConsultar});
+  const PlanilhaView({super.key, this.servico, this.podeConsultar, this.acoes});
 
   @override
   State<PlanilhaView> createState() => _PlanilhaViewState();
@@ -32,6 +36,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
   static const double _larguraIndice = 52;
 
   late final PlanilhaService _svc = widget.servico ?? PlanilhaService();
+  late final AcaoJavaService _acoesSvc = widget.acoes ?? AcaoJavaService();
   late final bool _podeConsultar = widget.podeConsultar ?? TenantContext.isMaster;
 
   final _nome = TextEditingController(text: 'Nova planilha');
@@ -51,6 +56,9 @@ class _PlanilhaViewState extends State<PlanilhaView> {
   int? _versao;
   bool _dono = true;
   bool _podeEditar = true;
+
+  /// Botoes de Modulo Java desta planilha (so planilha salva).
+  List<AcaoJava> _botoes = const [];
 
   /// Tipos e compartilhamento pertencem a planilha do usuario; modelos publicados nao os guardam.
   bool get _planilhaDoUsuario => true;
@@ -144,6 +152,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
       _versao = de?.versao;
       _dono = de?.dono ?? true;
       _podeEditar = de?.podeEditar ?? true;
+      _botoes = const [];
       if (nome != null) _nome.text = nome;
       _linha = 0;
       _coluna = 0;
@@ -200,6 +209,58 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     if (salvou == true) _avisar('Compartilhamento salvo.');
   }
 
+  // ------------------------------------------------------------------ botoes de Modulo Java
+
+  /// Falha aqui nao atrapalha a planilha: so fica sem os botoes (e vai para o log).
+  Future<void> _carregarBotoes() async {
+    final id = _id;
+    if (id == null || !_planilhaDoUsuario) return;
+    try {
+      final r = [
+        ...await _acoesSvc.listarAtivas(kTabelaPlanilha),
+        ...await _acoesSvc.listarAtivas('$kTabelaPlanilha:$id'),
+      ];
+      if (mounted && _id == id) setState(() => _botoes = r);
+    } catch (e) {
+      AppLogger.i.warn('PlanilhaView: erro ao carregar botoes: $e');
+    }
+  }
+
+  // sem a barra de "ocupado" de _executar: o fluxo abre dialogos e ela ficaria girando atras deles
+  Future<void> _executarBotao(AcaoJava acao) async {
+    final id = _id;
+    if (id == null) return;
+    try {
+      final novas = await executarBotaoDaPlanilha(context,
+          acao: acao,
+          planilhaId: id,
+          celulas: Map.of(_celulas),
+          linhaAtual: _linha + 1,
+          servico: _svc,
+          acoes: widget.acoes);
+      if (novas == null || !mounted || _id != id) return;
+      setState(() {
+        _celulas = novas;
+        _aposMudanca();
+        _sincronizar();
+      });
+    } catch (e, s) {
+      AppLogger.i.warn('PlanilhaView: erro no botao ${acao.label}: $e | $s');
+      _avisar('Não foi possível executar a ação.', erro: true);
+    }
+  }
+
+  Future<void> _gerirBotoes() async {
+    final id = _id;
+    if (id == null) {
+      _avisar('Salve a planilha antes de criar botões.', erro: true);
+      return;
+    }
+    await showDialog<void>(
+        context: context, builder: (_) => BotoesDaPlanilhaDialog(planilhaId: id, acoes: widget.acoes));
+    await _carregarBotoes();
+  }
+
   Future<bool> _gravarBloco(List<List<String>> bloco) async {
     final ocupadas = [
       for (var l = 0; l < bloco.length; l++)
@@ -240,6 +301,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     await _executar('abrir a planilha', () async {
       final p = await _svc.abrir(id);
       _substituir(p.celulas, id: p.id, nome: p.nome, de: p);
+      await _carregarBotoes();
     });
   }
 
@@ -259,6 +321,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
         _podeEditar = p.podeEditar;
         _alterada = false;
         _salvas = await _svc.listar();
+        await _carregarBotoes();
         _avisar('Planilha salva.');
       });
 
@@ -492,6 +555,9 @@ class _PlanilhaViewState extends State<PlanilhaView> {
               if (_planilhaDoUsuario) ...[
                 _botao(Icons.view_column_outlined, 'Tipo da coluna', _tipoDaColuna),
                 if (_dono) _botao(Icons.group_add_outlined, 'Compartilhar', _compartilhar),
+                if (_podeConsultar) _botao(Icons.smart_button, 'Botões', _gerirBotoes),
+                if (_botoes.isNotEmpty) _separador(),
+                for (final a in _botoes) _botao(Icons.bolt, a.label, () => _executarBotao(a)),
               ],
               _separador(),
               IconButton(
