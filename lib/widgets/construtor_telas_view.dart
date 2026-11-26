@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../services/construtor_telas_service.dart';
 import '../utils/app_logger.dart';
+import 'tela_de_planilha_dialog.dart';
+
+/// O botao so desenha o "Nova tela": quem recebe o toque e o PopupMenuButton por fora.
+void _semAcao() {}
 
 /// Abre a tela construida para o usuario ver como ela ficou (cada plataforma passa o seu construtor de grid).
 typedef AbrirTelaConstruida = void Function(BuildContext context, TelaConstruida tela);
@@ -80,6 +84,23 @@ class _ConstrutorTelasViewState extends State<ConstrutorTelasView> {
     }
   }
 
+  Future<void> _dePlanilha() async {
+    final p = await showDialog<PedidoTelaDePlanilha>(context: context, builder: (_) => const TelaDePlanilhaDialog());
+    if (p == null) return;
+    await _herdar(() => _svc.criarDePlanilha(p.titulo, p.tabela.colunas, p.tabela.linhas));
+  }
+
+  Future<void> _herdar(Future<TelaConstruida> Function() criar) async {
+    try {
+      await criar();
+      _aviso('Tela criada. Ela já aparece em Telas Personalizadas.');
+      await _carregar();
+    } catch (e) {
+      AppLogger.i.warn('ConstrutorTelasView: erro ao criar tela de planilha: $e');
+      _aviso('$e', erro: true);
+    }
+  }
+
   Future<void> _alternar(TelaConstruida t, bool ativo) async {
     try {
       await _svc.atualizar(t.id, ativo: ativo);
@@ -95,7 +116,9 @@ class _ConstrutorTelasViewState extends State<ConstrutorTelasView> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Excluir tela'),
-        content: Text('Excluir a tela "${t.titulo}"? Os dados da tabela ${t.tabelaNome} não são apagados.'),
+        content: Text(t.dadosProprios
+            ? 'Excluir a tela "${t.titulo}"? TODOS os registros dela serão apagados e não podem ser recuperados.'
+            : 'Excluir a tela "${t.titulo}"? Os dados da tabela ${t.tabelaNome} não são apagados.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Excluir')),
@@ -121,7 +144,24 @@ class _ConstrutorTelasViewState extends State<ConstrutorTelasView> {
           const Expanded(
               child: Text('Construtor de Telas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
           IconButton(tooltip: 'Atualizar', onPressed: _carregar, icon: const Icon(Icons.refresh)),
-          FilledButton.icon(onPressed: _nova, icon: const Icon(Icons.add), label: const Text('Nova tela')),
+          PopupMenuButton<VoidCallback>(
+            tooltip: 'Nova tela',
+            onSelected: (acao) => acao(),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: _nova, child: const Text('Sobre uma tabela')),
+              PopupMenuItem(value: _dePlanilha, child: const Text('A partir de planilha')),
+            ],
+            child: const IgnorePointer(
+              child: FilledButton(
+                onPressed: _semAcao,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.add),
+                  SizedBox(width: 8),
+                  Text('Nova tela'),
+                ]),
+              ),
+            ),
+          ),
         ]),
       ),
       const Padding(
@@ -151,7 +191,7 @@ class _ConstrutorTelasViewState extends State<ConstrutorTelasView> {
                             minVerticalPadding: 10,
                             leading: const Icon(Icons.table_chart_outlined),
                             title: Text(t.titulo),
-                            subtitle: Text('Tabela ${t.tabelaNome}${t.ativo ? '' : ' · desativada'}'),
+                            subtitle: Text('${t.origem}${t.ativo ? '' : ' · desativada'}'),
                             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                               if (widget.abrir != null && t.ativo)
                                 IconButton(
@@ -323,7 +363,7 @@ class _TelasPersonalizadasViewState extends State<TelasPersonalizadasView> {
                           minVerticalPadding: 12,
                           leading: const Icon(Icons.table_chart_outlined),
                           title: Text(_telas[i].titulo),
-                          subtitle: Text(_telas[i].tabelaNome),
+                          subtitle: Text(_telas[i].origem),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => widget.abrir(context, _telas[i]),
                         ),

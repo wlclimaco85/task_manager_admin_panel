@@ -99,6 +99,8 @@ void main() {
 
     await tester.tap(find.text('Nova tela'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Sobre uma tabela'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Criar'));
     await tester.pumpAndSettle();
     expect(find.text('Escolha a tabela.'), findsOneWidget);
@@ -119,6 +121,8 @@ void main() {
 
     s.falhaCriar = false;
     await tester.tap(find.text('Nova tela'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sobre uma tabela'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('item'));
     await tester.pumpAndSettle();

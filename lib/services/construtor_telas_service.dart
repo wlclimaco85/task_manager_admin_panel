@@ -30,6 +30,11 @@ class TelaConstruida {
     this.ativo = true,
   });
 
+  /// Tela herdada de planilha: os registros sao dela e somem se a tela for excluida.
+  bool get dadosProprios => tabelaNome.startsWith('planilha:');
+
+  String get origem => dadosProprios ? 'Dados próprios (planilha)' : 'Tabela $tabelaNome';
+
   factory TelaConstruida.fromJson(Map<String, dynamic> j) => TelaConstruida(
         id: (j['id'] as num?)?.toInt() ?? 0,
         telaNome: j['telaNome']?.toString() ?? '',
@@ -49,6 +54,20 @@ class ConstrutorTelasService {
     final r = await _rede.getRequest(ApiLinks.construtorTabelas);
     _exigir(r, 'listar as tabelas');
     return listaDeResposta(r).map(TabelaDisponivel.fromJson).toList();
+  }
+
+  /// Tela com dados proprios: [colunas] vem da linha 1 e [linhas] ja chegam calculadas.
+  Future<TelaConstruida> criarDePlanilha(String titulo, List<String> colunas, List<List<String>> linhas) =>
+      _herdada('${ApiLinks.construtorTelas}/de-planilha', {'titulo': titulo, 'colunas': colunas, 'linhas': linhas});
+
+  /// Tela sobre a tabela da consulta [fonte] de um modelo de planilha.
+  Future<TelaConstruida> criarDeModelo(int modeloId, int fonte, String titulo) =>
+      _herdada('${ApiLinks.construtorTelas}/de-modelo', {'modeloId': modeloId, 'fonte': fonte, 'titulo': titulo});
+
+  Future<TelaConstruida> _herdada(String url, Map<String, dynamic> corpo) async {
+    final r = await _rede.postRequest(url, corpo);
+    _exigir(r, 'criar a tela');
+    return TelaConstruida.fromJson(r.body!);
   }
 
   /// Telas ativas da empresa (qualquer usuario logado; alimenta o menu "Telas Personalizadas").
