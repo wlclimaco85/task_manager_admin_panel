@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/dashboard_personalizado_service.dart';
 import '../utils/app_logger.dart';
 import 'dashboard_componente_view.dart';
+import 'fonte_planilha_dialog.dart';
 
 /// Construtor de Dashboards (plataforma low-code, F6): cria e edita dashboards (filtros + componentes com SQL
 /// somente-leitura). O SQL precisa filtrar pela empresa com :empresaId (o servidor preenche e valida); o botão
@@ -421,18 +422,25 @@ class _DashboardDialogState extends State<_DashboardDialog> {
             minLines: 3,
             maxLines: 8,
             style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-            decoration: const InputDecoration(labelText: 'SQL (SELECT) *', alignLabelWithHint: true),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Informe o SQL' : null,
+            decoration: const InputDecoration(labelText: 'SQL (SELECT) ou planilha *', alignLabelWithHint: true),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Informe o SQL ou escolha uma planilha' : null,
           ),
           const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
+          Wrap(spacing: 8, runSpacing: 4, children: [
+            OutlinedButton.icon(
               onPressed: c.testando ? null : () => _testar(c),
               icon: c.testando ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.play_arrow),
               label: const Text('Testar'),
             ),
-          ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final fonte = await showDialog<String>(context: context, builder: (_) => const FontePlanilhaDialog());
+                if (fonte != null && mounted) setState(() => c.sql.text = fonte);
+              },
+              icon: const Icon(Icons.grid_on),
+              label: const Text('Usar planilha'),
+            ),
+          ]),
           if (c.erroPrevia != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),

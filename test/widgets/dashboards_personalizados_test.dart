@@ -222,7 +222,7 @@ void main() {
       await t.tap(find.text('Componente'));
       await t.pumpAndSettle();
       await t.enterText(find.widgetWithText(TextFormField, 'Título do componente *'), 'Itens');
-      await t.enterText(find.widgetWithText(TextFormField, 'SQL (SELECT) *'), 'SELECT nome FROM item WHERE empresa_id = :empresaId');
+      await t.enterText(find.widgetWithText(TextFormField, 'SQL (SELECT) ou planilha *'), 'SELECT nome FROM item WHERE empresa_id = :empresaId');
 
       s.erroTeste = 'Palavra/funcao nao permitida no SQL: delete';
       await t.tap(find.text('Testar'));
