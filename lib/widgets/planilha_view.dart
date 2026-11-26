@@ -6,8 +6,10 @@ import '../services/planilha_service.dart';
 import '../utils/app_logger.dart';
 import 'package:file_saver/file_saver.dart';
 import '../utils/grid_colors.dart';
+import '../utils/planilha_acrescentar.dart';
 import '../utils/planilha_formula.dart';
 import '../utils/tenant_context.dart';
+import 'importar_planilha_dialog.dart';
 
 /// Planilha tipo Excel: celulas com formulas, colar do Excel, importar/exportar .xlsx, salvar por empresa/parceiro e
 /// (MASTER) trazer dados do sistema com SELECT. Cores somente pelos tokens GridColors do proprio app.
@@ -194,20 +196,38 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     });
   }
 
-  Future<void> _importar() async {
-    if (_celulas.isNotEmpty &&
-        !await _confirmar('A importação substitui o conteúdo da tela (lê a primeira aba do arquivo). Continuar?')) {
-      return;
+  Future<void> _importar() => _executar('importar o Excel', () async {
+        final escolha = await FilePicker.platform.pickFiles(
+            type: FileType.custom, allowedExtensions: const ['xlsx', 'xls'], withData: true);
+        final arquivo = escolha?.files.firstOrNull;
+        if (arquivo?.bytes == null) return;
+        await _aplicarImportacao(await _svc.importar(arquivo!.bytes!, arquivo.name));
+      });
+
+  /// Planilha vazia recebe o arquivo direto; com dados, o usuario escolhe acrescentar ou substituir.
+  Future<void> _aplicarImportacao(Map<String, String> arquivo) async {
+    if (!mounted) return;
+    var celulas = arquivo;
+    String? resumo;
+    if (_celulas.isNotEmpty) {
+      final escolha = await showDialog<EscolhaImportacao>(
+          context: context, builder: (_) => ImportarPlanilhaDialog(atual: _celulas, arquivo: arquivo));
+      if (escolha == null) return;
+      if (!escolha.substituir) {
+        try {
+          final r = acrescentarLinhas(_celulas, arquivo,
+              colunaChave: escolha.colunaChave, repetida: escolha.repetida);
+          celulas = r.celulas;
+          resumo = '${r.novas} linha(s) nova(s), ${r.atualizadas} atualizada(s), ${r.ignoradas} ignorada(s).';
+        } on AcrescentarException catch (e) {
+          _avisar(e.mensagem, erro: true);
+          return;
+        }
+      }
     }
-    await _executar('importar o Excel', () async {
-      final escolha = await FilePicker.platform.pickFiles(
-          type: FileType.custom, allowedExtensions: const ['xlsx', 'xls'], withData: true);
-      final arquivo = escolha?.files.firstOrNull;
-      if (arquivo?.bytes == null) return;
-      final celulas = await _svc.importar(arquivo!.bytes!, arquivo.name);
-      _substituir(celulas, id: _id);
-      setState(() => _alterada = true);
-    });
+    _substituir(celulas, id: _id);
+    setState(() => _alterada = true);
+    if (resumo != null) _avisar(resumo);
   }
 
   Future<void> _exportar() => _executar('exportar para Excel', () async {
