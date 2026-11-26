@@ -17,6 +17,7 @@ import '../../widgets/dashboard_construtor_view.dart';
 import '../../widgets/relatorio_construtor_view.dart';
 import '../../widgets/dicionario_dados_view.dart';
 import '../../widgets/modulo_java_view.dart';
+import '../../widgets/planilha_view.dart';
 
 /// Menu "Sistema" (Fase 2). Lista os 8 itens migrados de `menu_config.dart`
 /// (grupo `sistema`, exceto "Empresas" — fica no cliente, ver
@@ -114,6 +115,12 @@ class SistemaMenuScreen extends StatelessWidget {
       icone: Icons.menu_book_outlined,
     ),
     _SistemaMenuItem(
+      id: 'planilhas',
+      titulo: 'Planilhas',
+      subtitulo: 'Planilha tipo Excel com dados do sistema (tabelas do Dicionário e do Módulo Java).',
+      icone: Icons.grid_on,
+    ),
+    _SistemaMenuItem(
       id: 'construtor_telas',
       titulo: 'Construtor de Telas',
       subtitulo: 'Cria uma tela com CRUD sobre uma tabela da empresa, sem código (somente MASTER).',
@@ -148,6 +155,7 @@ class SistemaMenuScreen extends StatelessWidget {
     'modulo_telas': _buildModuloTelas,
     'modulo_java': _buildModuloJava,
     'dicionario_dados': _buildDicionarioDados,
+    'planilhas': _buildPlanilhas,
     'construtor_telas': _buildConstrutorTelas,
     'construtor_dashboards': _buildConstrutorDashboards,
     'construtor_relatorios': _buildConstrutorRelatorios,
@@ -184,6 +192,11 @@ class SistemaMenuScreen extends StatelessWidget {
   static Widget _buildDicionarioDados(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Dicionário de Dados')),
         body: const SafeArea(child: DicionarioDadosView()),
+      );
+
+  static Widget _buildPlanilhas(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Planilhas')),
+        body: const SafeArea(child: PlanilhaView()),
       );
 
   static Widget _buildConstrutorTelas(BuildContext context) => Scaffold(

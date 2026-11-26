@@ -22,7 +22,7 @@ void main() {
     await tester.pumpWidget(_wrap(const SistemaMenuScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ListTile), findsNWidgets(17));
+    expect(find.byType(ListTile), findsNWidgets(18));
     expect(find.text('Telas por Módulo'), findsOneWidget);
     expect(find.text('Aplicativo'), findsOneWidget);
     expect(find.text('Cadastro Empresa'), findsOneWidget);
