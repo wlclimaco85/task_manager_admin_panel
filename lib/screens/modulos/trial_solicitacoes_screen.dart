@@ -51,6 +51,12 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
   Future<void> _aprovar(Map<String, dynamic> item) async {
     final id = _idDe(item['id']);
     if (id == null || _aprovandoId != null) return;
+    // Escritorio de contabilidade: o backend cria empresa, usuario gestor e modulo na aprovacao
+    // (o fluxo de licenca criaria a empresa antes e a aprovacao falharia por CNPJ duplicado).
+    if (item['papel'] == 'ESCRITORIO_CONTABIL') {
+      await _aprovarEscritorio(id, item);
+      return;
+    }
     setState(() => _aprovandoId = id);
 
     ClienteTrialPreparado? cliente;
@@ -130,6 +136,32 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
       AppLogger.i.error('Aprovar trial #$id: $e', st);
       if (cliente != null && !concedida) await _service.desfazer(cliente);
       if (mounted) SnackbarUtils.showError(context, 'Falha ao aprovar: $e');
+    } finally {
+      if (mounted) setState(() => _aprovandoId = null);
+    }
+  }
+
+  Future<void> _aprovarEscritorio(int id, Map<String, dynamic> item) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aprovar escritório de contabilidade'),
+        content: Text('Serão criados a empresa (CNPJ ${item['cnpj']}), o usuário gestor '
+            '${item['email']} e o módulo contratado. Continuar?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+          ElevatedButton(
+            key: const Key('trial_escritorio_confirmar_btn'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Aprovar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _aprovandoId = id);
+    try {
+      await _updateStatus(id, 'APROVADO');
     } finally {
       if (mounted) setState(() => _aprovandoId = null);
     }
@@ -319,6 +351,12 @@ class _TrialSolicitacoesScreenState extends State<TrialSolicitacoesScreen> {
                                   const SizedBox(height: AppSpacing.sm),
                                   Text('Módulos: ${item['modulos'] ?? '-'}'),
                                   Text('Valor: R\$ ${item['valorTotal'] ?? '0.0'}'),
+                                  if (item['aceiteEm'] != null) ...[
+                                    const SizedBox(height: AppSpacing.xs),
+                                    SelectableText('Aceite do termo: ${item['aceiteEm']} | IP: ${item['aceiteIp'] ?? '-'}\n'
+                                        'Localização: ${item['aceiteLatitude'] ?? '-'}, ${item['aceiteLongitude'] ?? '-'} '
+                                        '(precisão ${item['aceitePrecisaoMetros'] ?? '-'} m)'),
+                                  ],
                                   if (status == 'PENDENTE') ...[
                                     const Divider(),
                                     Row(
