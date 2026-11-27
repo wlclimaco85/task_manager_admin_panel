@@ -63,6 +63,18 @@ ResultadoAcrescentar acrescentarLinhas(
     throw AcrescentarException('O arquivo tem fórmulas com erro nas células: ${novo.comErro.take(10).join(', ')}.');
   }
 
+  // nada do arquivo pode sumir em silencio
+  if (novo.ignoradas.isNotEmpty) {
+    throw AcrescentarException(
+        'O arquivo tem dados em colunas sem título na linha 1: ${novo.ignoradas.join(', ')}. Dê um título a elas.');
+  }
+  final titulosDoArquivo = <String>{};
+  for (final titulo in novo.colunas) {
+    if (!titulosDoArquivo.add(chaveDeTitulo(titulo))) {
+      throw AcrescentarException('O arquivo tem mais de uma coluna chamada "$titulo". Renomeie uma delas.');
+    }
+  }
+
   final calculo = PlanilhaCalculo(atual);
   final colunas = <String, int>{};
   var ultimaColuna = -1;

@@ -7,8 +7,9 @@ import '../utils/app_logger.dart';
 import '../utils/planilha_acao.dart';
 import 'acao_java_dialog.dart';
 
-/// Executa um botao na planilha. Devolve as celulas novas quando a rotina preencheu valores; senao, null.
-Future<Map<String, String>?> executarBotaoDaPlanilha(
+/// Executa um botao na planilha. Devolve SO as celulas que a rotina mandou gravar (vazio = nada): quem chama as
+/// aplica sobre o conteudo ATUAL, para nao apagar o que foi digitado enquanto o servidor respondia.
+Future<List<AlteracaoDeCelula>> executarBotaoDaPlanilha(
   BuildContext context, {
   required AcaoJava acao,
   required int planilhaId,
@@ -29,11 +30,11 @@ Future<Map<String, String>?> executarBotaoDaPlanilha(
         SimpleDialogOption(onPressed: () => Navigator.pop(c, true), child: const Text('Todas as linhas com dados')),
       ]),
     );
-    if (todas == null || !context.mounted) return null;
+    if (todas == null || !context.mounted) return const [];
     linhas = linhasParaAcao(celulas, linha: todas ? null : linhaAtual);
     if (linhas.isEmpty) {
       avisar('Não há dados nas linhas escolhidas (a linha 1 é o título).');
-      return null;
+      return const [];
     }
   }
 
@@ -42,18 +43,15 @@ Future<Map<String, String>?> executarBotaoDaPlanilha(
     final codigos = codigosDaColuna(linhas, acao.idColuna);
     if (codigos == null) {
       avisar('A planilha precisa de uma coluna com o título "${acao.idColuna}" com o código do registro.');
-      return null;
+      return const [];
     }
     await executarAcaoJava(context, acao, [for (final c in codigos) {'id': c, acao.idColuna: c}], servico: acoes);
-    return null;
+    return const [];
   }
 
   final naPlanilha = _AcaoNaPlanilha(servico, planilhaId, linhas);
   await executarAcaoJava(context, acao, linhas, servico: naPlanilha);
-  if (naPlanilha.alteracoes.isEmpty) return null;
-  final novas = aplicarAlteracoes(celulas, naPlanilha.alteracoes);
-  if (novas == null && context.mounted) avisar('A rotina criaria colunas além do limite da planilha.');
-  return novas;
+  return naPlanilha.alteracoes;
 }
 
 /// Reaproveita a confirmacao e o popup de parametros das grids, trocando so a chamada ao servidor.

@@ -137,6 +137,18 @@ class _PlanilhaViewState extends State<PlanilhaView> {
 
   void _editar(String valor) {
     if (_bloqueada(_coluna)) return;
+    if (_planilhaDoUsuario &&
+        !_sessao.master &&
+        _sessao.empresa != null &&
+        _linha == 0 &&
+        ehColunaDeTenant(valor) &&
+        _colunaTemDados(_coluna)) {
+      // virar coluna de tenant trocaria todos os valores digitados pelos do login
+      _avisar('A coluna ${nomeColuna(_coluna)} já tem dados: use uma coluna vazia para "${valor.trim()}".',
+          erro: true);
+      setState(_sincronizar);
+      return;
+    }
     // MASTER digitando na propria coluna de empresa/parceiro: nao repreencher no meio da digitacao
     final editandoTenant = _ehColunaDeTenant(_coluna);
     setState(() {
@@ -251,16 +263,23 @@ class _PlanilhaViewState extends State<PlanilhaView> {
   // sem a barra de "ocupado" de _executar: o fluxo abre dialogos e ela ficaria girando atras deles
   Future<void> _executarBotao(AcaoJava acao) async {
     final id = _id;
-    if (id == null) return;
+    if (id == null || _botaoRodando) return; // segundo clique nao executa a rotina de novo
+    _botaoRodando = true;
     try {
-      final novas = await executarBotaoDaPlanilha(context,
+      final alteracoes = await executarBotaoDaPlanilha(context,
           acao: acao,
           planilhaId: id,
           celulas: Map.of(_celulas),
           linhaAtual: _linha + 1,
           servico: _svc,
           acoes: widget.acoes);
-      if (novas == null || !mounted || _id != id) return;
+      if (alteracoes.isEmpty || !mounted || _id != id) return;
+      // sobre o conteudo ATUAL: o que foi digitado durante a execucao permanece
+      final novas = aplicarAlteracoes(_celulas, alteracoes);
+      if (novas == null) {
+        _avisar('A rotina criaria colunas além do limite da planilha.', erro: true);
+        return;
+      }
       setState(() {
         _celulas = novas;
         _aposMudanca();
@@ -269,8 +288,12 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     } catch (e, s) {
       AppLogger.i.warn('PlanilhaView: erro no botao ${acao.label}: $e | $s');
       _avisar('Não foi possível executar a ação.', erro: true);
+    } finally {
+      _botaoRodando = false;
     }
   }
+
+  bool _botaoRodando = false;
 
   Future<void> _gerirBotoes() async {
     final id = _id;
@@ -283,7 +306,24 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     await _carregarBotoes();
   }
 
+  bool _colunaTemDados(int coluna) => _celulas.keys.any((ref) {
+        final p = posicao(ref);
+        return p != null && p.$1 > 0 && p.$2 == coluna;
+      });
+
   Future<bool> _gravarBloco(List<List<String>> bloco) async {
+    // colar sobre coluna bloqueada perderia o que foi colado: recusa avisando
+    for (var l = 0; l < bloco.length; l++) {
+      for (var c = 0; c < bloco[l].length; c++) {
+        if (_linha + l > 0 &&
+            _bloqueada(_coluna + c) &&
+            bloco[l][c] != (_celulas[endereco(_linha + l, _coluna + c)] ?? '')) {
+          _avisar('A coluna ${nomeColuna(_coluna + c)} é de empresa/parceiro e está bloqueada. '
+              'Cole a partir de outra coluna.', erro: true);
+          return false;
+        }
+      }
+    }
     final ocupadas = [
       for (var l = 0; l < bloco.length; l++)
         for (var c = 0; c < bloco[l].length; c++)
@@ -370,10 +410,12 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     if (!mounted) return;
     var celulas = arquivo;
     String? resumo;
+    var trocouTudo = false;
     if (!soCabecalhosDoTenant(_celulas)) {
       final escolha = await showDialog<EscolhaImportacao>(
           context: context, builder: (_) => ImportarPlanilhaDialog(atual: _celulas, arquivo: arquivo));
       if (escolha == null) return;
+      trocouTudo = escolha.substituir;
       if (!escolha.substituir) {
         try {
           final r = acrescentarLinhas(_celulas, arquivo,
@@ -388,6 +430,8 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     }
     // so o conteudo muda: tipos de coluna, versao e permissoes sao os da planilha aberta
     setState(() {
+      // outro layout: os tipos antigos cairiam nas colunas erradas
+      if (trocouTudo) _colunas = {};
       _celulas = Map.of(celulas);
       _linha = 0;
       _coluna = 0;
