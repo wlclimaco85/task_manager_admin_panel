@@ -419,7 +419,7 @@ class _RelatorioDialogState extends State<_RelatorioDialog> {
               for (var i = 0; i < _filtros.length; i++) _filtroForm(i),
               const Divider(),
               const Text('Consulta', style: TextStyle(fontWeight: FontWeight.w600)),
-              const Text('SQL SELECT usando :empresaId (ex.: WHERE empresa_id = :empresaId). Use ORDER BY para a ordem do relatório.',
+              const Text('SQL SELECT. O filtro de empresa (e parceiro) é automático. Use ORDER BY para a ordem do relatório.',
                   style: TextStyle(fontSize: 12)),
               TextFormField(
                 controller: _sql,

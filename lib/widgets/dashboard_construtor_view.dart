@@ -6,7 +6,7 @@ import 'dashboard_componente_view.dart';
 import 'fonte_planilha_dialog.dart';
 
 /// Construtor de Dashboards (plataforma low-code, F6): cria e edita dashboards (filtros + componentes com SQL
-/// somente-leitura). O SQL precisa filtrar pela empresa com :empresaId (o servidor preenche e valida); o botão
+/// somente-leitura). O servidor aplica o filtro de empresa e parceiro da sessão; o botão
 /// "Testar" mostra uma prévia de até 50 linhas. Somente MASTER (o servidor também exige).
 class DashboardConstrutorView extends StatefulWidget {
   final DashboardPersonalizadoService? servico;
@@ -329,7 +329,7 @@ class _DashboardDialogState extends State<_DashboardDialog> {
               ]),
               const Text(
                 'Gráficos: 1ª coluna = rótulo; demais colunas numéricas = séries. Valor (KPI): 1ª linha e 1ª coluna. '
-                'O SQL deve ser SELECT e usar :empresaId (ex.: WHERE empresa_id = :empresaId).',
+                'O SQL deve ser SELECT. O filtro de empresa (e parceiro) é aplicado automaticamente.',
                 style: TextStyle(fontSize: 12),
               ),
               for (var i = 0; i < _comps.length; i++) _compForm(i),

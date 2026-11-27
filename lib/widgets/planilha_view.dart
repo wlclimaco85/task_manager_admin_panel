@@ -34,7 +34,7 @@ class PlanilhaView extends StatefulWidget {
 
 class _PlanilhaViewState extends State<PlanilhaView> {
   static const double _alturaLinha = 44;
-  static const double _larguraColuna = 120;
+  double _larguraColuna = 120;
   static const double _larguraIndice = 52;
 
   late final PlanilhaService _svc = widget.servico ?? PlanilhaService();
@@ -160,6 +160,9 @@ class _PlanilhaViewState extends State<PlanilhaView> {
       _aposMudanca(fixar: !editandoTenant);
     });
   }
+
+  void _mudarLargura(double passo) =>
+      setState(() => _larguraColuna = (_larguraColuna + passo).clamp(60.0, 320.0));
 
   void _selecionar(int linha, int coluna) {
     setState(() {
@@ -700,6 +703,19 @@ class _PlanilhaViewState extends State<PlanilhaView> {
                   hintText: 'Valor ou fórmula, ex.: =SOMA(A1:A10)'),
             ),
           ),
+          const SizedBox(width: 4),
+          IconButton(
+            tooltip: 'Diminuir largura das colunas',
+            onPressed: _larguraColuna > 60 ? () => _mudarLargura(-20) : null,
+            color: GridColors.primary,
+            icon: const Icon(Icons.remove_circle_outline),
+          ),
+          IconButton(
+            tooltip: 'Aumentar largura das colunas',
+            onPressed: _larguraColuna < 320 ? () => _mudarLargura(20) : null,
+            color: GridColors.primary,
+            icon: const Icon(Icons.add_circle_outline),
+          ),
         ]),
       );
 
@@ -1010,7 +1026,7 @@ class _DadosSistemaDialogState extends State<DadosSistemaDialog> {
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Consulta SELECT (avançado)',
-                helperText: 'Somente leitura. Filtre a empresa com :empresaId (e :parceiroId se precisar).',
+                helperText: 'Somente leitura. O filtro de empresa (e parceiro) do seu login é aplicado automaticamente.',
                 helperMaxLines: 2,
               ),
             ),
