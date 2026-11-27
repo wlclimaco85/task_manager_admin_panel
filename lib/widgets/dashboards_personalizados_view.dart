@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/dashboard_personalizado_service.dart';
 import '../utils/app_logger.dart';
+import 'campos_do_tenant.dart';
 import 'dashboard_componente_view.dart';
 
 /// Dashboards Personalizados: lista os dashboards ativos da empresa e abre o escolhido, com filtros no topo.
@@ -204,6 +205,7 @@ class _DashboardPersonalizadoViewerState extends State<DashboardPersonalizadoVie
           IconButton(tooltip: 'Atualizar', onPressed: _executar, icon: const Icon(Icons.refresh)),
         ]),
       ),
+      const Padding(padding: EdgeInsets.fromLTRB(16, 8, 16, 0), child: CamposDoTenant()),
       if (_def.filtros.isNotEmpty)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),

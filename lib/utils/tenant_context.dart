@@ -11,6 +11,9 @@ class TenantContext {
   static int? get empresaId => AuthUtility.userInfo?.login?.empresa?.id;
   static int? get userId => AuthUtility.userInfo?.login?.id;
 
+  /// O Painel do Dono nao tem login de parceiro.
+  static int? get parceiroId => null;
+
   static bool get hasEmpresa => empresaId != null;
   static bool get hasUser => userId != null;
 

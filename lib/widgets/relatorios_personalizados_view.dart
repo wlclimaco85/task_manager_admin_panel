@@ -4,6 +4,7 @@ import '../services/dashboard_personalizado_service.dart' show DashFiltro;
 import '../services/relatorio_personalizado_service.dart';
 import '../utils/app_logger.dart';
 import 'package:file_saver/file_saver.dart';
+import 'campos_do_tenant.dart';
 
 /// Relatórios Personalizados: lista os relatórios ativos da empresa; ao abrir, mostra os filtros e gera o PDF no
 /// servidor (o app só baixa/salva o arquivo). O SQL nunca chega ao usuário.
@@ -212,6 +213,7 @@ class _RelatorioGerarViewState extends State<RelatorioGerarView> {
       Padding(
         padding: const EdgeInsets.all(16),
         child: Wrap(spacing: 12, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          const CamposDoTenant(),
           for (final f in r.filtros) _campo(f),
           FilledButton.icon(
             onPressed: _gerando ? null : _gerar,

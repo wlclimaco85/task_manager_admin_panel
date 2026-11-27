@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/planilha_service.dart';
 import '../utils/app_logger.dart';
 import '../utils/planilha_tabela.dart';
+import '../utils/planilha_tenant.dart';
 
 /// Dados confirmados para criar uma tela com dados proprios a partir de uma planilha salva.
 class PedidoTelaDePlanilha {
@@ -67,7 +68,7 @@ class _TelaDePlanilhaDialogState extends State<TelaDePlanilhaDialog> {
     try {
       final p = await _svc.abrir(id);
       if (!mounted || _id != id) return;
-      final t = tabelaDaPlanilha(p.celulas);
+      final t = semColunasDeTenant(tabelaDaPlanilha(p.celulas));
       setState(() {
         _tabela = t;
         if (_titulo.text.trim().isEmpty) _titulo.text = p.nome;

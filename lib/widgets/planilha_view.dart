@@ -10,6 +10,7 @@ import '../utils/grid_colors.dart';
 import '../utils/planilha_acao.dart';
 import '../utils/planilha_acrescentar.dart';
 import '../utils/planilha_formula.dart';
+import '../utils/planilha_tenant.dart';
 import '../utils/planilha_tipos.dart';
 import '../utils/tenant_context.dart';
 import 'coluna_planilha_dialogs.dart';
@@ -22,9 +23,10 @@ import 'planilha_botoes.dart';
 class PlanilhaView extends StatefulWidget {
   final PlanilhaService? servico;
   final AcaoJavaService? acoes;
+  final SessaoTenant? sessao;
   final bool? podeConsultar;
 
-  const PlanilhaView({super.key, this.servico, this.podeConsultar, this.acoes});
+  const PlanilhaView({super.key, this.servico, this.podeConsultar, this.acoes, this.sessao});
 
   @override
   State<PlanilhaView> createState() => _PlanilhaViewState();
@@ -65,9 +67,24 @@ class _PlanilhaViewState extends State<PlanilhaView> {
 
   String get _selecionada => endereco(_linha, _coluna);
 
+  late final SessaoTenant _sessao = widget.sessao ?? SessaoTenant.doLogin();
+
+  Map<String, String> _comTenant(Map<String, String> celulas) =>
+      _planilhaDoUsuario ? fixarTenant(celulas, _sessao) : celulas;
+
+  bool _ehColunaDeTenant(int coluna) => _planilhaDoUsuario && colunasDeTenant(_celulas).containsKey(coluna);
+
+  /// empresa_id e parceiro_id sao bloqueados para todos menos o MASTER.
+  bool _bloqueada(int coluna) => !_sessao.master && _sessao.empresa != null && _ehColunaDeTenant(coluna);
+
   @override
   void initState() {
     super.initState();
+    // planilha nova ja nasce com a empresa do login
+    _celulas = cabecalhosDoTenant(_sessao);
+    _calculo = PlanilhaCalculo(_celulas);
+    _coluna = _celulas.length;
+    _sincronizar();
     _executar('carregar as planilhas', () async => _salvas = await _svc.listar());
   }
 
@@ -112,19 +129,23 @@ class _PlanilhaViewState extends State<PlanilhaView> {
 
   // ------------------------------------------------------------------ celulas
 
-  void _aposMudanca() {
+  void _aposMudanca({bool fixar = true}) {
     _alterada = true;
+    if (fixar) _celulas = _comTenant(_celulas);
     _calculo = PlanilhaCalculo(_celulas);
   }
 
   void _editar(String valor) {
+    if (_bloqueada(_coluna)) return;
+    // MASTER digitando na propria coluna de empresa/parceiro: nao repreencher no meio da digitacao
+    final editandoTenant = _ehColunaDeTenant(_coluna);
     setState(() {
       if (valor.isEmpty) {
         _celulas.remove(_selecionada);
       } else {
         _celulas[_selecionada] = valor;
       }
-      _aposMudanca();
+      _aposMudanca(fixar: !editandoTenant);
     });
   }
 
@@ -145,7 +166,8 @@ class _PlanilhaViewState extends State<PlanilhaView> {
   /// Troca a planilha aberta (conteudo, tipos de coluna, versao e permissoes).
   void _substituir(Map<String, String> celulas, {int? id, String? nome, PlanilhaDados? de}) {
     setState(() {
-      _celulas = Map.of(celulas);
+      final nova = _planilhaDoUsuario && celulas.isEmpty;
+      _celulas = nova ? cabecalhosDoTenant(_sessao) : _comTenant(Map.of(celulas));
       _calculo = PlanilhaCalculo(_celulas);
       _id = id;
       _colunas = Map.of(de?.colunas ?? const {});
@@ -155,7 +177,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
       _botoes = const [];
       if (nome != null) _nome.text = nome;
       _linha = 0;
-      _coluna = 0;
+      _coluna = nova ? _celulas.length : 0;
       _alterada = false;
       _sincronizar();
     });
@@ -348,7 +370,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
     if (!mounted) return;
     var celulas = arquivo;
     String? resumo;
-    if (_celulas.isNotEmpty) {
+    if (!soCabecalhosDoTenant(_celulas)) {
       final escolha = await showDialog<EscolhaImportacao>(
           context: context, builder: (_) => ImportarPlanilhaDialog(atual: _celulas, arquivo: arquivo));
       if (escolha == null) return;
@@ -622,6 +644,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
             child: TextField(
               key: const Key('barra-formula'),
               controller: _barra,
+              readOnly: _bloqueada(_coluna),
               style: TextStyle(color: _tinta),
               onChanged: (v) {
                 _celula.text = v;
@@ -741,6 +764,7 @@ class _PlanilhaViewState extends State<PlanilhaView> {
                         TextField(
                           key: ValueKey('editor-${endereco(l, c)}'),
                           controller: _celula,
+                          readOnly: _bloqueada(c),
                           autofocus: true,
                           style: TextStyle(fontSize: 13, color: _tinta),
                           onChanged: (v) {
@@ -862,7 +886,7 @@ class _DadosSistemaDialogState extends State<DadosSistemaDialog> {
     final daFonte = tabela == null ? const <String, TipoDaFonte>{} : widget.servico.tiposDe(tabela);
     final tipos = [for (final c in r.colunas) daFonte[c]];
     return ConsultaPlanilha(
-        [for (final c in r.colunas) _campos[c] ?? c],
+        [for (final c in r.colunas) ehColunaDeTenant(c) ? c : _campos[c] ?? c],
         [
           for (final l in r.linhas) [for (var i = 0; i < l.length; i++) valorDaFonte(l[i], tipos[i])]
         ],
