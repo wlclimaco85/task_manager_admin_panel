@@ -1,5 +1,6 @@
 import '../models/network_response.dart';
 import '../config/api_links.dart';
+import '../utils/campo_calculado.dart';
 import 'modulo_java_service.dart';
 import 'network_caller.dart';
 
@@ -31,6 +32,10 @@ class DashComponente {
   final int ordem;
   final int largura; // 1 = meia tela, 2 = tela cheia
 
+  /// Colunas com total e colunas preenchidas por SELECT (campos so chegam para o MASTER).
+  final List<String> somas;
+  final List<CampoCalculado> campos;
+
   const DashComponente({
     this.id,
     required this.tipo,
@@ -38,6 +43,8 @@ class DashComponente {
     this.sql,
     this.ordem = 0,
     this.largura = 1,
+    this.somas = const [],
+    this.campos = const [],
   });
 
   factory DashComponente.fromJson(Map<String, dynamic> j) => DashComponente(
@@ -47,9 +54,19 @@ class DashComponente {
         sql: j['sql']?.toString(),
         ordem: (j['ordem'] as num?)?.toInt() ?? 0,
         largura: (j['largura'] as num?)?.toInt() ?? 1,
+        somas: [for (final s in (j['somas'] as List?) ?? const []) '$s'],
+        campos: CampoCalculado.lista(j['campos']),
       );
 
-  Map<String, dynamic> toJson() => {'tipo': tipo, 'titulo': titulo, 'sql': sql, 'ordem': ordem, 'largura': largura};
+  Map<String, dynamic> toJson() => {
+        'tipo': tipo,
+        'titulo': titulo,
+        'sql': sql,
+        'ordem': ordem,
+        'largura': largura,
+        'somas': somas,
+        'campos': [for (final c in campos) c.toJson()],
+      };
 }
 
 class DashboardPersonalizado {
@@ -107,12 +124,14 @@ class ResultadoDash {
   final List<List<dynamic>> linhas;
   final bool truncado;
   final String? erro;
+  final List<String> somas;
 
   const ResultadoDash({
     this.id,
     required this.tipo,
     required this.titulo,
     this.largura = 1,
+    this.somas = const [],
     this.colunas = const [],
     this.linhas = const [],
     this.truncado = false,
@@ -124,6 +143,7 @@ class ResultadoDash {
         tipo: (j['tipo']?.toString() ?? 'TABELA').toUpperCase(),
         titulo: j['titulo']?.toString() ?? '',
         largura: (j['largura'] as num?)?.toInt() ?? 1,
+        somas: [for (final s in (j['somas'] as List?) ?? const []) '$s'],
         colunas: ((j['colunas'] as List?) ?? const []).map((c) => c.toString()).toList(),
         linhas: ((j['linhas'] as List?) ?? const []).whereType<List>().map((l) => List<dynamic>.from(l)).toList(),
         truncado: j['truncado'] == true,
@@ -184,6 +204,15 @@ class DashboardPersonalizadoService {
   /// Previa de um SQL (ate 50 linhas): devolve o resultado ou lanca a mensagem do servidor.
   Future<ResultadoDash> testarSql(String sql, Map<String, dynamic> parametros) async {
     final r = await _rede.postRequest(ApiLinks.dashboardsPersonalizadosTestar, {'sql': sql, 'parametros': parametros});
+    _exigir(r, 'testar o SQL');
+    return ResultadoDash.fromJson({...r.body!, 'tipo': 'TABELA', 'titulo': 'Prévia'});
+  }
+
+  /// Previa com colunas por SELECT ainda nao salvas.
+  Future<ResultadoDash> testarComCampos(String sql, Map<String, dynamic> parametros, List<CampoCalculado> campos) async {
+    if (campos.isEmpty) return testarSql(sql, parametros);
+    final r = await _rede.postRequest(ApiLinks.dashboardsPersonalizadosTestar,
+        {'sql': sql, 'parametros': parametros, 'campos': [for (final c in campos) c.toJson()]});
     _exigir(r, 'testar o SQL');
     return ResultadoDash.fromJson({...r.body!, 'tipo': 'TABELA', 'titulo': 'Prévia'});
   }

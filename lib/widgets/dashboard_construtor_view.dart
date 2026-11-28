@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../services/dashboard_personalizado_service.dart';
 import '../utils/app_logger.dart';
+import '../utils/campo_calculado.dart';
+import 'colunas_por_select.dart';
 import 'dashboard_componente_view.dart';
 import 'fonte_planilha_dialog.dart';
 
@@ -159,13 +161,20 @@ class _CompEdit {
   ResultadoDash? previa;
   String? erroPrevia;
   bool testando = false;
+  final Set<String> somas = {};
+  List<CampoCalculado> campos = const [];
+
+  /// Colunas do ultimo teste que deu certo (continuam disponiveis se o proximo falhar).
+  List<String> colunas = const [];
 
   _CompEdit(this.titulo, this.sql, this.tipo, this.largura);
 
   factory _CompEdit.vazio() => _CompEdit(TextEditingController(), TextEditingController(), 'TABELA', 1);
 
-  factory _CompEdit.de(DashComponente c) =>
-      _CompEdit(TextEditingController(text: c.titulo), TextEditingController(text: c.sql ?? ''), c.tipo, c.largura);
+  factory _CompEdit.de(DashComponente c) => _CompEdit(
+      TextEditingController(text: c.titulo), TextEditingController(text: c.sql ?? ''), c.tipo, c.largura)
+    ..somas.addAll(c.somas)
+    ..campos = c.campos;
 
   void dispose() {
     titulo.dispose();
@@ -259,8 +268,13 @@ class _DashboardDialogState extends State<_DashboardDialog> {
       c.previa = null;
     });
     try {
-      final r = await widget.servico.testarSql(c.sql.text.trim(), _valoresDeTeste());
-      if (mounted) setState(() => c.previa = r);
+      final r = await widget.servico.testarComCampos(c.sql.text.trim(), _valoresDeTeste(), c.campos);
+      if (mounted) {
+        setState(() {
+          c.previa = r;
+          c.colunas = r.colunas;
+        });
+      }
     } catch (e) {
       AppLogger.i.warn('DashboardConstrutorView: SQL recusado/falhou no teste: $e');
       if (mounted) setState(() => c.erroPrevia = '$e');
@@ -288,7 +302,14 @@ class _DashboardDialogState extends State<_DashboardDialog> {
         ],
         componentes: [
           for (var i = 0; i < _comps.length; i++)
-            DashComponente(tipo: _comps[i].tipo, titulo: _comps[i].titulo.text.trim(), sql: _comps[i].sql.text.trim(), ordem: i, largura: _comps[i].largura),
+            DashComponente(
+                tipo: _comps[i].tipo,
+                titulo: _comps[i].titulo.text.trim(),
+                sql: _comps[i].sql.text.trim(),
+                ordem: i,
+                largura: _comps[i].largura,
+                somas: _comps[i].tipo == 'KPI' ? const [] : _comps[i].somas.toList(),
+                campos: _comps[i].campos),
         ],
       ),
     );
@@ -384,6 +405,17 @@ class _DashboardDialogState extends State<_DashboardDialog> {
     );
   }
 
+  /// Colunas com numero na previa, mais as ja marcadas (que continuam desmarcaveis antes do teste).
+  List<String> _somaveis(_CompEdit c) {
+    final p = c.previa;
+    return {
+      ...c.somas,
+      if (p != null)
+        for (var i = 0; i < p.colunas.length; i++)
+          if (p.linhas.any((l) => l.length > i && l[i] is num)) p.colunas[i]
+    }.toList();
+  }
+
   Widget _compForm(int i) {
     final c = _comps[i];
     return Card(
@@ -441,6 +473,25 @@ class _DashboardDialogState extends State<_DashboardDialog> {
               label: const Text('Usar planilha'),
             ),
           ]),
+          ColunasPorSelect(
+            campos: c.campos,
+            colunas: c.colunas,
+            aoMudar: (novos) {
+              setState(() => c.campos = novos);
+              _testar(c);
+            },
+          ),
+          if (c.tipo != 'KPI' && (_somaveis(c).isNotEmpty))
+            Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              const Text('Somar:'),
+              for (final s in _somaveis(c))
+                FilterChip(
+                  key: ValueKey('somar-$s'),
+                  label: Text(s),
+                  selected: c.somas.contains(s),
+                  onSelected: (v) => setState(() => v ? c.somas.add(s) : c.somas.remove(s)),
+                ),
+            ]),
           if (c.erroPrevia != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
@@ -450,7 +501,11 @@ class _DashboardDialogState extends State<_DashboardDialog> {
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 260),
               child: SingleChildScrollView(child: ComponenteDashboardView(resultado: ResultadoDash(
-                  tipo: c.tipo, titulo: 'Prévia (${c.previa!.linhas.length} linha(s))', colunas: c.previa!.colunas, linhas: c.previa!.linhas))),
+                  tipo: c.tipo,
+                  titulo: 'Prévia (${c.previa!.linhas.length} linha(s))',
+                  colunas: c.previa!.colunas,
+                  linhas: c.previa!.linhas,
+                  somas: c.somas.toList()))),
             ),
         ]),
       ),

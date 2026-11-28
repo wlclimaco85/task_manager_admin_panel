@@ -50,6 +50,13 @@ class ComponenteDashboardView extends StatelessWidget {
             const Text('Sem dados para o período/filtro.')
           else
             _corpo(context),
+          if (resultado.erro == null && resultado.tipo != 'TABELA' && resultado.tipo != 'KPI')
+            for (final e in _totais().entries)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('Total ${resultado.colunas[e.key]}: ${formatarNumero(e.value)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
           if (resultado.truncado)
             const Padding(
               padding: EdgeInsets.only(top: 6),
@@ -78,7 +85,15 @@ class ComponenteDashboardView extends StatelessWidget {
     }
   }
 
+  /// Indice da coluna marcada para somar -> total das linhas exibidas.
+  Map<int, double> _totais() => {
+        for (var i = 0; i < resultado.colunas.length; i++)
+          if (resultado.somas.any((s) => s.toLowerCase() == resultado.colunas[i].toLowerCase()))
+            i: resultado.linhas.fold(0.0, (t, l) => t + (l.length > i ? numeroDeCelula(l[i]) ?? 0 : 0))
+      };
+
   Widget _tabela() {
+    final totais = _totais();
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
@@ -87,6 +102,12 @@ class ComponenteDashboardView extends StatelessWidget {
           for (final l in resultado.linhas)
             DataRow(cells: [
               for (final v in l) DataCell(Text(numeroDeCelula(v) != null && v is num ? formatarNumero(v) : (v?.toString() ?? '-'))),
+            ]),
+          if (totais.isNotEmpty)
+            DataRow(cells: [
+              for (var i = 0; i < resultado.colunas.length; i++)
+                DataCell(Text(totais.containsKey(i) ? formatarNumero(totais[i]) : (i == 0 ? 'Total' : ''),
+                    style: const TextStyle(fontWeight: FontWeight.w700))),
             ]),
         ],
       ),

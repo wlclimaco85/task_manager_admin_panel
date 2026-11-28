@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/network_response.dart';
 import '../config/api_links.dart';
+import '../utils/campo_calculado.dart';
 import '../utils/tenant_context.dart';
 import 'dashboard_personalizado_service.dart' show DashFiltro, ResultadoDash;
 import 'modulo_java_service.dart';
@@ -211,6 +212,9 @@ class RelConfig {
   final String modo; // SIMPLES | AVANCADO
   final RelLayout? layout;
 
+  /// Colunas preenchidas por SELECT (so chegam para o MASTER).
+  final List<CampoCalculado> campos;
+
   const RelConfig({
     this.orientacao = 'RETRATO',
     this.subtitulo,
@@ -219,6 +223,7 @@ class RelConfig {
     this.colunas = const [],
     this.modo = 'SIMPLES',
     this.layout,
+    this.campos = const [],
   });
 
   bool get avancado => modo == 'AVANCADO';
@@ -231,6 +236,7 @@ class RelConfig {
         colunas: colunas,
         modo: modo ?? this.modo,
         layout: layout ?? this.layout,
+        campos: campos,
       );
 
   factory RelConfig.fromJson(Map<String, dynamic>? j) => j == null
@@ -243,6 +249,7 @@ class RelConfig {
           colunas: ((j['colunas'] as List?) ?? const []).whereType<Map<String, dynamic>>().map(RelColuna.fromJson).toList(),
           modo: (j['modo']?.toString() ?? 'SIMPLES').toUpperCase(),
           layout: j['layout'] is Map<String, dynamic> ? RelLayout.fromJson(j['layout'] as Map<String, dynamic>) : null,
+          campos: CampoCalculado.lista(j['campos']),
         );
 
   Map<String, dynamic> toJson() => {
@@ -253,6 +260,7 @@ class RelConfig {
         'colunas': colunas.map((c) => c.toJson()).toList(),
         'modo': modo,
         'layout': layout?.toJson(),
+        'campos': [for (final c in campos) c.toJson()],
       };
 }
 
@@ -376,6 +384,15 @@ class RelatorioPersonalizadoService {
   /// Previa do SQL (ate 50 linhas): serve tambem para descobrir as colunas do relatorio.
   Future<ResultadoDash> testarSql(String sql, Map<String, dynamic> parametros) async {
     final r = await _rede.postRequest(ApiLinks.relatoriosPersonalizadosTestar, {'sql': sql, 'parametros': parametros});
+    _exigir(r, 'testar o SQL');
+    return ResultadoDash.fromJson({...r.body!, 'tipo': 'TABELA', 'titulo': 'Prévia'});
+  }
+
+  /// Previa com colunas por SELECT ainda nao salvas.
+  Future<ResultadoDash> testarComCampos(String sql, Map<String, dynamic> parametros, List<CampoCalculado> campos) async {
+    if (campos.isEmpty) return testarSql(sql, parametros);
+    final r = await _rede.postRequest(ApiLinks.relatoriosPersonalizadosTestar,
+        {'sql': sql, 'parametros': parametros, 'campos': [for (final c in campos) c.toJson()]});
     _exigir(r, 'testar o SQL');
     return ResultadoDash.fromJson({...r.body!, 'tipo': 'TABELA', 'titulo': 'Prévia'});
   }
